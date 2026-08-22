@@ -72,6 +72,8 @@ fun AccountScreen(
     onRemoveTarget: (String) -> Unit,
     onExport: () -> Unit,
     exported: String?,
+    onErase: () -> Unit,
+    erasing: String?,
     /** What went wrong last time, if anything. Silently doing
         nothing is the one response to a failed sign-in that
         leaves somebody pressing the same button again. */
@@ -207,6 +209,9 @@ fun AccountScreen(
                         Text(it, style = MaterialTheme.typography.bodySmall, color = c.ink)
                     }
                 }
+
+                Spacer(Modifier.height(Gap.s7))
+                Erase(onErase, erasing)
 
                 Spacer(Modifier.height(Gap.s7))
                 Control(
@@ -438,6 +443,86 @@ private fun KeptRow(row: Kept, onOpen: () -> Unit) {
         if (row.saved) {
             Spacer(Modifier.width(Gap.s5))
             Text("✓", style = MaterialTheme.typography.labelMedium, color = c.accent)
+        }
+    }
+}
+
+
+/** Erasing everything, behind one question.
+
+    A confirmation rather than a straight button, because this is
+    the one control on the screen that cannot be undone and a
+    reader who meant to press Sign out is one row above it.
+
+    What it says is what it DOES: the rows go, and the login does
+    not. Deleting an auth user needs a service-role key, which
+    this project does not have and has no reason to start having,
+    and a button promising to delete an account that then leaves
+    the account able to sign in would be a lie a reader only finds
+    out about afterwards. */
+@Composable
+private fun Erase(onErase: () -> Unit, erasing: String?) {
+    val c = LocalReiad.current
+    var asking by remember { mutableStateOf(false) }
+
+    if (erasing != null) {
+        Plate(Modifier.fillMaxWidth()) {
+            Text(erasing, style = MaterialTheme.typography.bodyMedium, color = c.ink)
+        }
+        return
+    }
+
+    if (!asking) {
+        Control(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button) { asking = true },
+            ground = c.panel,
+        ) {
+            Text(
+                "Erase everything",
+                style = MaterialTheme.typography.labelLarge,
+                color = c.danger,
+            )
+        }
+        return
+    }
+
+    Pane {
+        Text(
+            "Erase everything this account has saved?",
+            style = MaterialTheme.typography.titleMedium,
+            color = c.ink,
+        )
+        Spacer(Modifier.height(Gap.s4))
+        Text(
+            "Your position, your checkpoints, your reading list, your notes and your " +
+                "targets. This cannot be undone. Your login stays, so you can start " +
+                "again from nothing.",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.inkSoft,
+        )
+        Spacer(Modifier.height(Gap.s6))
+        Row(horizontalArrangement = Arrangement.spacedBy(Gap.s5)) {
+            Control(
+                modifier = Modifier.clickable(role = Role.Button) { asking = false },
+                ground = c.panel,
+            ) {
+                Text("Keep it", style = MaterialTheme.typography.labelLarge, color = c.accent)
+            }
+            Control(
+                modifier = Modifier.clickable(role = Role.Button) {
+                    asking = false
+                    onErase()
+                },
+                ground = c.danger,
+            ) {
+                Text(
+                    "Erase everything",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = c.paper,
+                )
+            }
         }
     }
 }

@@ -347,6 +347,9 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
     private val _exported = MutableStateFlow<String?>(null)
     val exported: StateFlow<String?> = _exported.asStateFlow()
 
+    private val _erasing = MutableStateFlow<String?>(null)
+    val erasing: StateFlow<String?> = _erasing.asStateFlow()
+
     fun account(context: android.content.Context): Account {
         account?.let { return it }
         val made = Account(context.applicationContext)
@@ -422,13 +425,79 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
         }
     }
 
-    fun export() {
+    /** One JSON file with everything in it, handed to the share
+        sheet so the reader can put it wherever they keep things.
+
+        Built from what the ACCOUNT answers rather than from what
+        this phone holds, because a copy of a mirror is not a copy
+        of the record: a device that had never exchanged would
+        otherwise export an empty file and call it everything. */
+    fun export(context: android.content.Context) {
         val shelf = library ?: return
         viewModelScope.launch {
             _exported.value = "Preparing…"
-            val file = shelf.exportAll(_reader.value, reiad.everything())
-            _exported.value = "${file.length} characters. " +
-                "Sharing it to a file comes with the share sheet."
+            val file = runCatching { shelf.exportAll(_reader.value, reiad.everything()) }
+                .getOrNull()
+            if (file == null) {
+                _exported.value = "That did not work. Try again with a connection."
+                return@launch
+            }
+            _exported.value = if (share(context, file)) {
+                "Sent to whatever you chose. ${file.length} characters."
+            } else {
+                "Could not open the share sheet on this device."
+            }
+        }
+    }
+
+    /** Written to the app's own cache and shared by a content
+        URI, never by a file path.
+
+        A `file://` URI has been refused since Android 7, and the
+        cache rather than downloads because this file is a copy of
+        somebody's whole account: it should live exactly as long
+        as it takes them to put it where they want it. */
+    private fun share(context: android.content.Context, text: String): Boolean = runCatching {
+        val dir = java.io.File(context.cacheDir, "exports").apply { mkdirs() }
+        val file = java.io.File(dir, "reiad-account.json")
+        file.writeText(text)
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.files",
+            file,
+        )
+        context.startActivity(
+            android.content.Intent.createChooser(
+                android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "application/json"
+                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                },
+                "Your account",
+            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+        true
+    }.getOrDefault(false)
+
+    fun erase() {
+        val shelf = library ?: return
+        viewModelScope.launch {
+            _erasing.value = "Erasing…"
+            val gone = shelf.eraseAll()
+            /* The mirror comes off either way. Leaving a phone
+               full of rows the account no longer has would put
+               every one of them straight back on the next
+               exchange. */
+            sync?.forget()
+            _kept.value = emptyList()
+            _targets.value = emptyList()
+            _daysActive.value = emptySet()
+            loadMarks()
+            _erasing.value = if (gone) {
+                "Erased. Nothing of yours is on this account or on this phone."
+            } else {
+                "Some of that did not work. Try again with a connection."
+            }
         }
     }
 
@@ -606,6 +675,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val targets by model.targets.collectAsState()
     val daysActive by model.daysActive.collectAsState()
     val exported by model.exported.collectAsState()
+    val erasing by model.erasing.collectAsState()
     val checks by model.checks.collectAsState()
     val bookmarks by model.bookmarks.collectAsState()
     val book by model.book.collectAsState()
@@ -708,8 +778,10 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         ticksOf = { key -> ticks[key].orEmpty().size },
                         onOpenKept = { row -> openOnSite(context, row.url, colours) },
                         onRemoveTarget = { model.removeTarget(it) },
-                        onExport = { model.export() },
+                        onExport = { model.export(context) },
                         exported = exported,
+                        onErase = { model.erase() },
+                        erasing = erasing,
                         problem = authProblem,
                         linkSent = linkSent,
                         bottomPadding = BAR_CLEARANCE,

@@ -68,6 +68,20 @@
             </intent-filter>
         </activity>
 
+        <!-- Handing the account export to the share sheet. A
+             file:// URI has been refused since Android 7, so a
+             copy of anything leaves through a content URI or it
+             does not leave. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/shared_files" />
+        </provider>
+
         <service
             android:name=".read.ReadAloudService"
             android:exported="false"

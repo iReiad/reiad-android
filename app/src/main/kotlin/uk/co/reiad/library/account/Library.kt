@@ -169,6 +169,35 @@ class Library(private val account: Account) {
         true
     } ?: false
 
+    /** Every row this account holds, gone.
+
+        The rows and not the auth user: deleting the user needs a
+        service-role key, which this project deliberately does not
+        have and has no reason to start having. What a reader can
+        do from here is empty everything of theirs, which is what
+        "erase everything" means on the site too, and the screen
+        says so rather than implying the login itself disappears.
+
+        Each table separately rather than one call, because they
+        are separate tables and PostgREST has no cascade to ask
+        for. `user_id` is never named: the row-level policy is
+        `auth.uid() = user_id`, so a delete with no filter can
+        only ever reach this reader's own rows. */
+    suspend fun eraseAll(): Boolean = withToken { token ->
+        var whole = true
+        for (table in listOf("library", "targets", "scenarios", "progress")) {
+            val gone = runCatching {
+                http.delete("${Supabase.REST}/$table?user_id=not.is.null") {
+                    header("apikey", Supabase.KEY)
+                    header("Authorization", "Bearer $token")
+                    header("Prefer", "return=minimal")
+                }
+            }.isSuccess
+            if (!gone) whole = false
+        }
+        whole
+    } ?: false
+
     suspend fun removeTarget(id: String): Boolean = withToken { token ->
         http.delete("${Supabase.REST}/targets?id=eq.${encodeComponent(id)}") {
             header("apikey", Supabase.KEY)
