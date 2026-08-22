@@ -2,11 +2,14 @@ package uk.co.reiad.library
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,9 +19,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -27,28 +29,29 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import uk.co.reiad.library.core.Accent
 import uk.co.reiad.library.core.Accents
-import uk.co.reiad.library.core.Block
 import uk.co.reiad.library.core.BodyParser
+import uk.co.reiad.library.core.LadderSchool
 import uk.co.reiad.library.core.Lesson
 import uk.co.reiad.library.core.LessonPage
 import uk.co.reiad.library.core.School
+import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.Stage
 import uk.co.reiad.library.core.lessonId
 import uk.co.reiad.library.data.Reiad
@@ -60,173 +63,345 @@ import uk.co.reiad.library.ui.Corner
 import uk.co.reiad.library.ui.Gap
 import uk.co.reiad.library.ui.Groove
 import uk.co.reiad.library.ui.LocalReiad
+import uk.co.reiad.library.ui.Plate
 import uk.co.reiad.library.ui.ReiadTheme
 import uk.co.reiad.library.ui.Rung
 
 /* ============================================================
-   The money school, on a handset: the ladder, a lesson, a tick.
+   The four schools, on a handset.
 
-   This is the first slice ANDROID.md names, and it is deliberately
-   the whole vertical rather than a prettier ladder: a ladder that
-   renders and a lesson that does not open is the shape of thing
-   this project keeps promising not to ship.
+   **The list of schools is the site's, not this app's.** The home
+   screen draws whatever `/api/site` says has a ladder, with the
+   colour the site gives it. Add a fifth school to the one nav
+   table on the site and it appears here, in its own colour, with
+   no app release. That is the promise `ANDROID.md` makes and
+   `check-app-surface.ts` enforces from the other end, and drawing
+   the home screen from a hardcoded list would have quietly broken
+   it on day one.
 
-   Opening is not finishing. The money school's tick is a BUTTON,
-   and a visit only moves the bookmark. The other three schools
-   mark a lesson on opening, which is their own semantics and
-   arrives with them.
+   **Opening is not finishing, and each school means it its own
+   way.** The money school's tick is a button the reader presses.
+   The other three mark a lesson when it is opened, which is what
+   `recordVisit` has always done on the site. Same store, same
+   keys, different verb, and the difference is stated here rather
+   than averaged away.
    ============================================================ */
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent {
-            ReiadTheme(accent = Accents.GREEN) {
-                Surface(
-                    Modifier.fillMaxSize(),
-                    color = LocalReiad.current.paper,
-                ) { MoneySchool() }
+        setContent { App() }
+    }
+}
+
+/* ---------- where the reader is ---------- */
+
+private sealed interface Where {
+    data object Home : Where
+    data class Ladder(val school: LadderSchool) : Where
+    data class Reading(val school: LadderSchool, val stage: Stage, val lesson: Lesson) : Where
+}
+
+private class AppModel(private val reiad: Reiad) : ViewModel() {
+
+    private val _site = MutableStateFlow<SiteManifest?>(null)
+    val site: StateFlow<SiteManifest?> = _site.asStateFlow()
+
+    private val _stale = MutableStateFlow(false)
+    val stale: StateFlow<Boolean> = _stale.asStateFlow()
+
+    private val _note = MutableStateFlow<String?>(null)
+    val note: StateFlow<String?> = _note.asStateFlow()
+
+    private val _stages = MutableStateFlow<List<Stage>>(emptyList())
+    val stages: StateFlow<List<Stage>> = _stages.asStateFlow()
+
+    private val _page = MutableStateFlow<LessonPage?>(null)
+    val page: StateFlow<LessonPage?> = _page.asStateFlow()
+
+    private val _ticks = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
+    val ticks: StateFlow<Map<String, Set<String>>> = _ticks.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            val answer = reiad.manifest()
+            _site.value = answer.value
+            _stale.value = answer.stale
+            if (answer.value == null) {
+                _note.value = "Could not reach the site, and nothing is saved yet."
+            }
+            for (school in School.entries) {
+                _ticks.value = _ticks.value + (school.id to reiad.ticksNow(school))
+            }
+        }
+    }
+
+    fun openLadder(school: LadderSchool) {
+        _stages.value = emptyList()
+        viewModelScope.launch {
+            val answer = reiad.ladder(school.key)
+            _stages.value = answer.value?.stages.orEmpty()
+            _stale.value = answer.stale
+            if (answer.value == null) _note.value = "That school is not saved on this device yet."
+        }
+    }
+
+    /** Opening a lesson marks it read in every school but the
+        money one, which is the site's own rule rather than a
+        simplification. */
+    fun openLesson(school: LadderSchool, stage: Stage, lesson: Lesson) {
+        _page.value = null
+        viewModelScope.launch {
+            val answer = reiad.lesson(school.key, stage.slug, lesson.slug)
+            _page.value = answer.value?.lesson
+            _stale.value = answer.stale
+
+            val which = School.of(school.key)
+            if (which != null && which != School.MONEY && lesson.isWritten) {
+                val after = reiad.markRead(which, lessonId(stage.slug, lesson.slug))
+                _ticks.value = _ticks.value + (which.id to after)
+            }
+        }
+    }
+
+    fun tick(school: LadderSchool, stage: Stage, lesson: Lesson) {
+        val which = School.of(school.key) ?: return
+        viewModelScope.launch {
+            val after = reiad.toggleTick(which, lessonId(stage.slug, lesson.slug))
+            _ticks.value = _ticks.value + (which.id to after)
+        }
+    }
+
+    fun ticksOf(key: String): Set<String> = _ticks.value[key].orEmpty()
+}
+
+/* ---------- the app ---------- */
+
+@Composable
+fun App() {
+    val context = LocalContext.current
+    val reiad = remember { Reiad(context.applicationContext) }
+    val model = remember { AppModel(reiad) }
+
+    var where by remember { mutableStateOf<Where>(Where.Home) }
+
+    val site by model.site.collectAsState()
+    val stages by model.stages.collectAsState()
+    val page by model.page.collectAsState()
+    val ticks by model.ticks.collectAsState()
+    val stale by model.stale.collectAsState()
+    val note by model.note.collectAsState()
+
+    val accent: Accent = when (val here = where) {
+        is Where.Ladder -> accentOf(here.school)
+        is Where.Reading -> accentOf(here.school)
+        Where.Home -> Accents.GREEN
+    }
+
+    ReiadTheme(accent = accent) {
+        Surface(Modifier.fillMaxSize(), color = LocalReiad.current.paper) {
+            when (val here = where) {
+                Where.Home -> Home(
+                    site = site,
+                    stale = stale,
+                    note = note,
+                    ticks = ticks,
+                    onOpen = { school ->
+                        model.openLadder(school)
+                        where = Where.Ladder(school)
+                    },
+                )
+
+                is Where.Ladder -> {
+                    BackHandler { where = Where.Home }
+                    Ladder(
+                        school = here.school,
+                        stages = stages,
+                        ticks = ticks[here.school.key].orEmpty(),
+                        stale = stale,
+                        onBack = { where = Where.Home },
+                        onOpen = { stage, lesson ->
+                            model.openLesson(here.school, stage, lesson)
+                            where = Where.Reading(here.school, stage, lesson)
+                        },
+                    )
+                }
+
+                is Where.Reading -> {
+                    BackHandler { where = Where.Ladder(here.school) }
+                    val id = lessonId(here.stage.slug, here.lesson.slug)
+                    Reading(
+                        school = here.school,
+                        stage = here.stage,
+                        lesson = here.lesson,
+                        page = page,
+                        ticked = id in ticks[here.school.key].orEmpty(),
+                        isMoney = here.school.key == School.MONEY.id,
+                        onBack = { where = Where.Ladder(here.school) },
+                        onTick = { model.tick(here.school, here.stage, here.lesson) },
+                    )
+                }
             }
         }
     }
 }
 
-/* ---------- state ---------- */
+/** The colour the SITE says this school owns, falling back to the
+    computed table only when the manifest has never arrived. */
+private fun accentOf(school: LadderSchool): Accent =
+    Accents.byToken(school.accent) ?: Accents.BY_KEY[school.key] ?: Accents.GREEN
 
-sealed interface Screen {
-    data object Ladder : Screen
-    data class Reading(val stage: Stage, val lesson: Lesson) : Screen
-}
-
-class SchoolModel(private val reiad: Reiad) : ViewModel() {
-
-    private val _stages = MutableStateFlow<List<Stage>>(emptyList())
-    val stages: StateFlow<List<Stage>> = _stages.asStateFlow()
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
-
-    private val _lesson = MutableStateFlow<LessonPage?>(null)
-    val lesson: StateFlow<LessonPage?> = _lesson.asStateFlow()
-
-    private val _ticks = MutableStateFlow<Set<String>>(emptySet())
-    val ticks: StateFlow<Set<String>> = _ticks.asStateFlow()
-
-    init {
-        viewModelScope.launch {
-            _ticks.value = reiad.ticksNow(School.MONEY)
-            runCatching { reiad.ladder("money") }
-                .onSuccess { _stages.value = it.stages }
-                .onFailure { _error.value = it.message ?: "Could not reach the site" }
-        }
-    }
-
-    fun open(stage: Stage, lesson: Lesson) {
-        _lesson.value = null
-        viewModelScope.launch {
-            runCatching { reiad.lesson("money", stage.slug, lesson.slug) }
-                .onSuccess { _lesson.value = it.lesson }
-                .onFailure { _error.value = it.message ?: "Could not reach that lesson" }
-        }
-    }
-
-    fun tick(stage: Stage, lesson: Lesson) {
-        viewModelScope.launch {
-            _ticks.value = reiad.toggleTick(School.MONEY, lessonId(stage.slug, lesson.slug))
-        }
-    }
-}
-
-/* ---------- screens ---------- */
+/* ---------- home ---------- */
 
 @Composable
-fun MoneySchool() {
-    val context = LocalContext.current
-    val reiad = remember { Reiad(context.applicationContext) }
-    val model = remember { SchoolModel(reiad) }
+private fun Home(
+    site: SiteManifest?,
+    stale: Boolean,
+    note: String?,
+    ticks: Map<String, Set<String>>,
+    onOpen: (LadderSchool) -> Unit,
+) {
+    val c = LocalReiad.current
+    LazyColumn(
+        Modifier.fillMaxSize().padding(horizontal = Gap.s8),
+        contentPadding = PaddingValues(top = Gap.s11, bottom = Gap.s10),
+    ) {
+        item {
+            Text(
+                site?.site?.name ?: "Reiad's Library",
+                style = MaterialTheme.typography.displaySmall,
+                color = c.ink,
+            )
+            Text(
+                site?.site?.tagline ?: "Finance and Bangladesh markets",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.inkSoft,
+            )
+            if (stale) {
+                Spacer(Modifier.height(Gap.s6))
+                Chip("SAVED COPY")
+            }
+            Spacer(Modifier.height(Gap.s9))
+        }
 
-    var screen by remember { mutableStateOf<Screen>(Screen.Ladder) }
-    val stages by model.stages.collectAsState()
-    val ticks by model.ticks.collectAsState()
-    val error by model.error.collectAsState()
-    val lesson by model.lesson.collectAsState()
+        if (note != null && site == null) {
+            item {
+                Card {
+                    Text("Nothing saved yet", style = MaterialTheme.typography.titleMedium, color = c.ink)
+                    Spacer(Modifier.height(Gap.s3))
+                    Text(note, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
+                }
+            }
+        }
 
-    when (val current = screen) {
-        Screen.Ladder -> Ladder(
-            stages = stages,
-            ticks = ticks,
-            error = error,
-            onOpen = { stage, item ->
-                model.open(stage, item)
-                screen = Screen.Reading(stage, item)
-            },
-        )
+        if (site == null && note == null) {
+            item { Text("Reading the site…", color = c.inkSoft) }
+        }
 
-        is Screen.Reading -> Reading(
-            stage = current.stage,
-            lesson = current.lesson,
-            page = lesson,
-            ticked = lessonId(current.stage.slug, current.lesson.slug) in ticks,
-            onBack = { screen = Screen.Ladder },
-            onTick = { model.tick(current.stage, current.lesson) },
-        )
+        items(site?.ladders.orEmpty()) { school ->
+            SchoolCard(school, ticks[school.key].orEmpty().size, onOpen)
+            Spacer(Modifier.height(Gap.s7))
+        }
+
+        site?.counts?.let { counts ->
+            item {
+                Spacer(Modifier.height(Gap.s7))
+                Plate {
+                    Text("WHAT IS HERE", style = MaterialTheme.typography.labelSmall, color = c.accent)
+                    Spacer(Modifier.height(Gap.s4))
+                    Text(
+                        listOfNotNull(
+                            counts["lessons"]?.let { "$it lessons" },
+                            counts["calculators"]?.let { "$it calculators" },
+                            counts["caseStudies"]?.let { "$it case studies" },
+                        ).joinToString(" · "),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.inkSoft,
+                    )
+                }
+            }
+        }
     }
 }
+
+/** Each school in its own colour, which is the site's rule that a
+    page wears its section's colour, one level up. */
+@Composable
+private fun SchoolCard(school: LadderSchool, done: Int, onOpen: (LadderSchool) -> Unit) {
+    ReiadTheme(accent = accentOf(school), dark = LocalReiad.current.isDark) {
+        val c = LocalReiad.current
+        Card(
+            modifier = Modifier.fillMaxWidth().clickable { onOpen(school) },
+            accented = true,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AccentRail(Modifier.height(38.dp))
+                Spacer(Modifier.width(Gap.s6))
+                Column(Modifier.weight(1f)) {
+                    Text(school.bn, style = MaterialTheme.typography.titleMedium, color = c.ink)
+                    Text(school.en, style = MaterialTheme.typography.labelMedium, color = c.accent)
+                }
+                if (done > 0) Chip("$done")
+            }
+            if (school.blurb.isNotBlank()) {
+                Spacer(Modifier.height(Gap.s5))
+                Text(school.blurb, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
+            }
+        }
+    }
+}
+
+/* ---------- a ladder ---------- */
 
 @Composable
 private fun Ladder(
+    school: LadderSchool,
     stages: List<Stage>,
     ticks: Set<String>,
-    error: String?,
+    stale: Boolean,
+    onBack: () -> Unit,
     onOpen: (Stage, Lesson) -> Unit,
 ) {
     val c = LocalReiad.current
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = Gap.s10),
+        contentPadding = PaddingValues(top = Gap.s11, bottom = Gap.s10),
     ) {
         item {
-            Text("টাকা ও শেয়ার", style = MaterialTheme.typography.displaySmall, color = c.ink)
             Text(
-                "Money and shares, from nothing",
-                style = MaterialTheme.typography.bodyMedium,
-                color = c.inkSoft,
+                "← Home",
+                style = MaterialTheme.typography.labelLarge,
+                color = c.accent,
+                modifier = Modifier.clickable { onBack() },
             )
+            Spacer(Modifier.height(Gap.s7))
+            Text(school.bn, style = MaterialTheme.typography.displaySmall, color = c.ink)
+            Text(school.en, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
+            if (stale) {
+                Spacer(Modifier.height(Gap.s5))
+                Chip("SAVED COPY")
+            }
             Spacer(Modifier.height(Gap.s9))
         }
 
-        if (error != null && stages.isEmpty()) {
-            item {
-                Card {
-                    Text("Offline", style = MaterialTheme.typography.titleMedium, color = c.ink)
-                    Text(error, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
-                }
-            }
-        }
-
-        if (stages.isEmpty() && error == null) {
+        if (stages.isEmpty()) {
             item { Text("Reading the ladder…", color = c.inkSoft) }
         }
 
         items(stages) { stage ->
-            val lessons = stage.lessons
-            val done = lessons.count { lessonId(stage.slug, it.slug) in ticks }
-            StageCard(stage, lessons, done, ticks, onOpen)
+            StageCard(stage, ticks, onOpen)
             Spacer(Modifier.height(Gap.s8))
         }
     }
 }
 
 @Composable
-private fun StageCard(
-    stage: Stage,
-    lessons: List<Lesson>,
-    done: Int,
-    ticks: Set<String>,
-    onOpen: (Stage, Lesson) -> Unit,
-) {
+private fun StageCard(stage: Stage, ticks: Set<String>, onOpen: (Stage, Lesson) -> Unit) {
     val c = LocalReiad.current
+    val lessons = stage.lessons
+    val done = lessons.count { lessonId(stage.slug, it.slug) in ticks }
+
     Card(accented = done > 0) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AccentRail(Modifier.height(34.dp))
@@ -249,18 +424,18 @@ private fun StageCard(
 
         Spacer(Modifier.height(Gap.s6))
         Groove(if (lessons.isEmpty()) 0f else done.toFloat() / lessons.size)
-        Spacer(Modifier.height(Gap.s6))
+        Spacer(Modifier.height(Gap.s5))
 
         for (lesson in lessons) {
             val id = lessonId(stage.slug, lesson.slug)
             Rung(Modifier.clickable(enabled = lesson.isWritten) { onOpen(stage, lesson) }) {
                 Box(
                     Modifier
-                        .width(18.dp)
-                        .height(18.dp)
+                        .width(16.dp)
+                        .height(16.dp)
                         .background(
                             if (id in ticks) c.accent else c.hairline,
-                            androidx.compose.foundation.shape.RoundedCornerShape(Corner.pill),
+                            RoundedCornerShape(Corner.pill),
                         )
                 )
                 Spacer(Modifier.width(Gap.s6))
@@ -270,14 +445,14 @@ private fun StageCard(
                         style = MaterialTheme.typography.bodyLarge,
                         color = if (lesson.isWritten) c.ink else c.inkSoft,
                     )
-                    lesson.en?.let {
+                    (lesson.en ?: lesson.de ?: lesson.ar)?.let {
                         Text(it, style = MaterialTheme.typography.bodySmall, color = c.inkSoft)
                     }
                 }
                 if (!lesson.isWritten) Chip("আসছে")
                 else if (lesson.minutes > 0) {
                     Text(
-                        "${lesson.minutes} min",
+                        "${lesson.minutes}m",
                         style = MaterialTheme.typography.labelSmall,
                         color = c.inkSoft,
                     )
@@ -287,12 +462,16 @@ private fun StageCard(
     }
 }
 
+/* ---------- a lesson ---------- */
+
 @Composable
 private fun Reading(
+    school: LadderSchool,
     stage: Stage,
     lesson: Lesson,
     page: LessonPage?,
     ticked: Boolean,
+    isMoney: Boolean,
     onBack: () -> Unit,
     onTick: () -> Unit,
 ) {
@@ -301,7 +480,8 @@ private fun Reading(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = Gap.s8, vertical = Gap.s10)
+            .padding(horizontal = Gap.s8)
+            .padding(top = Gap.s11, bottom = Gap.s10)
     ) {
         Text(
             "← ${stage.bn}",
@@ -311,45 +491,50 @@ private fun Reading(
         )
         Spacer(Modifier.height(Gap.s7))
 
-        Text(lesson.bn, style = MaterialTheme.typography.displaySmall, color = c.ink)
+        Text(lesson.bn, style = MaterialTheme.typography.headlineMedium, color = c.ink)
         lesson.blurb?.let {
             Spacer(Modifier.height(Gap.s4))
             Text(it, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
         }
         Spacer(Modifier.height(Gap.s9))
 
-        if (page == null) {
-            Text("Opening…", color = c.inkSoft)
-        } else {
-            val blocks = remember(page.body) { BodyParser.parse(page.body).blocks }
-            if (blocks.isEmpty()) {
-                Text(
-                    "This one is promised and not written yet.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = c.inkSoft,
-                )
-            } else {
+        when {
+            page == null -> Text("Opening…", color = c.inkSoft)
+            page.body.isBlank() -> Text(
+                "This one is promised and not written yet.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = c.inkSoft,
+            )
+            else -> {
+                val blocks = remember(page.body) { BodyParser.parse(page.body).blocks }
                 BodyView(blocks)
             }
         }
 
         Spacer(Modifier.height(Gap.s10))
 
-        /* The money school's tick is a button. Opening a lesson
-           does not mark it, deliberately. */
-        Button(
-            onClick = onTick,
-            modifier = Modifier.fillMaxWidth().height(Gap.tap),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(Corner.pill),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = if (ticked) c.accent else c.panel,
-                contentColor = if (ticked) c.paper else c.accent,
-            ),
-        ) {
-            Text(
-                if (ticked) "পড়া হয়েছে ✓" else "পড়া হয়েছে",
-                style = MaterialTheme.typography.labelLarge,
-            )
+        /* The money school's tick is a button. The other three
+           marked this lesson when it opened, so what they get is
+           a statement rather than a control. */
+        if (isMoney) {
+            Button(
+                onClick = onTick,
+                modifier = Modifier.fillMaxWidth().height(Gap.tap),
+                shape = RoundedCornerShape(Corner.pill),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (ticked) c.accent else c.panel,
+                    contentColor = if (ticked) c.paper else c.accent,
+                ),
+            ) {
+                Text(
+                    if (ticked) "পড়া হয়েছে ✓" else "পড়া হয়েছে",
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        } else if (ticked) {
+            Plate(Modifier.fillMaxWidth()) {
+                Text("পড়া হয়েছে ✓", style = MaterialTheme.typography.labelLarge, color = c.accent)
+            }
         }
         Spacer(Modifier.height(Gap.s10))
     }
