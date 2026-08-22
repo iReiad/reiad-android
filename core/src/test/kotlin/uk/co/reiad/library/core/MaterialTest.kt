@@ -270,3 +270,64 @@ class MaterialTest {
         assertEquals(0.0, glowWidth(Material(9.0, 0.3, 0.3, 1.0, follows = false)))
     }
 }
+
+/* ============================================================
+   A checkpoint's number is a storage identity.
+
+   `<lesson id>#<n>` is in real accounts. The site numbers them
+   across the WHOLE lesson with one selector, and numbering each
+   list from zero instead would point every existing tick at the
+   wrong line while looking perfectly reasonable.
+   ============================================================ */
+class CheckpointNumberTest {
+
+    private fun list(vararg items: String) =
+        Block.Checklist(items.map { listOf(Inline.Text(it)) })
+
+    @Test
+    fun `numbering runs across the whole lesson and not within a list`() {
+        val blocks = listOf(
+            Block.Paragraph(listOf(Inline.Text("Before."))),
+            list("a", "b", "c"),
+            Block.Paragraph(listOf(Inline.Text("Between."))),
+            list("d", "e", "f"),
+        )
+        val bases = checkpointBases(blocks)
+        assertEquals(0, bases["1"])
+        assertEquals(3, bases["3"], "the second list must not restart at zero")
+        assertEquals(6, checkpointCount(blocks))
+    }
+
+    @Test
+    fun `a checklist inside a callout is counted in place`() {
+        val blocks = listOf(
+            list("a", "b"),
+            Block.Callout(
+                kind = CalloutKind.NOTE,
+                label = emptyList(),
+                body = listOf(list("c", "d")),
+            ),
+            list("e"),
+        )
+        val bases = checkpointBases(blocks)
+        assertEquals(0, bases["0"])
+        assertEquals(2, bases["1.0"], "a nested list is a descendant and counts in document order")
+        assertEquals(4, bases["2"])
+        assertEquals(5, checkpointCount(blocks))
+    }
+
+    @Test
+    fun `a body with no checklists has no checkpoints`() {
+        val blocks = listOf(Block.Paragraph(listOf(Inline.Text("Just prose."))))
+        assertTrue(checkpointBases(blocks).isEmpty())
+        assertEquals(0, checkpointCount(blocks))
+    }
+
+    /** The id is the site's shape, and the two halves are joined
+        by a hash because that is what is in real accounts. */
+    @Test
+    fun `an id is the lesson and the number`() {
+        assertEquals("stufe-1/tag-3#4", checkpointId("stufe-1/tag-3", 4))
+        assertEquals("share#0", checkpointId("share", 0))
+    }
+}

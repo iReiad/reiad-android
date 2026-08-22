@@ -118,6 +118,28 @@ starts looking like reiad.co.uk.
   under `deutsch-schrift` and `english-write` (device only, and
   they stay device only), the answer reveal, the day tick with
   each school's own id shape.
+
+  **This one needs the website first, and the reason is the
+  site's own rule.** The books are read on the server and
+  deliberately never sent to a browser as data: every prompt has
+  its answer beside it, so shipping a book as a prop would hand a
+  reader the whole key whether or not they pressed the button.
+  There is therefore no endpoint to consume.
+
+  The three ways to fix it and what each costs:
+
+  | | |
+  | --- | --- |
+  | move the books into `shared/` | 450KB of data bundled into the main Worker on every request to every endpoint. No. |
+  | a Next route | `/api/*` is the other Worker's, so it needs a path Next already owns and a `NEXT_ROUTES` entry |
+  | **the books into D1, beside the lessons** | a migration and an import script, and then `/api/schools/<school>/<stage>/book` is a row read like any other |
+
+  The third is right, and it is right for the same reason the
+  lessons are already there: a book is prose that gets edited,
+  and prose that gets edited belongs in the database rather than
+  in a file somebody has to rebuild. The endpoint sends days
+  WITHOUT their answers and a second call returns one day's key,
+  which is the same guarantee the web page has.
 - The money school's contents page and its A to Z glossary.
 
 ### Block 5. The account

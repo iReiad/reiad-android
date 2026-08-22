@@ -111,7 +111,17 @@ prose yes, tables and captions and key figures no, a block the
 parser could not place yes, because losing a paragraph to an
 unknown wrapper is worse than reading it in the wrong tone.
 
-Not yet: the account and sync, the practice books, the tools. `ROADMAP.md` is the
+**A school is finished, less its book.** A progress ring that
+counts lessons and nothing else, a resume card pointing at where
+the reader last WAS rather than where they got to, and a state
+line per stage that says what a stage reads best after without
+ever locking it. Checkpoints inside a lesson body are real: a
+`.checklist` in a school lesson becomes ticks filed
+`<lesson id>#<n>`, numbered across the whole lesson the way the
+site numbers them, and counted towards no ladder.
+
+Not yet: the account and sync, the practice books (see
+`ROADMAP.md`, they need a website change first), the tools. `ROADMAP.md` is the
 twelve blocks that finish it, with a scorecard that says where it
 stands rather than how it feels.
 

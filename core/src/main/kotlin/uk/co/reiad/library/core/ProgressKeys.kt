@@ -79,6 +79,26 @@ object ProgressKeys {
         else -> null
     }
 
+    /** What a learner TYPED into a practice book.
+
+        `deutsch-schrift` and `english-write`, and the asymmetry
+        is real: two schools named the same thing in two languages
+        before there was an engine shared between them, and both
+        strings are in real browsers. Renaming one does not move
+        somebody's writing, it loses it.
+
+        **These are the only progress keys that never leave the
+        device**, and that is a decision rather than an omission.
+        A tick is one bit saying a lesson was read; this is a
+        paragraph somebody wrote about their own life in a
+        language they are learning badly. `SyncKeysTest` asserts
+        the absence. */
+    fun write(school: School): String? = when (school) {
+        School.DEUTSCH -> "deutsch-schrift"
+        School.ENGLISH -> "english-write"
+        else -> null
+    }
+
     /** The school's own half of a key name. Money is `learn`. */
     private fun prefix(school: School): String =
         if (school == School.MONEY) "learn" else school.id

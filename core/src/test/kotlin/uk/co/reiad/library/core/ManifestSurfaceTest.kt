@@ -143,6 +143,12 @@ class ManifestSurfaceTest {
         Triple("article-photo.json", PieceResponse.serializer().descriptor, "article"),
         Triple("article-blocks.json", PieceResponse.serializer().descriptor, "article"),
         Triple("money.json", LadderResponse.serializer().descriptor, "ladder"),
+        /* The German ladder as well as the money one, and not for
+           symmetry: money has no practice book, so `workbook` and
+           `can` are absent from that answer entirely and the
+           check could not see them. One fixture per SHAPE, not
+           one per endpoint. */
+        Triple("deutsch.json", LadderResponse.serializer().descriptor, "ladder"),
         Triple("lesson-share.json", LessonResponse.serializer().descriptor, "lesson"),
     )
 

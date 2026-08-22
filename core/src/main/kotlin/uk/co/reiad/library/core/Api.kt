@@ -165,6 +165,14 @@ data class ReadingSection(
     val list: String = "",
 )
 
+/** A practice book: a slug and how many days it runs for.
+
+    The DAYS are the whole of its structure. A book is not a
+    ladder of lessons: it is one page a learner returns to, thirty
+    or sixty or ninety times, writing into it. */
+@Serializable
+data class Workbook(val slug: String = "", val days: Int = 0)
+
 @Serializable
 data class Tool(val id: String = "", val bn: String = "", val en: String = "", val blurb: String = "")
 
@@ -205,6 +213,26 @@ data class Stage(
     val blurb: String? = null,
     val status: String = "live",
 
+    /** What a learner will be able to DO at the end of a stage,
+        in one sentence. The school's own promise, and the thing a
+        stage card is really selling. */
+    val can: String? = null,
+
+    /** The practice book that goes with this stage, where there
+        is one. Two schools have books and two do not, so this is
+        absent rather than empty most of the time. */
+    val workbook: Workbook? = null,
+
+    /** And what a stage says INSTEAD of a book, where the
+        practice is not a book.
+
+        The German school's fourth stage carries "real news every
+        day, a book, a series, a friendship: at this level not a
+        practice book, life". A stage with neither a workbook nor
+        one of these is a stage that simply has no practice
+        attached, and shows nothing. */
+    val uebung: String? = null,
+
     /** Stage slugs a reader should have read first.
 
         A SUGGESTION and never a lock. Nothing on this site is
@@ -242,6 +270,12 @@ data class Section(
     @SerialName("lessons") private val lessonsKey: List<Lesson> = emptyList(),
     @SerialName("teile") private val teileKey: List<Lesson> = emptyList(),
     @SerialName("parts") private val partsKey: List<Lesson> = emptyList(),
+
+    /** The section's name in the language being LEARNT, where it
+        has one. German sections carry it; the money school's do
+        not, because a section about compounding has no second
+        name to give. */
+    val de: String? = null,
 ) {
     val lessons: List<Lesson>
         get() = when {

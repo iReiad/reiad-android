@@ -45,6 +45,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import uk.co.reiad.library.core.Accent
@@ -60,11 +61,14 @@ import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.Prefs
 import uk.co.reiad.library.core.Stage
 import uk.co.reiad.library.core.Theme
+import uk.co.reiad.library.core.checkpointBases
+import uk.co.reiad.library.core.checkpointCount
 import uk.co.reiad.library.core.lessonId
 import uk.co.reiad.library.data.Reiad
 import uk.co.reiad.library.ui.AccentRail
 import uk.co.reiad.library.ui.BodyView
 import uk.co.reiad.library.ui.Faces
+import uk.co.reiad.library.ui.Checkpoints
 import uk.co.reiad.library.ui.Chip
 import uk.co.reiad.library.ui.Control
 import uk.co.reiad.library.ui.Corner
@@ -82,6 +86,9 @@ import uk.co.reiad.library.ui.Pane
 import uk.co.reiad.library.ui.PieceScreen
 import uk.co.reiad.library.ui.Plate
 import uk.co.reiad.library.ui.ReadingHub
+import uk.co.reiad.library.ui.ResumeCard
+import uk.co.reiad.library.ui.StageState
+import uk.co.reiad.library.ui.SchoolHead
 import uk.co.reiad.library.ui.ReiadTheme
 import uk.co.reiad.library.ui.Rung
 import uk.co.reiad.library.ui.SearchScreen
@@ -214,6 +221,48 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
 
     fun ticksOf(key: String): Set<String> = _ticks.value[key].orEmpty()
 
+    /* ---------- checkpoints and the bookmark ---------- */
+
+    private val _checks = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
+    val checks: StateFlow<Map<String, Set<String>>> = _checks.asStateFlow()
+
+    private val _bookmarks = MutableStateFlow<Map<String, String>>(emptyMap())
+    val bookmarks: StateFlow<Map<String, String>> = _bookmarks.asStateFlow()
+
+    fun loadMarks() {
+        viewModelScope.launch {
+            val checks = mutableMapOf<String, Set<String>>()
+            val marks = mutableMapOf<String, String>()
+            for (school in School.entries) {
+                checks[school.id] = reiad.checkpoints(school).first()
+                reiad.bookmark(school).first()?.let { marks[school.id] = it }
+            }
+            _checks.value = checks
+            _bookmarks.value = marks
+        }
+    }
+
+    fun toggleCheck(school: School, id: String) {
+        viewModelScope.launch {
+            val after = reiad.toggleCheckpoint(school, id)
+            _checks.value = _checks.value + (school.id to after)
+        }
+    }
+
+    /** A visit moves the bookmark and ticks nothing.
+
+        Opening is not finishing, and the two verbs are separate
+        everywhere in this app because they are separate on the
+        site: the money school's tick is a button, and the other
+        three mark a lesson as READ on opening, which is a
+        different fact from where somebody last was. */
+    fun visited(school: School, lessonId: String) {
+        viewModelScope.launch {
+            reiad.remember(school, lessonId)
+            _bookmarks.value = _bookmarks.value + (school.id to lessonId)
+        }
+    }
+
     /* ---------- the pieces ---------- */
 
     private val _pieces = MutableStateFlow<List<Piece>>(emptyList())
@@ -292,12 +341,17 @@ fun App() {
     val audience by model.audience.collectAsState()
     val pieces by model.pieces.collectAsState()
     val openPiece by model.open.collectAsState()
+    val checks by model.checks.collectAsState()
+    val bookmarks by model.bookmarks.collectAsState()
 
     /* The pieces are fetched once, on first composition, rather
        than when a reading hub opens: the list is six rows without
        bodies and having it already means search and the hubs are
        instant. */
-    LaunchedEffect(Unit) { model.loadPieces() }
+    LaunchedEffect(Unit) {
+        model.loadPieces()
+        model.loadMarks()
+    }
 
     val accent: Accent = when (val here = where) {
         is Where.Ladder -> accentOf(here.school)
@@ -441,6 +495,7 @@ fun App() {
                         stages = stages,
                         ticks = ticks[here.school.key].orEmpty(),
                         stale = stale,
+                        bookmark = bookmarks[here.school.key],
                         onBack = { where = Where.Home },
                         onOpen = { stage, lesson ->
                             model.openLesson(here.school, stage, lesson)
@@ -452,6 +507,13 @@ fun App() {
                 is Where.Reading -> {
                     BackHandler { where = Where.Ladder(here.school) }
                     val id = lessonId(here.stage.slug, here.lesson.slug)
+                    val which = School.of(here.school.key)
+                    /* A visit moves the bookmark and ticks
+                       nothing. Keyed on the lesson so coming back
+                       to the same one does not write again. */
+                    LaunchedEffect(id, which) {
+                        if (which != null) model.visited(which, id)
+                    }
                     Reading(
                         school = here.school,
                         stage = here.stage,
@@ -461,6 +523,9 @@ fun App() {
                         isMoney = here.school.key == School.MONEY.id,
                         onBack = { where = Where.Ladder(here.school) },
                         onTick = { model.tick(here.school, here.stage, here.lesson) },
+                        checks = which?.let { checks[it.id].orEmpty() }.orEmpty(),
+                        onCheck = { mark -> which?.let { model.toggleCheck(it, mark) } },
+                        lessonKey = id,
                     )
                 }
             }
@@ -653,6 +718,7 @@ private fun Ladder(
     stale: Boolean,
     onBack: () -> Unit,
     onOpen: (Stage, Lesson) -> Unit,
+    bookmark: String? = null,
 ) {
     val c = LocalReiad.current
     LazyColumn(
@@ -667,12 +733,34 @@ private fun Ladder(
                 modifier = Modifier.clickable { onBack() },
             )
             Spacer(Modifier.height(Gap.s7))
-            Text(school.bn, style = MaterialTheme.typography.displaySmall, color = c.ink)
-            Text(school.en, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
+
+            /* Lessons, and only lessons. A ring that counted
+               checkpoints or practice-book days would still look
+               plausible, which is what makes it the one way to
+               get this wrong. */
+            val lessons = stages.sumOf { it.lessons.size }
+            val read = stages.sumOf { stage ->
+                stage.lessons.count { lessonId(stage.slug, it.slug) in ticks }
+            }
+            SchoolHead(school.bn, school.en, read, lessons)
+
             if (stale) {
                 Spacer(Modifier.height(Gap.s5))
                 Chip("SAVED COPY")
             }
+
+            /* Where they were, not where they got to. */
+            val at = bookmark?.let { id ->
+                stages.firstNotNullOfOrNull { stage ->
+                    stage.lessons.firstOrNull { lessonId(stage.slug, it.slug) == id }
+                        ?.let { stage to it }
+                }
+            }
+            if (at != null) {
+                Spacer(Modifier.height(Gap.s8))
+                ResumeCard(at.first, at.second, onOpen)
+            }
+
             Spacer(Modifier.height(Gap.s9))
         }
 
@@ -734,21 +822,12 @@ private fun StageCard(
             Text(
                 "$done/${lessons.size}",
                 style = MaterialTheme.typography.labelMedium,
-                color = c.inkSoft,
+                color = if (done >= lessons.size && lessons.isNotEmpty()) c.accent else c.inkSoft,
             )
         }
 
-        if (after.isNotEmpty()) {
-            Spacer(Modifier.height(Gap.s5))
-            Text(
-                "Reads best after " + after.joinToString(" and ") { it.bn } + ".",
-                style = if (after.any { isBangla(it.bn) }) BanglaBody.copy(
-                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
-                    lineHeight = MaterialTheme.typography.bodySmall.fontSize * 1.6f,
-                ) else MaterialTheme.typography.bodySmall,
-                color = c.inkSoft,
-            )
-        }
+        Spacer(Modifier.height(Gap.s5))
+        StageState(done, lessons.size, after.map { it.bn })
 
         Spacer(Modifier.height(Gap.s6))
         Groove(if (lessons.isEmpty()) 0f else done.toFloat() / lessons.size)
@@ -802,6 +881,9 @@ private fun Reading(
     isMoney: Boolean,
     onBack: () -> Unit,
     onTick: () -> Unit,
+    checks: Set<String>,
+    onCheck: (String) -> Unit,
+    lessonKey: String,
 ) {
     val c = LocalReiad.current
     Column(
@@ -835,7 +917,43 @@ private fun Reading(
             )
             else -> {
                 val blocks = remember(page.body) { BodyParser.parse(page.body).blocks }
-                BodyView(blocks)
+                /* Every checklist in a school lesson IS a set of
+                   checkpoints. The numbering is computed once,
+                   across the whole lesson, because that is how
+                   the site files them and the ids are in real
+                   accounts. */
+                val bases = remember(blocks) { checkpointBases(blocks) }
+                BodyView(
+                    blocks,
+                    checkpoints = Checkpoints(
+                        lessonId = lessonKey,
+                        done = checks,
+                        bases = bases,
+                        onToggle = onCheck,
+                    ),
+                )
+
+                val total = remember(blocks) { checkpointCount(blocks) }
+                if (total > 0) {
+                    val done = checks.count { it.startsWith("$lessonKey#") }
+                    Spacer(Modifier.height(Gap.s7))
+                    Plate(Modifier.fillMaxWidth()) {
+                        Text(
+                            "$done of $total checkpoints",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = c.accent,
+                        )
+                        Spacer(Modifier.height(Gap.s3))
+                        Text(
+                            /* Said out loud, because the number
+                               above sits next to a ladder that
+                               deliberately ignores it. */
+                            "These are yours to work through. They count towards no ladder.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.inkSoft,
+                        )
+                    }
+                }
             }
         }
 

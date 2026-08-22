@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import uk.co.reiad.library.core.LadderResponse
@@ -236,6 +237,84 @@ class Reiad(private val context: Context) {
             if (id == "work") stored.remove(key(TRACK_KEY))
         }
     }
+
+    /* ---------- the bookmark ----------
+
+       Where a reader last WAS, under `<school>-last`. Not where
+       they got to: opening is not finishing, so a visit moves
+       this and ticks nothing.
+
+       It stores a lesson ID rather than a URL, and that is the
+       site's own correction: the money school's old module stored
+       a URL, so a lesson that moved took the bookmark with it and
+       the resume card pointed at a page that was not there. */
+
+    fun bookmark(school: School): Flow<String?> =
+        context.store.data.map { it[key(ProgressKeys.last(school))] }
+
+    suspend fun remember(school: School, lessonId: String) {
+        context.store.edit { it[key(ProgressKeys.last(school))] = lessonId }
+    }
+
+    /* ---------- checkpoints, which are the ticks inside a lesson ----------
+
+       A lesson's own tick is about the whole page and is the
+       right unit for a ladder. A checklist inside the prose is
+       five things a reader does over a fortnight, and without
+       this the page cannot remember which three are done.
+
+       Filed `<lesson id>#<n>` under `<school>-checks`, which is
+       the shape and the key the browser already uses, and
+       carried to the account like any other tick.
+
+       **Counted towards no ladder, anywhere.** A checkpoint is
+       not a lesson, and the one way to get this wrong is to let
+       it into the arithmetic that draws a school's ring. */
+
+    fun checkpoints(school: School): Flow<Set<String>> =
+        context.store.data.map { decode(it[key(ProgressKeys.checks(school))]) }
+
+    suspend fun toggleCheckpoint(school: School, id: String): Set<String> {
+        var after: Set<String> = emptySet()
+        context.store.edit { prefs ->
+            val name = key(ProgressKeys.checks(school))
+            val now = decode(prefs[name])
+            after = if (id in now) now - id else now + id
+            prefs[name] = encode(after)
+        }
+        return after
+    }
+
+    /* ---------- and what a learner typed, which stays here ----------
+
+       `deutsch-schrift` and `english-write`. The only progress
+       keys with no path to an account, and see `ProgressKeys` for
+       why: a tick is one bit, and this is somebody writing about
+       their own life in a language they are learning badly. */
+
+    fun writing(school: School): Flow<Map<String, String>> =
+        context.store.data.map { prefs ->
+            val name = ProgressKeys.write(school) ?: return@map emptyMap()
+            val raw = prefs[key(name)]
+            if (raw.isNullOrBlank()) emptyMap()
+            else runCatching { json.decodeFromString(writings, raw) }.getOrDefault(emptyMap())
+        }
+
+    suspend fun write(school: School, slot: String, text: String) {
+        val name = ProgressKeys.write(school) ?: return
+        context.store.edit { prefs ->
+            val raw = prefs[key(name)]
+            val now = if (raw.isNullOrBlank()) emptyMap()
+            else runCatching { json.decodeFromString(writings, raw) }.getOrDefault(emptyMap())
+            /* An emptied box REMOVES its slot rather than storing
+               an empty string, so the record is what was written
+               rather than every box ever touched. */
+            val next = if (text.isBlank()) now - slot else now + (slot to text)
+            prefs[key(name)] = json.encodeToString(writings, next)
+        }
+    }
+
+    private val writings = MapSerializer(String.serializer(), String.serializer())
 
     /* The serializer is named rather than reified, so that a
        release build stripping type information cannot change what
