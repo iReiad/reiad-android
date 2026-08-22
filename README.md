@@ -30,13 +30,14 @@ it is a fact about one machine.
 
 | | |
 | --- | --- |
-| `core/` | plain Kotlin. API models, the body parser, the storage keys, the sync arithmetic, the palette |
+| `core/` | plain Kotlin. API models, the body parser, the storage keys, the sync arithmetic, the palette, the material |
 | `core/src/test/resources/fixtures/` | real answers from the live API, captured rather than written |
-| `app/` | Compose. The theme, the material, the body renderer, the money school |
+| `app/` | Compose. The theme, the material, the deck, the body renderer, the four schools |
+| `app/src/main/res/font/` | the site's six faces, bundled. See `docs/FONTS.md` |
 
 ## What the app does today
 
-The money school, end to end: the ladder off `/api/schools/money`,
+Four schools, end to end: the ladders off `/api/schools/<school>`,
 a lesson opened and rendered through the parser, and a tick that
 survives a restart. Deliberately a whole vertical rather than a
 prettier ladder, because a ladder that renders over a lesson that
@@ -47,10 +48,24 @@ Opening is not finishing. The money school's tick is a button.
 The other three schools mark a lesson on opening, which is their
 own semantics and arrives with them.
 
+**And it is made of the site's own material.** Six kinds of glass,
+four numbers each, everything visible derived: the lit cut edge at
+the bottom, the soft rim all the way round, the dispersion that
+tints it toward the section's accent, the weave running continuous
+across the page, the specular raked at 105 degrees, and the glow
+that comes up in 190ms under a finger and takes 820ms to go out. A
+groove is the inverse of the other five. `core/Material.kt` is the
+arithmetic and `MaterialTest` is 21 assertions that it is still a
+system rather than six rows of plausible numbers.
+
+The faces are the site's six, bundled: Spectral, IBM Plex Sans and
+Mono, Noto Sans and Serif Bengali, Caveat. `docs/FONTS.md` says
+why bundled rather than downloaded, and what nearly shipped.
+
 Not yet: the account and sync, photos, the practice books, the
-tools, and most of the craft. `ROADMAP.md` is the twelve blocks
-that finish it, with a scorecard that says where it stands rather
-than how it feels.
+tools, the shell. `ROADMAP.md` is the twelve blocks that finish
+it, with a scorecard that says where it stands rather than how it
+feels.
 
 ## Why two modules
 

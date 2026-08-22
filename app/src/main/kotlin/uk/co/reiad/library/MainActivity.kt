@@ -22,8 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -37,6 +35,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -57,15 +57,21 @@ import uk.co.reiad.library.core.lessonId
 import uk.co.reiad.library.data.Reiad
 import uk.co.reiad.library.ui.AccentRail
 import uk.co.reiad.library.ui.BodyView
-import uk.co.reiad.library.ui.Card
+import uk.co.reiad.library.ui.Faces
 import uk.co.reiad.library.ui.Chip
+import uk.co.reiad.library.ui.Control
 import uk.co.reiad.library.ui.Corner
 import uk.co.reiad.library.ui.Gap
+import uk.co.reiad.library.ui.GoCard
 import uk.co.reiad.library.ui.Groove
+import uk.co.reiad.library.ui.InfoCard
 import uk.co.reiad.library.ui.LocalReiad
+import uk.co.reiad.library.ui.Pane
 import uk.co.reiad.library.ui.Plate
 import uk.co.reiad.library.ui.ReiadTheme
 import uk.co.reiad.library.ui.Rung
+import uk.co.reiad.library.ui.Sway
+import uk.co.reiad.library.ui.rememberSway
 
 /* ============================================================
    The four schools, on a handset.
@@ -263,6 +269,11 @@ private fun Home(
     onOpen: (LadderSchool) -> Unit,
 ) {
     val c = LocalReiad.current
+    /* One sway for the whole screen, not one per card. Every card
+       on a page leans by the same amount, because they are all on
+       the same handset: a lean per card would be twelve sensor
+       listeners answering one movement. */
+    val sway = rememberSway()
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
         contentPadding = PaddingValues(top = Gap.s11, bottom = Gap.s10),
@@ -287,11 +298,11 @@ private fun Home(
 
         if (note != null && site == null) {
             item {
-                Card {
-                    Text("Nothing saved yet", style = MaterialTheme.typography.titleMedium, color = c.ink)
-                    Spacer(Modifier.height(Gap.s3))
-                    Text(note, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
-                }
+                /* An InfoCard, deliberately: this is the end of
+                   the road. It reports what happened and there is
+                   nothing to press, so it gets no rail, no arrow
+                   and no light. */
+                InfoCard(title = "Nothing saved yet", dek = note)
             }
         }
 
@@ -300,7 +311,7 @@ private fun Home(
         }
 
         items(site?.ladders.orEmpty()) { school ->
-            SchoolCard(school, ticks[school.key].orEmpty().size, onOpen)
+            SchoolCard(school, ticks[school.key].orEmpty().size, sway, onOpen)
             Spacer(Modifier.height(Gap.s7))
         }
 
@@ -326,29 +337,30 @@ private fun Home(
 }
 
 /** Each school in its own colour, which is the site's rule that a
-    page wears its section's colour, one level up. */
+    page wears its section's colour, one level up.
+
+    A `GoCard` rather than a card: pressing it takes you into a
+    ladder, so it gets the rail, the arrow, the action written out
+    and the light. What a school card is NOT is an `InfoCard`, and
+    the two being separate components is what makes that a fact
+    rather than an intention. */
 @Composable
-private fun SchoolCard(school: LadderSchool, done: Int, onOpen: (LadderSchool) -> Unit) {
+private fun SchoolCard(
+    school: LadderSchool,
+    done: Int,
+    sway: Sway,
+    onOpen: (LadderSchool) -> Unit,
+) {
     ReiadTheme(accent = accentOf(school), dark = LocalReiad.current.isDark) {
-        val c = LocalReiad.current
-        Card(
-            modifier = Modifier.fillMaxWidth().clickable { onOpen(school) },
-            accented = true,
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AccentRail(Modifier.height(38.dp))
-                Spacer(Modifier.width(Gap.s6))
-                Column(Modifier.weight(1f)) {
-                    Text(school.bn, style = MaterialTheme.typography.titleMedium, color = c.ink)
-                    Text(school.en, style = MaterialTheme.typography.labelMedium, color = c.accent)
-                }
-                if (done > 0) Chip("$done")
-            }
-            if (school.blurb.isNotBlank()) {
-                Spacer(Modifier.height(Gap.s5))
-                Text(school.blurb, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
-            }
-        }
+        GoCard(
+            title = school.bn,
+            dek = school.blurb.takeIf { it.isNotBlank() },
+            chip = school.en,
+            go = "পড়া শুরু",
+            done = done > 0,
+            sway = sway,
+            onOpen = { onOpen(school) },
+        )
     }
 }
 
@@ -402,7 +414,11 @@ private fun StageCard(stage: Stage, ticks: Set<String>, onOpen: (Stage, Lesson) 
     val lessons = stage.lessons
     val done = lessons.count { lessonId(stage.slug, it.slug) in ticks }
 
-    Card(accented = done > 0) {
+    /* A PANE, because it holds other things. Pressing it does
+       nothing; pressing a rung inside it does. A card here would
+       be a surface that looks like it takes you somewhere and
+       does not, which is the confusion the deck exists to end. */
+    Pane {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AccentRail(Modifier.height(34.dp))
             Spacer(Modifier.width(Gap.s6))
@@ -517,18 +533,18 @@ private fun Reading(
            marked this lesson when it opened, so what they get is
            a statement rather than a control. */
         if (isMoney) {
-            Button(
-                onClick = onTick,
-                modifier = Modifier.fillMaxWidth().height(Gap.tap),
-                shape = RoundedCornerShape(Corner.pill),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (ticked) c.accent else c.panel,
-                    contentColor = if (ticked) c.paper else c.accent,
-                ),
+            Control(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(role = Role.Button, onClick = onTick),
+                ground = if (ticked) c.accent else c.panel,
             ) {
                 Text(
                     if (ticked) "পড়া হয়েছে ✓" else "পড়া হয়েছে",
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelLarge.copy(fontFamily = Faces.bengali),
+                    color = if (ticked) c.paper else c.accent,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
                 )
             }
         } else if (ticked) {

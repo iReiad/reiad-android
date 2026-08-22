@@ -220,6 +220,35 @@ object Accents {
     percentages differ per side on purpose: on paper the accent is
     a whisper, and on a dark ground the same accent has to LIFT
     the surface, so it is about three times as much. */
+/** A colour that is mostly not there: the achromatic whites and
+    blacks the material's edges and reflections are drawn in.
+
+    They are achromatic ON PURPOSE and it is not a simplification.
+    A reflection carries the colour of the light rather than of
+    the page, which is what keeps the specular and the cut edge
+    distinguishable from the glow, and the glow is the one that is
+    the accent's colour. Mix the page's accent into these and the
+    material stops having two different kinds of light in it. */
+data class Veil(val colour: Oklch, val alpha: Double) {
+
+    /** The one place a veil takes the page's colour: a CUT edge.
+
+        Real glass disperses at a cut, so the two sides of the
+        same piece come back at different hues, and that is most
+        of why a bevel reads as glass rather than as a white
+        outline somebody drew. `polish` is the knob, because a
+        polished edge splits cleanly and a ground one scatters
+        everything back as white.
+
+        Mixed in OKLab like every other mix here. The alpha is
+        averaged straight rather than premultiplied, which is not
+        what `color-mix` does: at the amounts this is called with,
+        at most 32% of an opaque accent into a 72% white, the two
+        differ by well under one step of eight-bit alpha. */
+    fun tinted(with: Oklch, amount: Double): Veil =
+        Veil(colour.mix(with, amount), alpha * (1 - amount) + amount)
+}
+
 data class Surfaces(
     val paper: Oklch,
     val paperSunk: Oklch,
@@ -230,6 +259,33 @@ data class Surfaces(
     val accent: Oklch,
     val accentSoft: Oklch,
     val accentLine: Oklch,
+
+    /* ---- the material's own three, and why they are here ----
+
+       `paneTop` is the 1px lit line along the top of a pane and
+       is 6% white in dark mode. That is correct for a hairline
+       and hopeless as the source for a specular sweep: at 30% of
+       6% the reflection is under two per cent white, which is
+       another way of saying it is not drawn.
+
+       That one token is why the site's whole material read as
+       absent in dark and visible only in light, the same code
+       producing a visible button and an invisible card on one
+       page. `glassFace` is the material's own highlight at a
+       strength a piece of glass actually reflects, and the two
+       are separate for that reason rather than by accident. */
+    val paneTop: Veil,
+    val glassFace: Veil,
+    val glassUnder: Veil,
+
+    /** The texture's ink, which is the ONE part of the material
+        that does take the page's colour: a weave is IN the paper
+        rather than reflected off it. 60% accent into a neutral
+        base, at an alpha low enough that a reader who has to ask
+        whether it is tinted is getting it right. */
+    val texInk: Oklch,
+    val texA: Double,
+    val texB: Double,
 ) {
     companion object {
 
@@ -250,6 +306,12 @@ data class Surfaces(
                 accent = a,
                 accentSoft = paper.mix(a, 0.11),
                 accentLine = hairlineBase.mix(a, 0.28),
+                paneTop = Veil(WHITE, 0.55),
+                glassFace = Veil(WHITE, 0.72),
+                glassUnder = Veil(BLACK, 0.06),
+                texInk = TEX_BASE.mix(a, 0.60),
+                texA = 0.035,
+                texB = 0.028,
             )
         }
 
@@ -270,8 +332,21 @@ data class Surfaces(
                 accent = a,
                 accentSoft = paper.mix(a, 0.11),
                 accentLine = hairlineBase.mix(a, 0.28),
+                /* Nine times fainter than the light theme's, which
+                   is right for a hairline and is exactly why the
+                   material may not read its highlight out of it. */
+                paneTop = Veil(WHITE, 0.06),
+                glassFace = Veil(WHITE, 0.30),
+                glassUnder = Veil(BLACK, 0.22),
+                texInk = TEX_BASE.mix(a, 0.60),
+                texA = 0.05,
+                texB = 0.042,
             )
         }
+
+        private val WHITE = Oklch(1.0, 0.0, 0.0)
+        private val BLACK = Oklch(0.0, 0.0, 0.0)
+        private val TEX_BASE = Oklch(0.45, 0.04, Hue.GREEN)
 
         fun of(accent: Accent, dark: Boolean): Surfaces =
             if (dark) dark(accent) else light(accent)
