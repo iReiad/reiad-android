@@ -79,6 +79,14 @@ import uk.co.reiad.library.core.Kept
 import uk.co.reiad.library.core.Reader
 import uk.co.reiad.library.core.Target
 import uk.co.reiad.library.data.Reiad
+import uk.co.reiad.library.core.stock.Keys
+import uk.co.reiad.library.core.stock.ToolWords
+import uk.co.reiad.library.core.stock.analyse
+import uk.co.reiad.library.core.stock.shareLink
+import uk.co.reiad.library.core.stock.toCsv
+import uk.co.reiad.library.ui.StockScreen
+import uk.co.reiad.library.ui.Waiting
+import uk.co.reiad.library.ui.StockState
 import uk.co.reiad.library.ui.AccentRail
 import uk.co.reiad.library.ui.AccountScreen
 import uk.co.reiad.library.ui.BodyView
@@ -169,6 +177,12 @@ class MainActivity : ComponentActivity() {
     leave the room itself. */
 private val BAR_CLEARANCE = 96.dp
 
+/** The stock check's key in `shared/nav.ts`, which is the one
+    place that table is said. Named rather than typed at the two
+    call sites, because a nav key that stops matching is a card
+    that silently starts opening the site in a browser instead. */
+private const val STOCK_KEY = "stock"
+
 /* ---------- where the reader is ---------- */
 
 private sealed interface Where {
@@ -186,6 +200,11 @@ private sealed interface Where {
     data object Account : Where
     data class Ladder(val school: LadderSchool) : Where
     data class Reading(val school: LadderSchool, val stage: Stage, val lesson: Lesson) : Where
+
+    /** The stock check. One screen, and the only one here whose
+        content is computed rather than fetched: the model is in
+        `core` and its words come down from `/api/tools`. */
+    data object Stock : Where
 }
 
 private class AppModel(private val reiad: Reiad) : ViewModel() {
@@ -207,6 +226,99 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
 
     private val _ticks = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
     val ticks: StateFlow<Map<String, Set<String>>> = _ticks.asStateFlow()
+
+    /* ---------- the calculators ----------
+
+       Their WORDS, which are data and arrive from the site, and
+       the reader's current check, which is this session's and
+       deliberately not stored: a half-typed company is not a
+       thing to restore three days later, and a check worth
+       keeping is a saved scenario with a name on it. */
+
+    private val _words = MutableStateFlow<ToolWords?>(null)
+    val words: StateFlow<ToolWords?> = _words.asStateFlow()
+
+    private val _stock = MutableStateFlow(StockState())
+    val stock: StateFlow<StockState> = _stock.asStateFlow()
+
+    private val _toolNote = MutableStateFlow<String?>(null)
+    val toolNote: StateFlow<String?> = _toolNote.asStateFlow()
+
+    /** Asked for once, when a calculator is first opened, rather
+        than at start-up: 22KB is not much and it is not nothing
+        on a phone that may never open one. */
+    fun openTools() {
+        if (_words.value != null) return
+        viewModelScope.launch { _words.value = reiad.toolWords().value }
+    }
+
+    fun setStock(next: StockState) { _stock.value = next }
+
+    /** Which language the calculators open in.
+
+        `tool-lang` on the site, saved into `reader-prefs` beside
+        it, which is what carries it to the reader's other
+        devices. One choice, one key. */
+    fun chooseToolLang(lang: String) {
+        viewModelScope.launch { reiad.savePrefs { it.copy(lang = lang) } }
+        _toolNote.value = null
+    }
+
+    /** The link a reader sends somebody, on the clipboard.
+
+        The site's own address rather than a deep link into this
+        app, because whoever receives it may not have the app and
+        a link that only opens on one device is not a shared
+        analysis. */
+    fun copyCheck(context: android.content.Context) {
+        val link = shareLink(
+            _stock.value.inputs,
+            _stock.value.weights,
+            style = _stock.value.style.takeIf { it != "custom" },
+            lang = _stock.value.lang.takeIf { it != "en" },
+        )
+        val clip = context.getSystemService(android.content.ClipboardManager::class.java)
+        clip?.setPrimaryClip(android.content.ClipData.newPlainText("Stock check", link))
+        _toolNote.value = _words.value?.t(Keys.COPIED, _stock.value.lang) ?: link
+    }
+
+    /** The whole analysis as a spreadsheet, shared the way the
+        account export is: the app's own cache and a content URI,
+        never a file path. */
+    fun exportCheck(context: android.content.Context) {
+        val words = _words.value ?: return
+        val state = _stock.value
+        val text = toCsv(
+            analyse(state.inputs, state.weights), words, state.weights, state.style,
+        )
+        _toolNote.value = if (shareCsv(context, text)) {
+            "Sent to whatever you chose."
+        } else {
+            "Could not open the share sheet on this device."
+        }
+    }
+
+    private fun shareCsv(context: android.content.Context, text: String): Boolean = runCatching {
+        val dir = java.io.File(context.cacheDir, "exports").apply { mkdirs() }
+        val file = java.io.File(dir, "stock-check.csv")
+        file.writeText(text)
+        val uri = androidx.core.content.FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.files",
+            file,
+        )
+        context.startActivity(
+            android.content.Intent.createChooser(
+                android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "text/csv"
+                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                },
+                "Stock check",
+            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+        true
+    }.getOrDefault(false)
 
     init {
         viewModelScope.launch {
@@ -667,6 +779,9 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val prefs by model.prefs.collectAsState()
     val audience by model.audience.collectAsState()
     val pieces by model.pieces.collectAsState()
+    val words by model.words.collectAsState()
+    val stockState by model.stock.collectAsState()
+    val toolNote by model.toolNote.collectAsState()
     val openPiece by model.open.collectAsState()
     val reader by model.reader.collectAsState()
     val authProblem by model.authProblem.collectAsState()
@@ -712,6 +827,11 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         is Where.Hub -> tokenAccent(site?.accents?.get(here.section))
         is Where.Reading2 -> tokenAccent(site?.accents?.get(here.section))
         is Where.Group -> accentOfGroup(here.group)
+        /* The calculators are gold on the site, which is the
+           accent `shared/nav.ts` gives that group, so a reader
+           arriving from the tools tab does not watch the whole
+           page change colour. */
+        Where.Stock -> Accents.GOLD
         Where.Home -> Accents.GREEN
     }
 
@@ -735,6 +855,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         is Where.Hub -> here.section
         is Where.Reading2 -> here.section
         is Where.Group -> here.group.items.firstOrNull()?.key
+        Where.Stock -> STOCK_KEY
         Where.Home -> null
     }
 
@@ -868,6 +989,39 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     )
                 }
 
+                Where.Stock -> {
+                    BackHandler { where = Where.Home }
+                    val toolWords = words
+                    if (toolWords == null) {
+                        /* Nothing is drawn until the words have
+                           answered. A page of key names that turns
+                           into sentences a second later is worse
+                           than a moment of nothing, and this is
+                           cached, so the moment happens once. */
+                        Waiting()
+                    } else {
+                        StockScreen(
+                            words = toolWords,
+                            /* The language is the READER's, out
+                               of `tool-lang`, rather than this
+                               screen's own: it is the same choice
+                               they made on the site and it comes
+                               down with the rest of their
+                               preferences. */
+                            state = stockState.copy(lang = prefs.lang),
+                            onState = { model.setStock(it) },
+                            onCopyLink = { model.copyCheck(context) },
+                            onExport = { model.exportCheck(context) },
+                            onLang = { model.chooseToolLang(it) },
+                            note = toolNote,
+                            contentPadding = PaddingValues(
+                                start = Gap.s8, end = Gap.s8,
+                                top = Gap.s11, bottom = BAR_CLEARANCE,
+                            ),
+                        )
+                    }
+                }
+
                 is Where.Group -> {
                     BackHandler { where = Where.Home }
                     GroupScreen(
@@ -875,7 +1029,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         accents = site?.accents.orEmpty(),
                         bottomPadding = BAR_CLEARANCE,
                         canOpenHere = { item ->
-                            item.key == "account" ||
+                            item.key == "account" || item.key == STOCK_KEY ||
                                 site?.ladders?.any { it.key == item.key } == true ||
                                 readingSection(site, item.key) != null
                         },
@@ -884,6 +1038,10 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             val section = readingSection(site, item.key)
                             when {
                                 item.key == "account" -> where = Where.Account
+                                item.key == STOCK_KEY -> {
+                                    model.openTools()
+                                    where = Where.Stock
+                                }
                                 school != null -> {
                                     model.openLadder(school)
                                     where = Where.Ladder(school)

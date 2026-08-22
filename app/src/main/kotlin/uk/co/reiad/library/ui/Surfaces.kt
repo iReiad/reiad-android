@@ -157,13 +157,14 @@ fun Rung(
 fun Plate(
     modifier: Modifier = Modifier,
     corner: Dp = Corner.field,
+    ground: Color? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val c = LocalReiad.current
     Column(
         modifier
             .clip(RoundedCornerShape(corner))
-            .material(Kind.PLATE, c, corner, ground = c.paperSunk)
+            .material(Kind.PLATE, c, corner, ground = ground ?: c.paperSunk)
             .padding(horizontal = Gap.s7, vertical = Gap.s6),
         content = content,
     )

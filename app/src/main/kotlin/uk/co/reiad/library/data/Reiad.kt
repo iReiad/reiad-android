@@ -29,6 +29,7 @@ import uk.co.reiad.library.core.BookKeyResponse
 import uk.co.reiad.library.core.BookResponse
 import uk.co.reiad.library.core.PieceResponse
 import uk.co.reiad.library.core.PiecesResponse
+import uk.co.reiad.library.core.stock.ToolWords
 import uk.co.reiad.library.core.ProgressKeys
 import uk.co.reiad.library.core.THEME_KEY
 import uk.co.reiad.library.core.TOOL_LANG_KEY
@@ -108,6 +109,21 @@ class Reiad(private val context: Context) {
         app release. */
     suspend fun manifest(): Cached<SiteManifest> =
         fetch("$SITE_ORIGIN/api/site", "cache:site", SiteManifest.serializer())
+
+    /** Every word the calculators say, in both languages.
+
+        Fetched rather than bundled, and that is the contract at
+        the top of CLAUDE.md rather than a preference: the stock
+        check's MODEL is here in Kotlin and needed this release,
+        its 366 phrases are data and must not. An edited Bangla
+        sentence reaches a phone on the next fetch.
+
+        Cached like everything else, so the tool works on a train,
+        and the screen renders nothing until this has answered:
+        the alternative is a page of key names that turns into
+        words a second later. */
+    suspend fun toolWords(): Cached<ToolWords> =
+        fetch("$SITE_ORIGIN/api/tools", "cache:tools", ToolWords.serializer())
 
     suspend fun ladder(school: String): Cached<LadderResponse> =
         fetch("$SITE_ORIGIN/api/schools/$school", "cache:ladder:$school", LadderResponse.serializer())
