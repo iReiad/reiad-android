@@ -54,6 +54,7 @@ import uk.co.reiad.library.core.LadderSchool
 import uk.co.reiad.library.core.Lesson
 import uk.co.reiad.library.core.LessonPage
 import uk.co.reiad.library.core.NavGroup
+import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.School
 import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.Prefs
@@ -69,13 +70,18 @@ import uk.co.reiad.library.ui.Control
 import uk.co.reiad.library.ui.Corner
 import uk.co.reiad.library.ui.Gap
 import uk.co.reiad.library.ui.GoCard
+import uk.co.reiad.library.ui.BanglaBody
 import uk.co.reiad.library.ui.Groove
 import uk.co.reiad.library.ui.GroupScreen
+import uk.co.reiad.library.ui.isBangla
+import uk.co.reiad.library.ui.openOnSite
 import uk.co.reiad.library.ui.accentOf as tokenAccent
 import uk.co.reiad.library.ui.InfoCard
 import uk.co.reiad.library.ui.LocalReiad
 import uk.co.reiad.library.ui.Pane
+import uk.co.reiad.library.ui.PieceScreen
 import uk.co.reiad.library.ui.Plate
+import uk.co.reiad.library.ui.ReadingHub
 import uk.co.reiad.library.ui.ReiadTheme
 import uk.co.reiad.library.ui.Rung
 import uk.co.reiad.library.ui.SearchScreen
@@ -126,6 +132,12 @@ private val BAR_CLEARANCE = 96.dp
 private sealed interface Where {
     data object Home : Where
     data class Group(val group: NavGroup) : Where
+
+    /** A reading hub. `section` is `insights`, `cooking` or
+        `travel`, which is the value in the one column that says
+        where a piece lives. */
+    data class Hub(val section: String, val title: String) : Where
+    data class Reading2(val section: String, val piece: Piece) : Where
     data class Ladder(val school: LadderSchool) : Where
     data class Reading(val school: LadderSchool, val stage: Stage, val lesson: Lesson) : Where
 }
@@ -202,6 +214,44 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
 
     fun ticksOf(key: String): Set<String> = _ticks.value[key].orEmpty()
 
+    /* ---------- the pieces ---------- */
+
+    private val _pieces = MutableStateFlow<List<Piece>>(emptyList())
+    val pieces: StateFlow<List<Piece>> = _pieces.asStateFlow()
+
+    private val _open = MutableStateFlow<Piece?>(null)
+    val open: StateFlow<Piece?> = _open.asStateFlow()
+
+    fun loadPieces() {
+        if (_pieces.value.isNotEmpty()) return
+        viewModelScope.launch {
+            val answer = reiad.pieces()
+            answer.value?.let { _pieces.value = it.articles }
+            if (answer.stale) _stale.value = true
+        }
+    }
+
+    /** Opens a piece by slug, with the LIST's copy shown first.
+
+        The list answer carries everything but the body, so the
+        title, the byline and the topics can be on screen while
+        the body is still arriving. A blank screen with a spinner
+        where the app already holds the title is a wait somebody
+        did not need to have. */
+    fun openPiece(piece: Piece) {
+        _open.value = piece
+        viewModelScope.launch {
+            val answer = reiad.piece(piece.slug)
+            answer.value?.article?.let { full ->
+                if (_open.value?.slug == full.slug) _open.value = full
+            }
+        }
+    }
+
+    fun closePiece() {
+        _open.value = null
+    }
+
     /* ---------- what the reader chose ---------- */
 
     val prefs: StateFlow<Prefs> = reiad.prefs
@@ -240,10 +290,20 @@ fun App() {
     val note by model.note.collectAsState()
     val prefs by model.prefs.collectAsState()
     val audience by model.audience.collectAsState()
+    val pieces by model.pieces.collectAsState()
+    val openPiece by model.open.collectAsState()
+
+    /* The pieces are fetched once, on first composition, rather
+       than when a reading hub opens: the list is six rows without
+       bodies and having it already means search and the hubs are
+       instant. */
+    LaunchedEffect(Unit) { model.loadPieces() }
 
     val accent: Accent = when (val here = where) {
         is Where.Ladder -> accentOf(here.school)
         is Where.Reading -> accentOf(here.school)
+        is Where.Hub -> tokenAccent(site?.accents?.get(here.section))
+        is Where.Reading2 -> tokenAccent(site?.accents?.get(here.section))
         is Where.Group -> accentOfGroup(here.group)
         Where.Home -> Accents.GREEN
     }
@@ -263,12 +323,15 @@ fun App() {
     val current = when (val here = where) {
         is Where.Ladder -> here.school.key
         is Where.Reading -> here.school.key
+        is Where.Hub -> here.section
+        is Where.Reading2 -> here.section
         is Where.Group -> here.group.items.firstOrNull()?.key
         Where.Home -> null
     }
 
     ReiadTheme(accent = accent, dark = dark) {
-        Surface(Modifier.fillMaxSize(), color = LocalReiad.current.paper) {
+        val colours = LocalReiad.current
+        Surface(Modifier.fillMaxSize(), color = colours.paper) {
             Shell(
                 state = ShellState(site, current, audience, drawer),
                 /* A tab opens its GROUP, not its first item.
@@ -296,6 +359,45 @@ fun App() {
                 onAudience = { model.chooseAudience(it) },
             ) {
             when (val here = where) {
+                is Where.Hub -> {
+                    BackHandler { where = Where.Home }
+                    ReadingHub(
+                        title = here.title,
+                        pieces = pieces.filter { it.section == here.section },
+                        stale = stale,
+                        bottomPadding = BAR_CLEARANCE,
+                        onOpen = { piece ->
+                            model.openPiece(piece)
+                            where = Where.Reading2(here.section, piece)
+                        },
+                    )
+                }
+
+                is Where.Reading2 -> {
+                    BackHandler {
+                        model.closePiece()
+                        where = Where.Hub(here.section, sectionTitle(site, here.section))
+                    }
+                    val shown = openPiece ?: here.piece
+                    val siblings = pieces.filter { it.section == here.section }
+                    val at = siblings.indexOfFirst { it.slug == shown.slug }
+                    PieceScreen(
+                        piece = shown,
+                        previous = siblings.getOrNull(at - 1),
+                        next = siblings.getOrNull(at + 1),
+                        stale = stale,
+                        bottomPadding = BAR_CLEARANCE,
+                        onOpen = { piece ->
+                            model.openPiece(piece)
+                            where = Where.Reading2(here.section, piece)
+                        },
+                        onBack = {
+                            model.closePiece()
+                            where = Where.Hub(here.section, sectionTitle(site, here.section))
+                        },
+                    )
+                }
+
                 is Where.Group -> {
                     BackHandler { where = Where.Home }
                     GroupScreen(
@@ -303,13 +405,19 @@ fun App() {
                         accents = site?.accents.orEmpty(),
                         bottomPadding = BAR_CLEARANCE,
                         canOpenHere = { item ->
-                            site?.ladders?.any { it.key == item.key } == true
+                            site?.ladders?.any { it.key == item.key } == true ||
+                                readingSection(site, item.key) != null
                         },
                         onOpenHere = { item ->
                             val school = site?.ladders?.firstOrNull { it.key == item.key }
-                            if (school != null) {
-                                model.openLadder(school)
-                                where = Where.Ladder(school)
+                            val section = readingSection(site, item.key)
+                            when {
+                                school != null -> {
+                                    model.openLadder(school)
+                                    where = Where.Ladder(school)
+                                }
+                                section != null ->
+                                    where = Where.Hub(section, sectionTitle(site, section))
                             }
                         },
                     )
@@ -361,12 +469,33 @@ fun App() {
             if (searching) {
                 SearchScreen(
                     site = site,
+                    pieces = pieces,
                     onOpen = { found ->
                         searching = false
+                        /* A result opens the thing it names. By
+                           ADDRESS first, because that is what a
+                           result is: a piece and a school can
+                           both belong to the same group, and
+                           matching on the group alone sent every
+                           travel piece to the travel hub. */
+                        val piece = pieces.firstOrNull { it.url == found.url }
                         val school = site?.ladders?.firstOrNull { it.key == found.group }
-                        if (school != null) {
-                            model.openLadder(school)
-                            where = Where.Ladder(school)
+                        val section = readingSection(site, found.group)
+                        when {
+                            piece != null -> {
+                                model.openPiece(piece)
+                                where = Where.Reading2(piece.section, piece)
+                            }
+                            school != null -> {
+                                model.openLadder(school)
+                                where = Where.Ladder(school)
+                            }
+                            section != null ->
+                                where = Where.Hub(section, sectionTitle(site, section))
+                            /* Everything else lives on the site
+                               and not here yet, so it opens
+                               there rather than doing nothing. */
+                            else -> openOnSite(context, found.url, colours)
                         }
                     },
                     onClose = { searching = false },
@@ -390,6 +519,20 @@ private fun accentOf(school: LadderSchool): Accent =
     Accents.byToken(school.accent) ?: Accents.BY_KEY[school.key] ?: Accents.GREEN
 
 private fun accentOfGroup(group: NavGroup): Accent = tokenAccent(group.accent)
+
+/** Which reading section a nav key is, or null.
+
+    Asked of the MANIFEST rather than of a list here, so a fourth
+    reading section added to the site turns up with no release.
+    `sections` is the site's own table of them, and its `id` is
+    the same string a piece carries in its `section` column. */
+private fun readingSection(site: SiteManifest?, key: String?): String? =
+    site?.sections?.firstOrNull { it.id == key }?.id
+
+private fun sectionTitle(site: SiteManifest?, section: String): String =
+    site?.sections?.firstOrNull { it.id == section }
+        ?.let { it.bn.ifBlank { it.en } }
+        ?: section.replaceFirstChar { it.uppercase() }
 
 /* ---------- home ---------- */
 
@@ -538,17 +681,38 @@ private fun Ladder(
         }
 
         items(stages) { stage ->
-            StageCard(stage, ticks, onOpen)
+            StageCard(stage, stages, ticks, onOpen)
             Spacer(Modifier.height(Gap.s8))
         }
     }
 }
 
 @Composable
-private fun StageCard(stage: Stage, ticks: Set<String>, onOpen: (Stage, Lesson) -> Unit) {
+private fun StageCard(
+    stage: Stage,
+    stages: List<Stage>,
+    ticks: Set<String>,
+    onOpen: (Stage, Lesson) -> Unit,
+) {
     val c = LocalReiad.current
     val lessons = stage.lessons
     val done = lessons.count { lessonId(stage.slug, it.slug) in ticks }
+
+    /* Where the ground under this stage was laid, and only where
+       the reader has not already been there.
+
+       A SUGGESTION and never a lock. Nothing on this site is
+       gated: a reader who wants stage six on their first day gets
+       stage six, and there has never been a padlock on it. What
+       this earns is one quiet line, which is the difference
+       between a ladder and a corridor.
+
+       `needs` comes down from the school's own curriculum and is
+       read by nothing on the site itself, which is why it took a
+       surface check to notice it was being sent. */
+    val after = stage.needs
+        .mapNotNull { slug -> stages.firstOrNull { it.slug == slug } }
+        .filter { earlier -> earlier.lessons.none { lessonId(earlier.slug, it.slug) in ticks } }
 
     /* A PANE, because it holds other things. Pressing it does
        nothing; pressing a rung inside it does. A card here would
@@ -570,6 +734,18 @@ private fun StageCard(stage: Stage, ticks: Set<String>, onOpen: (Stage, Lesson) 
             Text(
                 "$done/${lessons.size}",
                 style = MaterialTheme.typography.labelMedium,
+                color = c.inkSoft,
+            )
+        }
+
+        if (after.isNotEmpty()) {
+            Spacer(Modifier.height(Gap.s5))
+            Text(
+                "Reads best after " + after.joinToString(" and ") { it.bn } + ".",
+                style = if (after.any { isBangla(it.bn) }) BanglaBody.copy(
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                    lineHeight = MaterialTheme.typography.bodySmall.fontSize * 1.6f,
+                ) else MaterialTheme.typography.bodySmall,
                 color = c.inkSoft,
             )
         }

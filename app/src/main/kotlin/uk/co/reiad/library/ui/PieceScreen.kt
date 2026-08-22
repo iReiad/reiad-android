@@ -1,0 +1,248 @@
+package uk.co.reiad.library.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import uk.co.reiad.library.core.Block
+import uk.co.reiad.library.core.BodyParser
+import uk.co.reiad.library.core.Kind
+import uk.co.reiad.library.core.Pace
+import uk.co.reiad.library.core.Piece
+import uk.co.reiad.library.core.speakable
+import uk.co.reiad.library.read.Reader
+import uk.co.reiad.library.read.Speaking
+
+/* ============================================================
+   One piece, read.
+
+   The body arrives as sanitised HTML, goes through the parser
+   that `BodyParserTest` proves against real lessons, and is drawn
+   block by block. What this screen adds around it is the
+   furniture: the byline, the reading line, the read-aloud control
+   and the prev/next pair.
+
+   ---- the reading line is not progress ----
+
+   It says how far down the page a reader has scrolled and it
+   marks NOTHING. Scrolling is not reading, and this site has a
+   rule about that one level up: opening is not finishing, and a
+   tick is a button somebody presses. A bar that quietly ticked a
+   piece off for being scrolled past would be the same mistake in
+   a smaller place.
+   ============================================================ */
+
+@Composable
+fun PieceScreen(
+    piece: Piece,
+    previous: Piece?,
+    next: Piece?,
+    stale: Boolean,
+    bottomPadding: Dp,
+    onOpen: (Piece) -> Unit,
+    onBack: () -> Unit,
+) {
+    val c = LocalReiad.current
+    val context = LocalContext.current
+    val scroll = rememberLazyListState()
+    val speaking by Reader.state.collectAsStateWithLifecycle()
+
+    val blocks = remember(piece.slug, piece.body) {
+        if (piece.body.isBlank()) emptyList() else BodyParser.parse(piece.body).blocks
+    }
+    val lines = remember(blocks) { speakable(blocks) }
+
+    /* Derived, so scrolling invalidates the bar and nothing else.
+       Read as state in composition it would recompose the whole
+       piece on every frame of a fling. */
+    val read by remember {
+        derivedStateOf {
+            val info = scroll.layoutInfo
+            val total = info.totalItemsCount
+            if (total <= 1) 0f
+            else (info.visibleItemsInfo.lastOrNull()?.index ?: 0).toFloat() / (total - 1)
+        }
+    }
+
+    Box(Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = scroll,
+            modifier = Modifier.fillMaxSize().padding(horizontal = Gap.s8),
+            contentPadding = PaddingValues(top = Gap.s11, bottom = bottomPadding),
+        ) {
+            item("head") {
+                Text(
+                    "← Back",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = c.accent,
+                    modifier = Modifier.clickable(role = Role.Button, onClick = onBack),
+                )
+                Spacer(Modifier.height(Gap.s7))
+                Text(
+                    piece.title,
+                    style = if (piece.isBangla) BanglaHeading.copy(
+                        fontSize = MaterialTheme.typography.headlineMedium.fontSize,
+                    ) else MaterialTheme.typography.headlineMedium,
+                    color = c.ink,
+                )
+                if (piece.dek.isNotBlank()) {
+                    Spacer(Modifier.height(Gap.s5))
+                    Text(
+                        piece.dek,
+                        style = if (piece.isBangla) BanglaBody else MaterialTheme.typography.bodyLarge,
+                        color = c.inkSoft,
+                    )
+                }
+                Spacer(Modifier.height(Gap.s6))
+                Byline(piece)
+                if (stale) {
+                    Spacer(Modifier.height(Gap.s5))
+                    Chip("SAVED COPY")
+                }
+                Spacer(Modifier.height(Gap.s6))
+                ReadAloudBar(piece, lines.isNotEmpty(), speaking)
+                Spacer(Modifier.height(Gap.s8))
+            }
+
+            if (blocks.isEmpty()) {
+                item("empty") {
+                    Text(
+                        if (piece.body.isBlank()) "Opening…" else "This one has no words yet.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = c.inkSoft,
+                    )
+                }
+            }
+
+            itemsIndexedKeyed(blocks) { index, block ->
+                /* The block being spoken is marked, so somebody
+                   listening with the screen on can follow. The
+                   mark is a ground rather than a highlight
+                   colour: a yellow bar over prose is a
+                   highlighter pen, and this is the material's own
+                   accent at a whisper. */
+                val on = speaking.on && speaking.block == index
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (on) {
+                                Modifier
+                                    .clip(RoundedCornerShape(Corner.field))
+                                    .background(c.accent.copy(alpha = 0.10f))
+                                    .padding(horizontal = Gap.s5, vertical = Gap.s4)
+                            } else {
+                                Modifier
+                            },
+                        ),
+                ) {
+                    BodyView(listOf(block))
+                }
+                Spacer(Modifier.height(Gap.s6))
+            }
+
+            item("foot") {
+                Spacer(Modifier.height(Gap.s9))
+                PrevNext(previous, next, onOpen)
+            }
+        }
+
+        /* A hairline at the very top saying how far down the page
+           this is. Above the content and outside the scroll, so
+           it does not move with what it measures. */
+        ReadingLine(read, Modifier.align(Alignment.TopCenter))
+    }
+}
+
+/** The control, and what it says when it cannot work.
+
+    Three states rather than two. A device with no synthesiser
+    gets a sentence rather than a button that does nothing, which
+    is the difference between a feature that is absent and a
+    feature that is broken. */
+@Composable
+private fun ReadAloudBar(piece: Piece, hasWords: Boolean, speaking: Speaking) {
+    if (!hasWords) return
+    val c = LocalReiad.current
+    val context = LocalContext.current
+
+    if (speaking.unavailable) {
+        Text(
+            "This device has no speech voice installed, so there is nothing to read with.",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.inkSoft,
+        )
+        return
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Control(
+            modifier = Modifier.clickable(role = Role.Button) {
+                if (speaking.on) {
+                    Reader.stop(context)
+                } else {
+                    val body = if (piece.body.isBlank()) emptyList()
+                    else speakable(BodyParser.parse(piece.body).blocks)
+                    Reader.start(context, piece.title, body, Pace.NORMAL)
+                }
+            },
+            ground = if (speaking.on) c.accent else c.panel,
+        ) {
+            Text(
+                if (speaking.on) "⏹  Stop" else "🔈  Read aloud",
+                style = MaterialTheme.typography.labelLarge,
+                color = if (speaking.on) c.paper else c.accent,
+            )
+        }
+        if (speaking.on) {
+            Spacer(Modifier.width(Gap.s6))
+            Text(
+                "Keeps going with the screen off.",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.inkSoft,
+            )
+        }
+    }
+}
+
+/* ---------- two small helpers ---------- */
+
+/** `items` with an index, keyed by position.
+
+    Keyed by position and not by content because a body can hold
+    two identical paragraphs and a duplicate key crashes a
+    LazyColumn. Position is the one thing about a block that is
+    guaranteed unique. */
+private fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexedKeyed(
+    blocks: List<Block>,
+    row: @Composable (Int, Block) -> Unit,
+) {
+    for ((index, block) in blocks.withIndex()) {
+        item(key = "block-$index") { row(index, block) }
+    }
+}

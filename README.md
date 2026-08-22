@@ -94,8 +94,24 @@ app cannot render yet opens on the site in a Custom Tab, which is
 the reader's own browser and so keeps their session. The card says
 which it will be before you press it.
 
-Not yet: the account and sync, photos, the practice books, the
-tools, the reading screen's own furniture. `ROADMAP.md` is the
+**And the writing is here now.** Insights, Cooking and Travel off
+`/api/articles`, with topic chips whose counts are counted from
+what is on screen rather than remembered, and a chip that would
+filter nothing is not offered. A piece renders through the same
+parser the lessons use, with photos: Coil, honouring the site's
+own crop classes, so `frame-square` and `focus-top` mean here what
+they mean there and what the share card means by them.
+
+**Read aloud carries on with the screen off**, which is the one
+thing the site's own read-aloud cannot do: a browser stops
+`speechSynthesis` the moment the tab is hidden. A foreground
+service keeps the voice alive and puts a Stop in the shade and on
+the lock screen. What gets read is `speakable()` in core, tested:
+prose yes, tables and captions and key figures no, a block the
+parser could not place yes, because losing a paragraph to an
+unknown wrapper is worse than reading it in the wrong tone.
+
+Not yet: the account and sync, the practice books, the tools. `ROADMAP.md` is the
 twelve blocks that finish it, with a scorecard that says where it
 stands rather than how it feels.
 

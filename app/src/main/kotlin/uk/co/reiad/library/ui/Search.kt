@@ -44,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import uk.co.reiad.library.core.Found
 import uk.co.reiad.library.core.Kind
+import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.grouped
 import uk.co.reiad.library.core.search
@@ -67,6 +68,7 @@ import uk.co.reiad.library.core.search
 @Composable
 fun SearchScreen(
     site: SiteManifest?,
+    pieces: List<Piece>,
     onOpen: (Found) -> Unit,
     onClose: () -> Unit,
 ) {
@@ -75,7 +77,7 @@ fun SearchScreen(
     val retreat = rememberRetreat(onBack = onClose)
     var query by remember { mutableStateOf("") }
     val focus = remember { FocusRequester() }
-    val results = remember(site, query) { search(site, query) }
+    val results = remember(site, pieces, query) { search(site, query, pieces = pieces) }
     val groups = remember(results) { grouped(results) }
 
     /* Straight into the box. Somebody who opened search wants to

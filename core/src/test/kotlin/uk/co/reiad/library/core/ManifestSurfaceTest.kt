@@ -45,15 +45,32 @@ class ManifestSurfaceTest {
         forgotten field is what this test exists to catch. An
         entry that has gone stale fails too, below. */
     private val notRead = mapOf(
-        "ok" to "the envelope's own flag. Ktor already failed the request if it was not ok.",
+        /* ---- the desk's bookkeeping, which is not a reader's ----
+
+           Three columns on a piece that exist for the admin desk
+           and mean nothing to somebody reading. They are named
+           here rather than modelled, because a field carried and
+           never shown is a field somebody later mistakes for a
+           feature. */
+        "articles.articles[].embedded" to
+            "whether the body still holds a data: URL photo. The desk offers the repair; " +
+            "a reader cannot act on it and the answer changes every time the body does.",
+        "article.article.embedded" to "the same, on the single-piece answer.",
+        "articles.articles[].notion_page_id" to
+            "which Notion page a piece was imported from. The Studio's bookkeeping.",
+        "article.article.notion_page_id" to "the same, on the single-piece answer.",
+        "articles.articles[].notion_synced_at" to "when that import last ran.",
+        "article.article.notion_synced_at" to "the same, on the single-piece answer.",
     )
 
-    private fun fixture(): JsonObject =
+    private fun load(name: String): JsonObject =
         json.parseToJsonElement(
-            requireNotNull(javaClass.getResourceAsStream("/fixtures/site.json")) {
-                "fixtures/site.json is missing. See README, 'Refreshing the fixtures'."
+            requireNotNull(javaClass.getResourceAsStream("/fixtures/$name")) {
+                "fixtures/$name is missing. See README, 'Refreshing the fixtures'."
             }.readBytes().decodeToString(),
         ).jsonObject
+
+    private fun fixture(): JsonObject = load("site.json")
 
     /* ---- the whole tree, not just the top of it ----
 
@@ -74,6 +91,7 @@ class ManifestSurfaceTest {
         element: JsonElement,
         path: String,
         missing: MutableSet<String>,
+        used: MutableSet<String> = mutableSetOf(),
     ) {
         when (element) {
             is JsonObject -> when (descriptor.kind) {
@@ -83,10 +101,14 @@ class ManifestSurfaceTest {
                     for ((key, value) in element) {
                         val at = names[key]
                         if (at == null) {
-                            if ("$path.$key" !in notRead && key !in notRead) missing += "$path.$key"
+                            when {
+                                "$path.$key" in notRead -> used += "$path.$key"
+                                key in notRead -> used += key
+                                else -> missing += "$path.$key"
+                            }
                             continue
                         }
-                        walk(descriptor.getElementDescriptor(at), value, "$path.$key", missing)
+                        walk(descriptor.getElementDescriptor(at), value, "$path.$key", missing, used)
                     }
                 }
                 /* A map's keys are data, not field names, so only
@@ -94,14 +116,14 @@ class ManifestSurfaceTest {
                    both this shape. */
                 StructureKind.MAP ->
                     for ((key, value) in element) {
-                        walk(descriptor.getElementDescriptor(1), value, "$path[$key]", missing)
+                        walk(descriptor.getElementDescriptor(1), value, "$path[$key]", missing, used)
                     }
                 else -> Unit
             }
 
             is JsonArray -> if (descriptor.kind == StructureKind.LIST) {
                 for (item in element) {
-                    walk(descriptor.getElementDescriptor(0), item, "$path[]", missing)
+                    walk(descriptor.getElementDescriptor(0), item, "$path[]", missing, used)
                 }
             }
 
@@ -109,14 +131,40 @@ class ManifestSurfaceTest {
         }
     }
 
-    @Test
-    fun `every field the site sends has somewhere to land`() {
+    /** Every answer this app reads, and the class that models it.
+
+        One list rather than one test per endpoint, because both
+        questions below have to be asked of ALL of them: a field
+        with nowhere to land, and an exemption for a field nothing
+        sends any more. */
+    private val endpoints = listOf(
+        Triple("site.json", SiteManifest.serializer().descriptor, "site"),
+        Triple("articles.json", PiecesResponse.serializer().descriptor, "articles"),
+        Triple("article-photo.json", PieceResponse.serializer().descriptor, "article"),
+        Triple("article-blocks.json", PieceResponse.serializer().descriptor, "article"),
+        Triple("money.json", LadderResponse.serializer().descriptor, "ladder"),
+        Triple("lesson-share.json", LessonResponse.serializer().descriptor, "lesson"),
+    )
+
+    /** Walks all of them once and reports both answers, so the
+        two tests below cannot drift apart about what was
+        inspected. */
+    private fun sweep(): Pair<Set<String>, Set<String>> {
         val missing = sortedSetOf<String>()
-        walk(SiteManifest.serializer().descriptor, fixture(), "site", missing)
+        val used = sortedSetOf<String>()
+        for ((name, descriptor, label) in endpoints) {
+            walk(descriptor, load(name), label, missing, used)
+        }
+        return missing to used
+    }
+
+    @Test
+    fun `every field every endpoint sends has somewhere to land`() {
+        val (missing, _) = sweep()
         assertTrue(
             missing.isEmpty(),
-            "The site sends these and nothing here has a field for them, so they are " +
-                "dropped silently: $missing. Add a property at that path, or name it in " +
+            "These are sent and nothing here has a field for them, so they are dropped " +
+                "silently: $missing. Add a property at that path, or name it in " +
                 "`notRead` with the reason it stays behind.",
         )
     }
@@ -124,12 +172,18 @@ class ManifestSurfaceTest {
     /** And an exemption that has gone stale fails, for the reason
         the website's own `NOT_FOR_APP` list is checked the same
         way: a name kept after the thing is gone reads as though
-        somebody thought about it recently. */
+        somebody thought about it recently.
+
+        Asked of what the walk actually MATCHED rather than of one
+        fixture's top-level keys, which is the shape this had
+        first and it was wrong: every path-shaped exemption looked
+        stale the moment it was added, because none of them is a
+        key of the manifest. */
     @Test
-    fun `nothing is exempted that the site no longer sends`() {
-        val sent = fixture().keys
-        val stale = notRead.keys - sent
-        assertTrue(stale.isEmpty(), "These are exempted and no longer sent at all: $stale")
+    fun `nothing is exempted that nothing sends`() {
+        val (_, used) = sweep()
+        val stale = notRead.keys - used
+        assertTrue(stale.isEmpty(), "These are exempted and no endpoint sends them: $stale")
     }
 
     /** The three that were being dropped, by name, because a

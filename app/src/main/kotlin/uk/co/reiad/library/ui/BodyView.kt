@@ -64,14 +64,23 @@ private fun BlockView(block: Block) {
     when (block) {
         is Block.Heading -> Text(
             block.inlines.annotated(c.accent),
-            style = if (block.level <= 2) MaterialTheme.typography.headlineSmall
-            else MaterialTheme.typography.titleMedium,
+            style = when {
+                isBangla(block.inlines.plain()) ->
+                    if (block.level <= 2) BanglaHeading else BanglaTitle
+                block.level <= 2 -> MaterialTheme.typography.headlineSmall
+                else -> MaterialTheme.typography.titleMedium
+            },
             color = c.ink,
         )
 
+        /* Asked of the words rather than of the piece, because a
+           piece is one language and its prose is not: a Bangla
+           lesson quotes an English term and an English piece
+           quotes a Bangla one. The face and the leading follow
+           the line that needs them. */
         is Block.Paragraph -> Text(
             block.inlines.annotated(c.accent),
-            style = MaterialTheme.typography.bodyLarge,
+            style = bodyStyleFor(block.inlines),
             color = c.ink,
         )
 
@@ -154,23 +163,12 @@ private fun BlockView(block: Block) {
             }
         }
 
-        /* A photo needs a loader and a crop, which is the next
-           change. Until then its caption is shown rather than a
-           blank space, so the page does not look truncated. */
-        is Block.Photo -> Plate {
-            Text(
-                if (block.alt.isNotBlank()) block.alt else "Photo",
-                style = MaterialTheme.typography.labelSmall,
-                color = c.inkSoft,
-            )
-            if (block.caption.isNotEmpty()) {
-                Text(
-                    block.caption.annotated(c.accent),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.inkSoft,
-                )
-            }
-        }
+        is Block.Photo -> PhotoBlock(
+            src = block.src,
+            alt = block.alt,
+            classes = block.classes,
+            caption = block.caption.takeIf { it.isNotEmpty() }?.annotated(c.accent),
+        )
 
         is Block.Table -> Column(Modifier.horizontalScroll(rememberScrollState())) {
             if (block.head.isNotEmpty()) {
@@ -213,6 +211,27 @@ private fun BlockView(block: Block) {
 }
 
 private val intrinsicQuoteHeight = 48.dp
+
+/** The plain words of a run, for asking which language it is in. */
+internal fun List<Inline>.plain(): String = buildString {
+    fun walk(list: List<Inline>) {
+        for (inline in list) when (inline) {
+            is Inline.Text -> append(inline.text)
+            is Inline.Strong -> walk(inline.children)
+            is Inline.Emphasis -> walk(inline.children)
+            is Inline.Code -> walk(inline.children)
+            is Inline.Sup -> walk(inline.children)
+            is Inline.Sub -> walk(inline.children)
+            is Inline.Link -> walk(inline.children)
+            Inline.Break -> append(" ")
+        }
+    }
+    walk(this@plain)
+}
+
+@Composable
+private fun bodyStyleFor(inlines: List<Inline>) =
+    if (isBangla(inlines.plain())) BanglaBody else MaterialTheme.typography.bodyLarge
 
 @Composable
 private fun Marked(mark: String, item: List<Inline>, accent: androidx.compose.ui.graphics.Color, ink: androidx.compose.ui.graphics.Color) {

@@ -23,6 +23,8 @@ import uk.co.reiad.library.core.LessonResponse
 import uk.co.reiad.library.core.AUDIENCE_KEY
 import uk.co.reiad.library.core.PREFS_KEY
 import uk.co.reiad.library.core.Prefs
+import uk.co.reiad.library.core.PieceResponse
+import uk.co.reiad.library.core.PiecesResponse
 import uk.co.reiad.library.core.ProgressKeys
 import uk.co.reiad.library.core.THEME_KEY
 import uk.co.reiad.library.core.TOOL_LANG_KEY
@@ -94,6 +96,17 @@ class Reiad(private val context: Context) {
 
     suspend fun ladder(school: String): Cached<LadderResponse> =
         fetch("$SITE_ORIGIN/api/schools/$school", "cache:ladder:$school", LadderResponse.serializer())
+
+    /** Every live piece, without bodies. The endpoint splits it
+        that way and the split is right for a handset too: a hub
+        of six pieces should not pull six bodies. */
+    suspend fun pieces(): Cached<PiecesResponse> =
+        fetch("$SITE_ORIGIN/api/articles", "cache:pieces", PiecesResponse.serializer())
+
+    /** One piece, body included. Cached under its own slug, so a
+        piece read once is readable on a train. */
+    suspend fun piece(slug: String): Cached<PieceResponse> =
+        fetch("$SITE_ORIGIN/api/articles/$slug", "cache:piece:$slug", PieceResponse.serializer())
 
     suspend fun lesson(school: String, stage: String, slug: String): Cached<LessonResponse> =
         fetch(

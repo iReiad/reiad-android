@@ -81,7 +81,20 @@ private fun scoreOf(title: String, blurb: String?, needle: String): Int {
     Empty for an empty query rather than everything: a palette
     that lists 300 rows before a key is pressed is a wall, and the
     caller can show whatever it likes in that state. */
-fun search(site: SiteManifest?, query: String, limit: Int = 40): List<Found> {
+fun search(
+    site: SiteManifest?,
+    query: String,
+    limit: Int = 40,
+    /** The live pieces, when the app has them.
+
+        Not in the manifest and deliberately not: `/api/site` is
+        the site's furniture and `/api/articles` is its writing,
+        and folding one into the other would make every launch
+        pull six pieces to fill a menu. So the caller passes what
+        it has, and search over an app that has not fetched them
+        yet is search over everything else, which still works. */
+    pieces: List<Piece> = emptyList(),
+): List<Found> {
     val needle = query.trim()
     if (site == null || needle.isEmpty()) return emptyList()
 
@@ -93,6 +106,17 @@ fun search(site: SiteManifest?, query: String, limit: Int = 40): List<Found> {
     }
 
     for (page in site.pages) add(page.title, page.url, page.hint, page.group, page.blurb)
+
+    /* A piece is findable by its title, its standfirst and any of
+       its topics: three ways in, because a reader looking for the
+       visa piece may remember "visa", "ভিসা" or the sentence
+       under the title, and one of those is enough. */
+    for (piece in pieces) {
+        add(piece.title, piece.url, sectionHint(piece.section), piece.section, piece.dek)
+        for (topic in piece.topics) {
+            add(topic, piece.url, sectionHint(piece.section), piece.section, piece.title)
+        }
+    }
 
     /* A school is findable by either of its names. A reader who
        knows it as টাকা ও শেয়ার and a reader who knows it as the
@@ -128,6 +152,13 @@ fun search(site: SiteManifest?, query: String, limit: Int = 40): List<Found> {
         .sortedWith(compareByDescending<Found> { it.rank }.thenBy { it.title.length })
         .take(limit)
 }
+
+/** What kind of thing a piece is, in the one word its section
+    already says. Not a table: the three sections are the three
+    words, and a fourth section added tomorrow gets its own id
+    capitalised rather than a missing label. */
+private fun sectionHint(section: String): String =
+    section.replaceFirstChar { it.uppercase() }
 
 /** The site's own grouping, for the rows to sit under.
 

@@ -204,6 +204,21 @@ data class Stage(
     val who: String? = null,
     val blurb: String? = null,
     val status: String = "live",
+
+    /** Stage slugs a reader should have read first.
+
+        A SUGGESTION and never a lock. Nothing on this site is
+        gated: a reader who wants stage six on their first day
+        gets stage six, and the site has never had a padlock on
+        it. What this earns is a quiet line saying where the
+        ground under a stage was laid, which is the difference
+        between a ladder and a corridor.
+
+        Sent by the endpoint from the school's own curriculum and
+        read by nothing on the site itself, which is why it took a
+        surface check to notice it existed. */
+    val needs: List<String> = emptyList(),
+
     /** Where this stage's lessons live. `basics-1` carries
         `/money/terms/` because those pages were the glossary
         before the school had a builder. Absent means the ordinary
@@ -319,4 +334,67 @@ fun resolveHref(href: String, school: String, stage: Stage): String = when {
     href.startsWith("/") -> href
     href.startsWith("#") -> href
     else -> (stage.base ?: "/$school/${stage.slug}/") + href
+}
+
+/* ---------- /api/articles ---------- */
+
+/* A piece: an article, a recipe, a travel note. One table, one
+   endpoint, three sections, and which section a piece is in
+   decides where it lives and what colour it wears.
+
+   `/api/articles` answers with every LIVE piece and no bodies;
+   `/api/articles/<slug>` answers with one, body included. That
+   split is the endpoint's, and it is the right one for a handset
+   too: a hub of six pieces should not pull six bodies. */
+
+@Serializable
+data class PiecesResponse(
+    val ok: Boolean = true,
+    val articles: List<Piece> = emptyList(),
+)
+
+@Serializable
+data class PieceResponse(
+    val ok: Boolean = true,
+    val article: Piece = Piece(),
+)
+
+@Serializable
+data class Piece(
+    val slug: String = "",
+    val title: String = "",
+    /** The standfirst: one or two sentences under the title. */
+    val dek: String = "",
+    /** The topics as one string, which is what the row holds.
+        `topics` below is the same thing split, and both arrive. */
+    val tag: String = "",
+    val topics: List<String> = emptyList(),
+    /** `bn` or `en`. Decides the face and the leading, and it is
+        a fact about the piece rather than about the reader. */
+    val lang: String = "en",
+    val minutes: Int = 0,
+    val status: String = "live",
+    /** `insights`, `cooking` or `travel`. */
+    val section: String = "insights",
+    /** The share card, drawn rather than borrowed: a 1200x630
+        JPEG made from the lead photo. Empty where a piece has
+        none, and empty is not an error. */
+    val cover: String = "",
+    /** The date the piece went live, `2026-08-14`. */
+    @SerialName("published_at") val publishedAt: String = "",
+    @SerialName("updated_at") val updatedAt: String = "",
+    /** Only on the single-piece answer. */
+    val body: String = "",
+) {
+    /** An address of the shape the site actually serves.
+
+        A piece keeps its `.html`, and that is not an oversight:
+        the suffix is part of the SLUG rather than part of a
+        route. It is in every link inside every lesson body in the
+        database and in the `public.library` row of everybody who
+        has saved a piece, so inventing the suffixless spelling
+        here would be a dead link with a plausible shape. */
+    val url: String get() = "/$section/$slug.html"
+
+    val isBangla: Boolean get() = lang == "bn"
 }
