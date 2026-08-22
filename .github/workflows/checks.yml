@@ -1,0 +1,62 @@
+name: checks
+
+# On push as well as on pull_request, and that is deliberate: the
+# website repository learned it the hard way, when `pull_request`
+# quietly stopped firing for opens and pushes alike and two pull
+# requests sat with green ticks and no test run. `pull_request` is
+# still listed so a run attaches to the pull request when GitHub
+# does deliver the event.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: the arithmetic
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+
+      # No Android SDK needed for this one, deliberately, and that
+      # is the whole argument for `core` being a separate module.
+      # The two pieces most likely to be wrong, the sync
+      # arithmetic and the body parser, are both in it and can be
+      # proved on any JVM in about thirty seconds.
+      - run: ./gradlew :core:test --no-daemon
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-test-report
+          path: core/build/reports/tests/test/
+
+  app:
+    name: it builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: ./gradlew :app:assembleDebug --no-daemon
+
+      # The APK itself, off every build. A commit somebody can
+      # install is worth more than a green tick saying it would
+      # have compiled.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk

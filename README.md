@@ -10,7 +10,7 @@ built in. This file is how to run what is here.
 ## Run the tests
 
 ```sh
-gradle :core:test
+./gradlew :core:test
 ```
 
 No Android SDK needed for that, deliberately. See below.
@@ -18,13 +18,30 @@ No Android SDK needed for that, deliberately. See below.
 ## Build the app
 
 ```sh
-gradle :app:assembleDebug
+./gradlew :app:assembleDebug
 ```
 
 The APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
 Android Studio supplies the SDK; from a terminal put its path in
 `local.properties` as `sdk.dir=...`, which is gitignored because
 it is a fact about one machine.
+
+**Use the wrapper, not whatever `gradle` is on the path.** The
+version is pinned in `gradle/wrapper/gradle-wrapper.properties`
+and the jar is committed, which is what makes a build here and a
+build in CI the same build.
+
+## CI
+
+`.github/workflows/checks.yml`, and it runs both of the above on
+every push. The APK is uploaded off every run, because a commit
+somebody can install is worth more than a green tick saying it
+would have compiled.
+
+It runs on `push` as well as on `pull_request`, which is the
+website repository's own lesson: `pull_request` quietly stopped
+firing there for opens and pushes alike, and two pull requests sat
+with green ticks and no test run at all.
 
 ## Layout
 
