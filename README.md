@@ -47,8 +47,10 @@ Opening is not finishing. The money school's tick is a button.
 The other three schools mark a lesson on opening, which is their
 own semantics and arrives with them.
 
-Not yet: the account and sync, the other three schools, photos,
-the practice books, the tools. `ANDROID.md` has the order.
+Not yet: the account and sync, photos, the practice books, the
+tools, and most of the craft. `ROADMAP.md` is the twelve blocks
+that finish it, with a scorecard that says where it stands rather
+than how it feels.
 
 ## Why two modules
 
