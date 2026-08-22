@@ -120,8 +120,23 @@ ever locking it. Checkpoints inside a lesson body are real: a
 `<lesson id>#<n>`, numbered across the whole lesson the way the
 site numbers them, and counted towards no ladder.
 
-Not yet: the account and sync, the practice books (see
-`ROADMAP.md`, they need a website change first), the tools. `ROADMAP.md` is the
+**And the practice books are here**, which took a website change
+first. The books are read on the server and never sent as data,
+because every prompt has its answer beside it, so there was
+nothing to consume: `iReiad/reiad-website#204` adds
+`/api/book/<stage>`, which sends the days with the answers
+stripped, and `/api/book/<stage>/key/<day>`, which sends one day's
+key when the reader presses Show. Until that deploys, the book
+screen says so and offers the site.
+
+The day walker is the whole book on one line. What a learner types
+saves on a debounce to `deutsch-schrift` or `english-write`, and
+neither key ever leaves the device. A day is ticked under its own
+school's shape, `stufe-1/tag-3` against `term-1/day-3`, because
+both are in real browsers and the site's shared engine built the
+German shape for both once.
+
+Not yet: the account and sync, the tools. `ROADMAP.md` is the
 twelve blocks that finish it, with a scorecard that says where it
 stands rather than how it feels.
 

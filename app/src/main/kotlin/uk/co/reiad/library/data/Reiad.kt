@@ -24,6 +24,8 @@ import uk.co.reiad.library.core.LessonResponse
 import uk.co.reiad.library.core.AUDIENCE_KEY
 import uk.co.reiad.library.core.PREFS_KEY
 import uk.co.reiad.library.core.Prefs
+import uk.co.reiad.library.core.BookKeyResponse
+import uk.co.reiad.library.core.BookResponse
 import uk.co.reiad.library.core.PieceResponse
 import uk.co.reiad.library.core.PiecesResponse
 import uk.co.reiad.library.core.ProgressKeys
@@ -109,6 +111,26 @@ class Reiad(private val context: Context) {
     suspend fun piece(slug: String): Cached<PieceResponse> =
         fetch("$SITE_ORIGIN/api/articles/$slug", "cache:piece:$slug", PieceResponse.serializer())
 
+    /** A practice book, with every answer already taken out by
+        the endpoint. */
+    suspend fun book(stage: String): Cached<BookResponse> =
+        fetch("$SITE_ORIGIN/api/book/$stage", "cache:book:$stage", BookResponse.serializer())
+
+    /** And one day's answers, asked for only when the reader
+        presses Show.
+
+        NOT cached to disk, and that is the difference between
+        this and everything else here. A book cached is a book
+        readable on a train, which is the point; a key cached is
+        a key sitting on the device beside the prompts, which
+        undoes the reason the endpoint splits them at all. */
+    suspend fun bookKey(stage: String, day: Int): List<String> = runCatching {
+        json.decodeFromString(
+            BookKeyResponse.serializer(),
+            http.get("$SITE_ORIGIN/api/book/$stage/key/$day").bodyAsText(),
+        ).answers
+    }.getOrDefault(emptyList())
+
     suspend fun lesson(school: String, stage: String, slug: String): Cached<LessonResponse> =
         fetch(
             "$SITE_ORIGIN/api/schools/$school/$stage/$slug",
@@ -149,6 +171,35 @@ class Reiad(private val context: Context) {
        later sync is a comparison rather than a translation. */
 
     private fun key(name: String) = stringPreferencesKey(name)
+
+    /** Which practice-book days have been ticked. */
+    fun days(school: School): Flow<Set<String>> =
+        context.store.data.map { prefs ->
+            val name = ProgressKeys.days(school) ?: return@map emptySet()
+            decode(prefs[key(name)])
+        }
+
+    suspend fun toggleDay(school: School, id: String): Set<String> {
+        val name = ProgressKeys.days(school) ?: return emptySet()
+        var after: Set<String> = emptySet()
+        context.store.edit { prefs ->
+            val now = decode(prefs[key(name)])
+            after = if (id in now) now - id else now + id
+            prefs[key(name)] = encode(after)
+
+            /* The furthest day reached, which is a COUNT rather
+               than a set and is filed under its own key. It only
+               ever goes up: un-ticking day twelve does not mean a
+               reader has not seen it. */
+            ProgressKeys.dayCount(school)?.let { counter ->
+                val reached = after.mapNotNull { it.substringAfterLast('-').toIntOrNull() }
+                    .maxOrNull() ?: 0
+                val had = prefs[key(counter)]?.toIntOrNull() ?: 0
+                if (reached > had) prefs[key(counter)] = reached.toString()
+            }
+        }
+        return after
+    }
 
     fun ticks(school: School): Flow<Set<String>> =
         context.store.data.map { prefs -> decode(prefs[key(ProgressKeys.read(school))]) }

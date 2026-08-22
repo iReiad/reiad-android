@@ -432,3 +432,106 @@ data class Piece(
 
     val isBangla: Boolean get() = lang == "bn"
 }
+
+/* ---------- /api/book/<stage> ---------- */
+
+/* A practice book, with every answer taken out.
+
+   The site's own note is why the endpoint exists at all: the
+   books are read on the server and never sent as data, because
+   every prompt has its answer beside it. `/api/book/<stage>`
+   sends the days with `say[].a` stripped and
+   `/api/book/<stage>/key/<day>` sends one day's answers when the
+   reader presses the button.
+
+   **So there is no `a` on `Prompt` here, and that is deliberate.**
+   A field for it would be a field that is always null, and a
+   field that is always null is one somebody later fills in from
+   the wrong place. */
+
+@Serializable
+data class BookResponse(
+    val ok: Boolean = true,
+    val stage: String = "",
+    val book: Book = Book(),
+)
+
+@Serializable
+data class Book(
+    /** `deutsch` or `english`, which decides the storage key and
+        the language a target line is tagged with. */
+    val school: String = "",
+    /** The second line of every day's footer tick, which grows
+        with the level: Stufe 1 asks whether yesterday's page was
+        read first, Stufe 3 asks for a whole story. */
+    val foot: String = "",
+    val lede: BookLine = BookLine(),
+    /** The sound key from the front of the book. Only the first
+        book of each school has one: after that the sounds are
+        behind you, and a section repeating them would be the book
+        treating a reader as if they had not moved. */
+    val sounds: List<BookSound> = emptyList(),
+    val collect: BookCollection = BookCollection(),
+    val end: BookLine = BookLine(),
+    val motto: BookLine = BookLine(),
+    val days: List<BookDay> = emptyList(),
+)
+
+/** A pair of lines: what you say, and what it means. `target` is
+    the language being learnt, whichever that is. */
+@Serializable
+data class BookLine(val target: String = "", val bn: String = "")
+
+@Serializable
+data class BookSound(val pair: String = "", val words: String = "", val how: String = "")
+
+@Serializable
+data class BookCollection(
+    val key: String = "",
+    val target: String = "",
+    val bn: String = "",
+    val blurb: String = "",
+    val columns: List<BookColumn> = emptyList(),
+)
+
+@Serializable
+data class BookColumn(val key: String = "", val head: String = "", val placeholder: String = "")
+
+/** One day. Always the same four parts, which is the whole point
+    of the book: the shape of the page never changes, only what is
+    poured into it. */
+@Serializable
+data class BookDay(
+    val n: Int = 0,
+    /** The day's title, in the language being learnt. */
+    val target: String = "",
+    val bn: String = "",
+    val pattern: BookPattern = BookPattern(),
+    /** Model lines to read aloud. */
+    val watch: List<BookLine> = emptyList(),
+    /** Prompts to translate. Speak first, write second. */
+    val say: List<BookPrompt> = emptyList(),
+    /** The free writing. */
+    val heart: BookLine = BookLine(),
+)
+
+@Serializable
+data class BookPattern(
+    val shape: String = "",
+    val why: String = "",
+    val examples: String = "",
+    val tip: String = "",
+)
+
+/** A prompt, and NO answer. See the note above this section. */
+@Serializable
+data class BookPrompt(val q: String = "")
+
+/** One day's answers, in the order its prompts are in. */
+@Serializable
+data class BookKeyResponse(
+    val ok: Boolean = true,
+    val stage: String = "",
+    val day: Int = 0,
+    val answers: List<String> = emptyList(),
+)

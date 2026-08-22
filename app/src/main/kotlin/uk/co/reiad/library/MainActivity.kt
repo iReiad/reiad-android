@@ -61,6 +61,7 @@ import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.Prefs
 import uk.co.reiad.library.core.Stage
 import uk.co.reiad.library.core.Theme
+import uk.co.reiad.library.core.bengaliNumber
 import uk.co.reiad.library.core.checkpointBases
 import uk.co.reiad.library.core.checkpointCount
 import uk.co.reiad.library.core.lessonId
@@ -76,6 +77,7 @@ import uk.co.reiad.library.ui.Gap
 import uk.co.reiad.library.ui.GoCard
 import uk.co.reiad.library.ui.BanglaBody
 import uk.co.reiad.library.ui.Groove
+import uk.co.reiad.library.ui.Icon
 import uk.co.reiad.library.ui.GroupScreen
 import uk.co.reiad.library.ui.isBangla
 import uk.co.reiad.library.ui.openOnSite
@@ -88,6 +90,7 @@ import uk.co.reiad.library.ui.Plate
 import uk.co.reiad.library.ui.ReadingHub
 import uk.co.reiad.library.ui.ResumeCard
 import uk.co.reiad.library.ui.StageState
+import uk.co.reiad.library.ui.WorkbookScreen
 import uk.co.reiad.library.ui.SchoolHead
 import uk.co.reiad.library.ui.ReiadTheme
 import uk.co.reiad.library.ui.Rung
@@ -145,6 +148,9 @@ private sealed interface Where {
         where a piece lives. */
     data class Hub(val section: String, val title: String) : Where
     data class Reading2(val section: String, val piece: Piece) : Where
+
+    /** A practice book. One page, returned to thirty times. */
+    data class Book(val school: LadderSchool, val stage: Stage) : Where
     data class Ladder(val school: LadderSchool) : Where
     data class Reading(val school: LadderSchool, val stage: Stage, val lesson: Lesson) : Where
 }
@@ -263,6 +269,72 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
         }
     }
 
+    /* ---------- the practice books ---------- */
+
+    private val _book = MutableStateFlow<uk.co.reiad.library.core.Book?>(null)
+    val book: StateFlow<uk.co.reiad.library.core.Book?> = _book.asStateFlow()
+
+    /** Whether the book asked for could not be read at all.
+
+        Distinct from "not arrived yet", and it has to be: a
+        screen that cannot tell them apart shows a spinner for
+        ever, which is the worst of the three things it could
+        say. */
+    private val _bookFailed = MutableStateFlow(false)
+    val bookFailed: StateFlow<Boolean> = _bookFailed.asStateFlow()
+
+    private val _days = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
+    val days: StateFlow<Map<String, Set<String>>> = _days.asStateFlow()
+
+    private val _written = MutableStateFlow<Map<String, String>>(emptyMap())
+    val written: StateFlow<Map<String, String>> = _written.asStateFlow()
+
+    /** The answers a reader has asked to see, this session only.
+
+        NOT stored. The key is behind a button on the web and it
+        is behind a button here, and a key kept on disk beside the
+        prompts undoes the reason the endpoint splits them at all.
+        Coming back tomorrow means pressing Show again, which is
+        what pressing Show means. */
+    private val _answers = MutableStateFlow<Map<Int, List<String>>>(emptyMap())
+    val answers: StateFlow<Map<Int, List<String>>> = _answers.asStateFlow()
+
+    fun openBook(school: LadderSchool, stage: Stage) {
+        _book.value = null
+        _bookFailed.value = false
+        _answers.value = emptyMap()
+        val which = School.of(school.key) ?: return
+        viewModelScope.launch {
+            val answer = reiad.book(stage.slug)
+            _book.value = answer.value?.book
+            _bookFailed.value = answer.value == null
+            if (answer.stale) _stale.value = true
+            _days.value = _days.value + (which.id to reiad.days(which).first())
+            _written.value = reiad.writing(which).first()
+        }
+    }
+
+    fun write(school: School, slot: String, text: String) {
+        viewModelScope.launch {
+            reiad.write(school, slot, text)
+            _written.value = if (text.isBlank()) _written.value - slot
+            else _written.value + (slot to text)
+        }
+    }
+
+    fun tickDay(school: School, id: String) {
+        viewModelScope.launch {
+            _days.value = _days.value + (school.id to reiad.toggleDay(school, id))
+        }
+    }
+
+    fun reveal(stage: String, day: Int) {
+        viewModelScope.launch {
+            val key = reiad.bookKey(stage, day)
+            _answers.value = _answers.value + (day to key)
+        }
+    }
+
     /* ---------- the pieces ---------- */
 
     private val _pieces = MutableStateFlow<List<Piece>>(emptyList())
@@ -343,6 +415,11 @@ fun App() {
     val openPiece by model.open.collectAsState()
     val checks by model.checks.collectAsState()
     val bookmarks by model.bookmarks.collectAsState()
+    val book by model.book.collectAsState()
+    val bookFailed by model.bookFailed.collectAsState()
+    val bookDays by model.days.collectAsState()
+    val written by model.written.collectAsState()
+    val answers by model.answers.collectAsState()
 
     /* The pieces are fetched once, on first composition, rather
        than when a reading hub opens: the list is six rows without
@@ -354,6 +431,7 @@ fun App() {
     }
 
     val accent: Accent = when (val here = where) {
+        is Where.Book -> accentOf(here.school)
         is Where.Ladder -> accentOf(here.school)
         is Where.Reading -> accentOf(here.school)
         is Where.Hub -> tokenAccent(site?.accents?.get(here.section))
@@ -375,6 +453,7 @@ fun App() {
     /** Where the reader is, in the site's own vocabulary, so the
         rail and the bar can mark it. */
     val current = when (val here = where) {
+        is Where.Book -> here.school.key
         is Where.Ladder -> here.school.key
         is Where.Reading -> here.school.key
         is Where.Hub -> here.section
@@ -452,6 +531,33 @@ fun App() {
                     )
                 }
 
+                is Where.Book -> {
+                    BackHandler { where = Where.Ladder(here.school) }
+                    val which = School.of(here.school.key)
+                    WorkbookScreen(
+                        stage = here.stage.slug,
+                        stageName = here.stage.bn,
+                        school = which ?: School.DEUTSCH,
+                        book = book,
+                        failed = bookFailed,
+                        onOpenOnSite = {
+                            openOnSite(
+                                context,
+                                "/${here.school.key}/${here.stage.slug}/${here.stage.workbook?.slug ?: "arbeitsbuch"}",
+                                colours,
+                            )
+                        },
+                        days = which?.let { bookDays[it.id] }.orEmpty(),
+                        written = written,
+                        answers = answers,
+                        bottomPadding = BAR_CLEARANCE,
+                        onWrite = { slot, text -> which?.let { model.write(it, slot, text) } },
+                        onTickDay = { id -> which?.let { model.tickDay(it, id) } },
+                        onReveal = { day -> model.reveal(here.stage.slug, day) },
+                        onBack = { where = Where.Ladder(here.school) },
+                    )
+                }
+
                 is Where.Group -> {
                     BackHandler { where = Where.Home }
                     GroupScreen(
@@ -500,6 +606,10 @@ fun App() {
                         onOpen = { stage, lesson ->
                             model.openLesson(here.school, stage, lesson)
                             where = Where.Reading(here.school, stage, lesson)
+                        },
+                        onOpenBook = { stage ->
+                            model.openBook(here.school, stage)
+                            where = Where.Book(here.school, stage)
                         },
                     )
                 }
@@ -718,6 +828,7 @@ private fun Ladder(
     stale: Boolean,
     onBack: () -> Unit,
     onOpen: (Stage, Lesson) -> Unit,
+    onOpenBook: (Stage) -> Unit,
     bookmark: String? = null,
 ) {
     val c = LocalReiad.current
@@ -769,7 +880,7 @@ private fun Ladder(
         }
 
         items(stages) { stage ->
-            StageCard(stage, stages, ticks, onOpen)
+            StageCard(stage, stages, ticks, onOpen, onOpenBook)
             Spacer(Modifier.height(Gap.s8))
         }
     }
@@ -781,6 +892,7 @@ private fun StageCard(
     stages: List<Stage>,
     ticks: Set<String>,
     onOpen: (Stage, Lesson) -> Unit,
+    onOpenBook: (Stage) -> Unit = {},
 ) {
     val c = LocalReiad.current
     val lessons = stage.lessons
@@ -829,9 +941,48 @@ private fun StageCard(
         Spacer(Modifier.height(Gap.s5))
         StageState(done, lessons.size, after.map { it.bn })
 
+        stage.can?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(Gap.s5))
+            Text(it, style = BanglaBody.copy(
+                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                lineHeight = MaterialTheme.typography.bodySmall.fontSize * 1.7f,
+            ), color = c.inkSoft)
+        }
+
         Spacer(Modifier.height(Gap.s6))
         Groove(if (lessons.isEmpty()) 0f else done.toFloat() / lessons.size)
         Spacer(Modifier.height(Gap.s5))
+
+        /* The practice book, where there is one, and what the
+           stage says INSTEAD where there is not.
+
+           Two schools have books and two do not, and the German
+           school's fourth stage has neither: at B2 the exercise
+           stops being a page you fill in and becomes the news you
+           read, which is what `uebung` says. A stage with neither
+           shows nothing rather than an empty slot. */
+        stage.workbook?.let { workbook ->
+            Rung(Modifier.clickable(role = Role.Button) { onOpenBook(stage) }) {
+                Icon("pen", size = 18.dp, tint = c.accent)
+                Spacer(Modifier.width(Gap.s6))
+                Text(
+                    "${bengaliNumber(workbook.days)} দিনের অনুশীলন খাতা",
+                    style = BanglaBody,
+                    color = c.ink,
+                    modifier = Modifier.weight(1f),
+                )
+                Text("→", style = MaterialTheme.typography.labelLarge, color = c.accent)
+            }
+            Spacer(Modifier.height(Gap.s5))
+        } ?: stage.uebung?.takeIf { it.isNotBlank() }?.let {
+            Plate(Modifier.fillMaxWidth()) {
+                Text(it, style = BanglaBody.copy(
+                    fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                    lineHeight = MaterialTheme.typography.bodySmall.fontSize * 1.7f,
+                ), color = c.inkSoft)
+            }
+            Spacer(Modifier.height(Gap.s5))
+        }
 
         for (lesson in lessons) {
             val id = lessonId(stage.slug, lesson.slug)

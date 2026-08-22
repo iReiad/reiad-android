@@ -149,6 +149,7 @@ class ManifestSurfaceTest {
            check could not see them. One fixture per SHAPE, not
            one per endpoint. */
         Triple("deutsch.json", LadderResponse.serializer().descriptor, "ladder"),
+        Triple("book-stufe-1.json", BookResponse.serializer().descriptor, "book"),
         Triple("lesson-share.json", LessonResponse.serializer().descriptor, "lesson"),
     )
 
