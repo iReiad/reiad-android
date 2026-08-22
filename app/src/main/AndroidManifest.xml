@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:allowBackup="true"
+        android:theme="@style/Theme.Reiad">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
+            android:theme="@style/Theme.Reiad">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Sign-in comes back here. A scheme the app declares needs
+                 no verified App Link, so the account does not wait on a
+                 signing fingerprint. See ANDROID.md. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="uk.co.reiad.library" android:host="auth" />
+            </intent-filter>
+
+            <!-- The site's own addresses. Inert until a fingerprint is in
+                 /.well-known/assetlinks.json, which is deliberate: this
+                 is a convenience, not a gate. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="reiad.co.uk" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

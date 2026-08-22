@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose paints everything. This exists so the window has a
+         background before the first frame, which is what stops a
+         white flash on a dark-mode handset. -->
+    <style name="Theme.Reiad" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/paper</item>
+        <item name="android:navigationBarColor">@color/paper</item>
+        <item name="android:statusBarColor">@color/paper</item>
+    </style>
+</resources>

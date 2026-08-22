@@ -15,14 +15,40 @@ gradle :core:test
 
 No Android SDK needed for that, deliberately. See below.
 
+## Build the app
+
+```sh
+gradle :app:assembleDebug
+```
+
+The APK lands at `app/build/outputs/apk/debug/app-debug.apk`.
+Android Studio supplies the SDK; from a terminal put its path in
+`local.properties` as `sdk.dir=...`, which is gitignored because
+it is a fact about one machine.
+
 ## Layout
 
 | | |
 | --- | --- |
-| `core/` | plain Kotlin. API models, the body parser, the storage keys, the sync arithmetic |
+| `core/` | plain Kotlin. API models, the body parser, the storage keys, the sync arithmetic, the palette |
 | `core/src/test/resources/fixtures/` | real answers from the live API, captured rather than written |
+| `app/` | Compose. The theme, the material, the body renderer, the money school |
 
-`app/`, the Compose half, lands next.
+## What the app does today
+
+The money school, end to end: the ladder off `/api/schools/money`,
+a lesson opened and rendered through the parser, and a tick that
+survives a restart. Deliberately a whole vertical rather than a
+prettier ladder, because a ladder that renders over a lesson that
+will not open is the exact shape of thing this project keeps
+promising not to ship.
+
+Opening is not finishing. The money school's tick is a button.
+The other three schools mark a lesson on opening, which is their
+own semantics and arrives with them.
+
+Not yet: the account and sync, the other three schools, photos,
+the practice books, the tools. `ANDROID.md` has the order.
 
 ## Why two modules
 

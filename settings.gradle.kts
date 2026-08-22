@@ -35,3 +35,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "reiad-android"
 include(":core")
+include(":app")

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The green school's paper, light mode, as Palette.kt computes
+         it. Only the pre-Compose window uses this; everything drawn
+         after the first frame reads the computed palette. -->
+    <color name="paper">#F3F3EC</color>
+</resources>
