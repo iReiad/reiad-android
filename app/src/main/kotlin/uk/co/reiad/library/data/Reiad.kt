@@ -20,7 +20,14 @@ import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import uk.co.reiad.library.core.LadderResponse
 import uk.co.reiad.library.core.LessonResponse
+import uk.co.reiad.library.core.AUDIENCE_KEY
+import uk.co.reiad.library.core.PREFS_KEY
+import uk.co.reiad.library.core.Prefs
 import uk.co.reiad.library.core.ProgressKeys
+import uk.co.reiad.library.core.THEME_KEY
+import uk.co.reiad.library.core.TOOL_LANG_KEY
+import uk.co.reiad.library.core.TRACK_KEY
+import uk.co.reiad.library.core.Theme
 import uk.co.reiad.library.core.School
 import uk.co.reiad.library.core.SITE_ORIGIN
 import uk.co.reiad.library.core.SiteManifest
@@ -158,6 +165,63 @@ class Reiad(private val context: Context) {
             if (after != now) prefs[name] = encode(after)
         }
         return after
+    }
+
+    /* ---------- what the reader has chosen ----------
+
+       Stored under the site's own key, `reader-prefs`, holding
+       the site's own JSON. The rule above about a tick's key
+       covers this exactly: renaming it does not move somebody's
+       setting, it loses it, and a reader who set the type larger
+       on their laptop should find it larger here.
+
+       The whole record is round-tripped, including the three
+       fields this app does not use yet, because a device that
+       drops what it does not understand resets a setting made
+       somewhere else, silently, on first launch. */
+
+    val prefs: Flow<Prefs> = context.store.data.map { stored ->
+        val raw = stored[key(PREFS_KEY)]
+        if (raw.isNullOrBlank()) Prefs()
+        else runCatching { json.decodeFromString(Prefs.serializer(), raw) }.getOrDefault(Prefs())
+    }
+
+    suspend fun savePrefs(change: (Prefs) -> Prefs) {
+        context.store.edit { stored ->
+            val raw = stored[key(PREFS_KEY)]
+            val now = if (raw.isNullOrBlank()) Prefs()
+            else runCatching { json.decodeFromString(Prefs.serializer(), raw) }.getOrDefault(Prefs())
+            val next = change(now)
+            stored[key(PREFS_KEY)] = json.encodeToString(Prefs.serializer(), next)
+
+            /* The site writes `theme` and `tool-lang` BESIDE the
+               record, and they are not duplicates to be tidied:
+               they are the names other code reads. Its boot
+               script answers "which theme" before it can afford
+               to parse JSON, and the calculators have read
+               `tool-lang` since long before there were accounts.
+               A device that wrote only the record would sync a
+               theme the browser then ignored. */
+            if (next.themeChoice == Theme.SYSTEM) stored.remove(key(THEME_KEY))
+            else stored[key(THEME_KEY)] = next.themeChoice.id
+            stored[key(TOOL_LANG_KEY)] = next.lang
+        }
+    }
+
+    /** Which groups lead. Null is a real answer and means the
+        reader has never said, so they get the site's own order
+        rather than one chosen for them. */
+    val audience: Flow<String?> = context.store.data.map { it[key(AUDIENCE_KEY)] }
+
+    suspend fun setAudience(id: String) {
+        context.store.edit { stored ->
+            stored[key(AUDIENCE_KEY)] = id
+            /* The site clears `track` when somebody says they are
+               here for work, because a track is a learner's
+               answer to "which school" and means nothing to
+               somebody hiring. Same behaviour, same two keys. */
+            if (id == "work") stored.remove(key(TRACK_KEY))
+        }
     }
 
     /* The serializer is named rather than reified, so that a

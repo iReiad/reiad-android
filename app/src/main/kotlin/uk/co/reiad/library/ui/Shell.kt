@@ -1,0 +1,608 @@
+package uk.co.reiad.library.ui
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.window.core.layout.WindowWidthSizeClass
+import uk.co.reiad.library.core.Accents
+import uk.co.reiad.library.core.Kind
+import uk.co.reiad.library.core.Motion
+import uk.co.reiad.library.core.NavGroup
+import uk.co.reiad.library.core.NavItem
+import uk.co.reiad.library.core.SiteManifest
+import uk.co.reiad.library.core.orderFor
+
+/* ============================================================
+   The shell: a rail down the left, a bar across the top, and the
+   whole menu once.
+
+   **The menu is the site's, and there is no copy of it here.**
+   `shared/nav.ts` is one table with three readers on the site, and
+   `/api/site` sends it whole. So a school added there appears in
+   this app's bar, in its drawer and in its search, in its own
+   colour, with no release. Building any of these three from a
+   `when` over destinations would have broken that on the first
+   day, silently, in the way the whole `/api/site` contract exists
+   to prevent.
+
+   ---- what adapts, and what does not ----
+
+   | | |
+   | --- | --- |
+   | compact, a phone | a bottom bar, and the full menu behind it in a drawer |
+   | medium, a small tablet or an unfolded foldable | a rail down the left, the same drawer |
+   | expanded, a large tablet | the rail, open, with its labels showing |
+
+   The BAR is the groups, not a list of screens somebody chose:
+   whatever the site's nav table holds, in the order the reader's
+   audience asks for. Five groups today, and if there are six
+   tomorrow there are six here.
+
+   ---- the audience reorders and never hides ----
+
+   `orderFor` in core is where that is enforced. A group the order
+   forgets is appended rather than dropped, so the rule survives
+   the site growing a group and forgetting to add it to one of the
+   two lists.
+   ============================================================ */
+
+/** Which of the three layouts this window is. */
+enum class Chrome { BAR, RAIL, RAIL_OPEN }
+
+@Composable
+fun rememberChrome(): Chrome {
+    val width = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass
+    return when (width) {
+        WindowWidthSizeClass.EXPANDED -> Chrome.RAIL_OPEN
+        WindowWidthSizeClass.MEDIUM -> Chrome.RAIL
+        else -> Chrome.BAR
+    }
+}
+
+/** Everything the shell needs to know about where the reader is
+    and what they have chosen. Passed in rather than reached for,
+    so the shell has no opinion about how state is held. */
+data class ShellState(
+    val site: SiteManifest?,
+    val current: String?,
+    val audience: String?,
+    val drawerOpen: Boolean,
+)
+
+/** The groups this reader should meet, in their order.
+
+    Derived from the manifest every time rather than remembered,
+    because the manifest is what changes: a refresh that brings a
+    sixth group has to reach the bar without a restart. */
+fun groupsFor(site: SiteManifest?, audience: String?): List<NavGroup> {
+    val groups = site?.nav.orEmpty()
+    if (groups.isEmpty()) return emptyList()
+    val order = site?.order?.get(audience)
+    val ids = orderFor(groups.map { it.id }, order)
+    return ids.mapNotNull { id -> groups.firstOrNull { it.id == id } }
+}
+
+@Composable
+fun Shell(
+    state: ShellState,
+    onHome: () -> Unit,
+    onGroup: (NavGroup) -> Unit,
+    onItem: (NavItem) -> Unit,
+    onDrawer: (Boolean) -> Unit,
+    onSearch: () -> Unit,
+    onSettings: () -> Unit,
+    onAudience: (String) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val chrome = rememberChrome()
+    val groups = groupsFor(state.site, state.audience)
+
+    Box(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxSize()) {
+            if (chrome != Chrome.BAR && groups.isNotEmpty()) {
+                Rail(
+                    groups, state.current, chrome == Chrome.RAIL_OPEN,
+                    onHome, onGroup, onSearch, onSettings,
+                )
+            }
+            Box(Modifier.weight(1f).fillMaxHeight()) {
+                content()
+                if (chrome == Chrome.BAR && groups.isNotEmpty()) {
+                    Bar(
+                        groups = groups,
+                        current = state.current,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                        onHome = onHome,
+                        onGroup = onGroup,
+                        onMore = { onDrawer(true) },
+                    )
+                }
+            }
+        }
+
+        if (state.drawerOpen) {
+            Drawer(
+                site = state.site,
+                groups = groups,
+                current = state.current,
+                audience = state.audience,
+                onItem = { onDrawer(false); onItem(it) },
+                onAudience = onAudience,
+                onSettings = { onDrawer(false); onSettings() },
+                onClose = { onDrawer(false) },
+            )
+        }
+    }
+}
+
+/* ---------- the bar ---------- */
+
+/** The groups, across the bottom, and one more button.
+
+    A PANE, because it holds other things, floating one gap above
+    the navigation bar rather than welded to the bottom edge: the
+    site's own top bar is a pill with a gap under it, and a reader
+    who has learnt that the floating thing is the site's controls
+    reads a second floating thing the same way.
+
+    Each destination is a `--standing: 0` row for the reason the
+    site's rail items are: there are five of them in a line and
+    the LINE is the affordance. Only the one you are on stands. */
+@Composable
+private fun Bar(
+    groups: List<NavGroup>,
+    current: String?,
+    modifier: Modifier = Modifier,
+    onHome: () -> Unit,
+    onGroup: (NavGroup) -> Unit,
+    onMore: () -> Unit,
+) {
+    val c = LocalReiad.current
+    Row(
+        modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.navigationBars)
+            .padding(horizontal = Gap.s7, vertical = Gap.s5)
+            .clip(RoundedCornerShape(Corner.pill))
+            .material(Kind.PANE, c, Corner.pill)
+            .padding(horizontal = Gap.s4, vertical = Gap.s3),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        /* Home first, and it is not in the nav table.
+
+           The site has no home ENTRY: its rail draws the link
+           separately because a table of destinations does not
+           need a row saying "the top". On a phone it does: with
+           only group tabs, a reader who opened a group could get
+           back to the front page by system back and by nothing
+           else, which is a way out that leaves no mark on screen. */
+        Destination(
+            icon = "home",
+            label = "Home",
+            selected = current == null,
+            accent = c.accent,
+            modifier = Modifier.weight(1f),
+            onClick = onHome,
+        )
+        for (group in barGroups(groups, current)) {
+            Destination(
+                /* A group has no icon of its own in the site's
+                   table, so it wears its first item's. That is a
+                   choice rather than a fact, and it works because
+                   the first item of a group is the one the group
+                   is named after. */
+                icon = group.items.firstOrNull()?.icon ?: "home",
+                label = group.label,
+                selected = group.items.any { it.key != null && it.key == current },
+                accent = accentColour(group.accent, c),
+                modifier = Modifier.weight(1f),
+                onClick = { onGroup(group) },
+            )
+        }
+        Destination(
+            icon = "menu",
+            label = "More",
+            selected = false,
+            accent = c.accent,
+            modifier = Modifier.weight(1f),
+            onClick = onMore,
+        )
+    }
+}
+
+/** Which groups the bar can hold, and the rule that the one you
+    are ON is always among them.
+
+    Home, three groups and a More: five targets, which is the most
+    a phone bar should carry. Which three is the audience's order,
+    EXCEPT that a reader standing in a group further down would
+    otherwise see a bar with nothing selected on it, which reads
+    as "you are nowhere". So the current group displaces the last
+    of the three.
+
+    This is not the audience switch hiding something: every group
+    is in the drawer, one tap away, and the switch's own promise
+    is about the MENU. A bar is not the menu, and saying so here
+    is cheaper than pretending a phone is a desktop. */
+private fun barGroups(groups: List<NavGroup>, current: String?, slots: Int = 3): List<NavGroup> {
+    if (groups.size <= slots) return groups
+    val first = groups.take(slots)
+    val standing = groups.firstOrNull { g -> g.items.any { it.key != null && it.key == current } }
+    if (standing == null || standing in first) return first
+    return first.dropLast(1) + standing
+}
+
+/** One place you can go. Flat until it is where you are. */
+@Composable
+private fun Destination(
+    icon: String,
+    label: String,
+    selected: Boolean,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    val c = LocalReiad.current
+    val glow = rememberGlow()
+    val lift by animateFloatAsState(
+        targetValue = if (selected) 1f else 0f,
+        animationSpec = tween(Motion.FAST_MS),
+        label = "selected",
+    )
+    Column(
+        modifier
+            .clip(RoundedCornerShape(Corner.pill))
+            .material(
+                kind = Kind.CHIP,
+                colours = c,
+                corner = Corner.pill,
+                /* Only the one you are on has a ground. Give all
+                   five the same rest state and the bar is five
+                   boxes in a row, which is the cage the site's
+                   `--standing` axis exists to prevent. */
+                ground = accent.copy(alpha = 0.14f * lift),
+                lit = { glow.lit },
+            )
+            .follows(glow)
+            .clickable(role = Role.Tab, onClick = onClick)
+            .padding(vertical = Gap.s4),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(icon, size = 22.dp, tint = if (selected) accent else c.inkSoft)
+        Spacer(Modifier.height(Gap.s2))
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (selected) accent else c.inkSoft,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/* ---------- the rail ---------- */
+
+@Composable
+private fun Rail(
+    groups: List<NavGroup>,
+    current: String?,
+    open: Boolean,
+    onHome: () -> Unit,
+    onGroup: (NavGroup) -> Unit,
+    onSearch: () -> Unit,
+    onSettings: () -> Unit,
+) {
+    val c = LocalReiad.current
+    Column(
+        Modifier
+            .width(if (open) 232.dp else 76.dp)
+            .fillMaxHeight()
+            .material(Kind.PANE, c, corner = 0.dp, ground = c.paperSunk)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(vertical = Gap.s7, horizontal = Gap.s5)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = if (open) Alignment.Start else Alignment.CenterHorizontally,
+    ) {
+        RailRow("home", "Home", current == null, c.accent, open, onHome)
+        RailRow("search", "Search", false, c.accent, open, onSearch)
+        Spacer(Modifier.height(Gap.s6))
+
+        for (group in groups) {
+            if (open) {
+                Text(
+                    group.label.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.inkSoft,
+                    modifier = Modifier.padding(start = Gap.s6, top = Gap.s5, bottom = Gap.s3),
+                )
+            }
+            for (item in group.items) {
+                RailRow(
+                    icon = item.icon,
+                    label = item.label,
+                    selected = item.key != null && item.key == current,
+                    accent = accentColour(item.accent ?: group.accent, c),
+                    open = open,
+                    onClick = { onGroup(group) },
+                )
+            }
+            if (!open) Spacer(Modifier.height(Gap.s5))
+        }
+
+        Spacer(Modifier.height(Gap.s7))
+        RailRow("theme", "Settings", false, c.accent, open, onSettings)
+    }
+}
+
+@Composable
+private fun RailRow(
+    icon: String,
+    label: String,
+    selected: Boolean,
+    accent: Color,
+    open: Boolean,
+    onClick: () -> Unit,
+) {
+    val c = LocalReiad.current
+    val glow = rememberGlow()
+    Row(
+        Modifier
+            .then(if (open) Modifier.fillMaxWidth() else Modifier)
+            .height(Gap.tap)
+            .clip(RoundedCornerShape(Corner.pill))
+            .material(
+                kind = Kind.CARD,
+                colours = c,
+                corner = Corner.pill,
+                ground = if (selected) accent.copy(alpha = 0.14f) else Color.Transparent,
+                lit = { glow.lit },
+            )
+            .follows(glow)
+            .clickable(role = Role.Tab, onClick = onClick)
+            .padding(horizontal = Gap.s6),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, size = 20.dp, tint = if (selected) accent else c.inkSoft)
+        if (open) {
+            Spacer(Modifier.width(Gap.s6))
+            Text(
+                label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (selected) c.ink else c.inkSoft,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/* ---------- the drawer ---------- */
+
+/** The whole table, with its headings, and the audience switch at
+    the top of it.
+
+    On the site this is the same menu the rail shows, and the
+    reason it exists separately on a phone is that a rail of
+    sixteen destinations does not fit across the bottom of one.
+    What it is NOT is a different menu: it reads the same list. */
+@Composable
+private fun Drawer(
+    site: SiteManifest?,
+    groups: List<NavGroup>,
+    current: String?,
+    audience: String?,
+    onItem: (NavItem) -> Unit,
+    onAudience: (String) -> Unit,
+    onSettings: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val c = LocalReiad.current
+    val reduced = rememberReducedMotion()
+    val retreat = rememberRetreat(onBack = onClose)
+    Box(
+        Modifier
+            .fillMaxSize()
+            /* The scrim closes it. Not a decoration: on a phone
+               the outside of a sheet is the biggest and most
+               obvious target there is. */
+            .background(Color.Black.copy(alpha = 0.45f))
+            .clickable(
+                indication = null,
+                interactionSource = remembering(),
+                onClick = onClose,
+            ),
+    ) {
+        Column(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .retreating(retreat, reduced)
+                .clip(RoundedCornerShape(topStart = Corner.lg, topEnd = Corner.lg))
+                .material(Kind.PANE, c, Corner.lg, ground = c.paper)
+                .clickable(indication = null, interactionSource = remembering()) { }
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(horizontal = Gap.s8, vertical = Gap.s8)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            site?.audiences?.takeIf { it.size > 1 }?.let { audiences ->
+                AudienceSwitch(audiences.map { it.id to it.label }, audience, onAudience)
+                Spacer(Modifier.height(Gap.s8))
+            }
+
+            for (group in groups) {
+                Text(
+                    group.label.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.inkSoft,
+                    modifier = Modifier.padding(bottom = Gap.s4),
+                )
+                for (item in group.items) {
+                    DrawerRow(
+                        item = item,
+                        selected = item.key != null && item.key == current,
+                        accent = accentColour(item.accent ?: group.accent, c),
+                        onClick = { onItem(item) },
+                    )
+                }
+                Spacer(Modifier.height(Gap.s7))
+            }
+
+            Rung(Modifier.clickable(role = Role.Button, onClick = onSettings)) {
+                Icon("theme", size = 20.dp, tint = c.inkSoft)
+                Spacer(Modifier.width(Gap.s6))
+                Text("Settings", style = MaterialTheme.typography.bodyLarge, color = c.ink)
+            }
+            Spacer(Modifier.height(Gap.s8))
+        }
+    }
+}
+
+@Composable
+private fun DrawerRow(
+    item: NavItem,
+    selected: Boolean,
+    accent: Color,
+    onClick: () -> Unit,
+) {
+    val c = LocalReiad.current
+    Rung(Modifier.clickable(role = Role.Button, onClick = onClick)) {
+        Icon(item.icon, size = 20.dp, tint = accent)
+        Spacer(Modifier.width(Gap.s6))
+        Column(Modifier.weight(1f)) {
+            Text(
+                item.label,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (selected) accent else c.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            item.sub?.let {
+                Text(
+                    it,
+                    style = BanglaBody.copy(
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        lineHeight = MaterialTheme.typography.bodySmall.fontSize * 1.5f,
+                    ),
+                    color = c.inkSoft,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        /* A school still being written APPEARS, and says so. The
+           site's own rule: a thing promised and not delivered is
+           worse hidden than shown. */
+        if (item.soon) Chip("আসছে")
+    }
+}
+
+/* ---------- the audience switch ---------- */
+
+/** A groove with a control riding in it, which is the site's own
+    segmented control said in the material's words: the track is
+    a channel cut in and the thumb is a thing sitting on it.
+
+    It REORDERS and never hides, and the label under it says so,
+    because a switch whose effect a reader cannot predict is a
+    switch that gets pressed once. */
+@Composable
+fun AudienceSwitch(
+    options: List<Pair<String, String>>,
+    chosen: String?,
+    onChoose: (String) -> Unit,
+) {
+    val c = LocalReiad.current
+    Column {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(Gap.tap)
+                .clip(RoundedCornerShape(Corner.pill))
+                .material(Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
+                .padding(Gap.s2),
+        ) {
+            for ((id, label) in options) {
+                val on = id == chosen
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(Corner.pill))
+                        .material(
+                            kind = Kind.CONTROL,
+                            colours = c,
+                            corner = Corner.pill,
+                            ground = if (on) c.accent else Color.Transparent,
+                        )
+                        .clickable(role = Role.RadioButton) { onChoose(id) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (on) c.paper else c.inkSoft,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.height(Gap.s4))
+        Text(
+            "This reorders the menu. Nothing is hidden either way.",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.inkSoft,
+        )
+    }
+}
+
+/* ---------- odds ---------- */
+
+/** The site sends an accent as a token name, `var(--blue)`, which
+    is the stylesheet's own spelling. Resolved through the table
+    in core so the app and the site cannot disagree about what
+    blue is, and falling back to the page's own accent rather than
+    to a colour typed here. */
+@Composable
+fun accentColour(token: String?, colours: ReiadColours): Color {
+    val accent = token?.let { Accents.byToken(it) } ?: return colours.accent
+    return coloursOf(accent, colours.isDark).accent
+}
+
+@Composable
+private fun remembering() = androidx.compose.runtime.remember {
+    androidx.compose.foundation.interaction.MutableInteractionSource()
+}

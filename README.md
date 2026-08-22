@@ -79,10 +79,25 @@ The faces are the site's six, bundled: Spectral, IBM Plex Sans and
 Mono, Noto Sans and Serif Bengali, Caveat. `docs/FONTS.md` says
 why bundled rather than downloaded, and what nearly shipped.
 
+**And there is a shell around it now**, read from the site's one
+nav table rather than from a copy: a bottom bar on a phone, a rail
+on a tablet or an unfolded foldable, and a drawer holding the
+whole menu. The audience switch reorders it and hides nothing.
+Theme, glass finish, blur and veil are settings, stored under the
+site's own `reader-prefs` key so a change here reaches the site.
+Search runs against the manifest, so it works with no network.
+Back is predictive: a sheet follows the gesture and comes back if
+you change your mind.
+
+Every row in every group opens. A school opens here; anything this
+app cannot render yet opens on the site in a Custom Tab, which is
+the reader's own browser and so keeps their session. The card says
+which it will be before you press it.
+
 Not yet: the account and sync, photos, the practice books, the
-tools, the shell. `ROADMAP.md` is the twelve blocks that finish
-it, with a scorecard that says where it stands rather than how it
-feels.
+tools, the reading screen's own furniture. `ROADMAP.md` is the
+twelve blocks that finish it, with a scorecard that says where it
+stands rather than how it feels.
 
 ## Why two modules
 
@@ -108,6 +123,12 @@ They are the site's, and they are not negotiable here:
   differently: the money school's tick is a button, the other
   three mark a lesson on opening.
 - **A checkpoint is not a lesson** and counts towards no ladder.
+- **A preference key is a fact too.** `reader-prefs`, `theme`,
+  `tool-lang`, `audience`, `track`. `PrefsTest` names all five.
+- **The menu is said once**, on the site, and this app has no copy
+  of it. `ManifestSurfaceTest` is what holds that: every field
+  `/api/site` sends has to land somewhere here or be named with a
+  reason, and it walks the whole tree rather than the top of it.
 
 ## The fixtures are the point
 

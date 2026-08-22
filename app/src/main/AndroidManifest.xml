@@ -4,10 +4,17 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- enableOnBackInvokedCallback turns predictive back on: the
+         system draws where the gesture is going as it is dragged,
+         rather than after it is finished. Opting in is a promise
+         that every back handler here is the callback kind rather
+         than the old onBackPressed, and Compose's BackHandler and
+         PredictiveBackHandler both are. -->
     <application
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:allowBackup="true"
+        android:enableOnBackInvokedCallback="true"
         android:theme="@style/Theme.Reiad">
 
         <activity

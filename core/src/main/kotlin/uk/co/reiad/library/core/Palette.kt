@@ -223,13 +223,20 @@ object Accents {
 /** A colour that is mostly not there: the achromatic whites and
     blacks the material's edges and reflections are drawn in.
 
+    Named for what it is rather than for the site's `--glass-veil`,
+    which is a different thing one word away: that is the AMOUNT a
+    reader chooses in their settings, and it is `Veil` in
+    `Prefs.kt`. Two types with one name in one package is a
+    compiler crash rather than an error, which is how this got
+    noticed.
+
     They are achromatic ON PURPOSE and it is not a simplification.
     A reflection carries the colour of the light rather than of
     the page, which is what keeps the specular and the cut edge
     distinguishable from the glow, and the glow is the one that is
     the accent's colour. Mix the page's accent into these and the
     material stops having two different kinds of light in it. */
-data class Veil(val colour: Oklch, val alpha: Double) {
+data class Sheer(val colour: Oklch, val alpha: Double) {
 
     /** The one place a veil takes the page's colour: a CUT edge.
 
@@ -245,8 +252,8 @@ data class Veil(val colour: Oklch, val alpha: Double) {
         what `color-mix` does: at the amounts this is called with,
         at most 32% of an opaque accent into a 72% white, the two
         differ by well under one step of eight-bit alpha. */
-    fun tinted(with: Oklch, amount: Double): Veil =
-        Veil(colour.mix(with, amount), alpha * (1 - amount) + amount)
+    fun tinted(with: Oklch, amount: Double): Sheer =
+        Sheer(colour.mix(with, amount), alpha * (1 - amount) + amount)
 }
 
 data class Surfaces(
@@ -274,9 +281,9 @@ data class Surfaces(
        page. `glassFace` is the material's own highlight at a
        strength a piece of glass actually reflects, and the two
        are separate for that reason rather than by accident. */
-    val paneTop: Veil,
-    val glassFace: Veil,
-    val glassUnder: Veil,
+    val paneTop: Sheer,
+    val glassFace: Sheer,
+    val glassUnder: Sheer,
 
     /** The texture's ink, which is the ONE part of the material
         that does take the page's colour: a weave is IN the paper
@@ -306,9 +313,9 @@ data class Surfaces(
                 accent = a,
                 accentSoft = paper.mix(a, 0.11),
                 accentLine = hairlineBase.mix(a, 0.28),
-                paneTop = Veil(WHITE, 0.55),
-                glassFace = Veil(WHITE, 0.72),
-                glassUnder = Veil(BLACK, 0.06),
+                paneTop = Sheer(WHITE, 0.55),
+                glassFace = Sheer(WHITE, 0.72),
+                glassUnder = Sheer(BLACK, 0.06),
                 texInk = TEX_BASE.mix(a, 0.60),
                 texA = 0.035,
                 texB = 0.028,
@@ -335,9 +342,9 @@ data class Surfaces(
                 /* Nine times fainter than the light theme's, which
                    is right for a hairline and is exactly why the
                    material may not read its highlight out of it. */
-                paneTop = Veil(WHITE, 0.06),
-                glassFace = Veil(WHITE, 0.30),
-                glassUnder = Veil(BLACK, 0.22),
+                paneTop = Sheer(WHITE, 0.06),
+                glassFace = Sheer(WHITE, 0.30),
+                glassUnder = Sheer(BLACK, 0.22),
                 texInk = TEX_BASE.mix(a, 0.60),
                 texA = 0.05,
                 texB = 0.042,

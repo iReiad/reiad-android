@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,8 +42,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import uk.co.reiad.library.core.Accent
 import uk.co.reiad.library.core.Accents
@@ -50,9 +53,12 @@ import uk.co.reiad.library.core.BodyParser
 import uk.co.reiad.library.core.LadderSchool
 import uk.co.reiad.library.core.Lesson
 import uk.co.reiad.library.core.LessonPage
+import uk.co.reiad.library.core.NavGroup
 import uk.co.reiad.library.core.School
 import uk.co.reiad.library.core.SiteManifest
+import uk.co.reiad.library.core.Prefs
 import uk.co.reiad.library.core.Stage
+import uk.co.reiad.library.core.Theme
 import uk.co.reiad.library.core.lessonId
 import uk.co.reiad.library.data.Reiad
 import uk.co.reiad.library.ui.AccentRail
@@ -64,12 +70,18 @@ import uk.co.reiad.library.ui.Corner
 import uk.co.reiad.library.ui.Gap
 import uk.co.reiad.library.ui.GoCard
 import uk.co.reiad.library.ui.Groove
+import uk.co.reiad.library.ui.GroupScreen
+import uk.co.reiad.library.ui.accentOf as tokenAccent
 import uk.co.reiad.library.ui.InfoCard
 import uk.co.reiad.library.ui.LocalReiad
 import uk.co.reiad.library.ui.Pane
 import uk.co.reiad.library.ui.Plate
 import uk.co.reiad.library.ui.ReiadTheme
 import uk.co.reiad.library.ui.Rung
+import uk.co.reiad.library.ui.SearchScreen
+import uk.co.reiad.library.ui.SettingsSheet
+import uk.co.reiad.library.ui.Shell
+import uk.co.reiad.library.ui.ShellState
 import uk.co.reiad.library.ui.Sway
 import uk.co.reiad.library.ui.rememberSway
 
@@ -101,10 +113,19 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** How far above the bottom a page has to stop.
+
+    The bar is a floating pill rather than a bar welded to the
+    edge, which is the site's own arrangement one level down, so
+    nothing insets the content for it and every screen has to
+    leave the room itself. */
+private val BAR_CLEARANCE = 96.dp
+
 /* ---------- where the reader is ---------- */
 
 private sealed interface Where {
     data object Home : Where
+    data class Group(val group: NavGroup) : Where
     data class Ladder(val school: LadderSchool) : Where
     data class Reading(val school: LadderSchool, val stage: Stage, val lesson: Lesson) : Where
 }
@@ -180,6 +201,22 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
     }
 
     fun ticksOf(key: String): Set<String> = _ticks.value[key].orEmpty()
+
+    /* ---------- what the reader chose ---------- */
+
+    val prefs: StateFlow<Prefs> = reiad.prefs
+        .stateIn(viewModelScope, SharingStarted.Eagerly, Prefs())
+
+    val audience: StateFlow<String?> = reiad.audience
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun changePrefs(change: (Prefs) -> Prefs) {
+        viewModelScope.launch { reiad.savePrefs(change) }
+    }
+
+    fun chooseAudience(id: String) {
+        viewModelScope.launch { reiad.setAudience(id) }
+    }
 }
 
 /* ---------- the app ---------- */
@@ -191,6 +228,9 @@ fun App() {
     val model = remember { AppModel(reiad) }
 
     var where by remember { mutableStateOf<Where>(Where.Home) }
+    var drawer by remember { mutableStateOf(false) }
+    var searching by remember { mutableStateOf(false) }
+    var settings by remember { mutableStateOf(false) }
 
     val site by model.site.collectAsState()
     val stages by model.stages.collectAsState()
@@ -198,16 +238,83 @@ fun App() {
     val ticks by model.ticks.collectAsState()
     val stale by model.stale.collectAsState()
     val note by model.note.collectAsState()
+    val prefs by model.prefs.collectAsState()
+    val audience by model.audience.collectAsState()
 
     val accent: Accent = when (val here = where) {
         is Where.Ladder -> accentOf(here.school)
         is Where.Reading -> accentOf(here.school)
+        is Where.Group -> accentOfGroup(here.group)
         Where.Home -> Accents.GREEN
     }
 
-    ReiadTheme(accent = accent) {
+    /* The reader's choice wins over the system's, and "system" is
+       a real third answer rather than the absence of one: it is
+       what a reader who has never opened the settings has, and it
+       has to keep following the system afterwards. */
+    val dark = when (prefs.themeChoice) {
+        Theme.LIGHT -> false
+        Theme.DARK -> true
+        Theme.SYSTEM -> isSystemInDarkTheme()
+    }
+
+    /** Where the reader is, in the site's own vocabulary, so the
+        rail and the bar can mark it. */
+    val current = when (val here = where) {
+        is Where.Ladder -> here.school.key
+        is Where.Reading -> here.school.key
+        is Where.Group -> here.group.items.firstOrNull()?.key
+        Where.Home -> null
+    }
+
+    ReiadTheme(accent = accent, dark = dark) {
         Surface(Modifier.fillMaxSize(), color = LocalReiad.current.paper) {
+            Shell(
+                state = ShellState(site, current, audience, drawer),
+                /* A tab opens its GROUP, not its first item.
+
+                   Sending each tab to the first thing in it looked
+                   fine for the learning group, whose first item is
+                   a school this app opens, and made the other four
+                   tabs land on Home: four targets that appear to
+                   do nothing, which is worse than not having them.
+                   A group screen lists what is in the group, and
+                   every row opens: here if this app can, on the
+                   site in the reader's own browser if it cannot. */
+                onHome = { where = Where.Home },
+                onGroup = { group -> where = Where.Group(group) },
+                onItem = { item ->
+                    val school = site?.ladders?.firstOrNull { it.key == item.key }
+                    if (school != null) {
+                        model.openLadder(school)
+                        where = Where.Ladder(school)
+                    }
+                },
+                onDrawer = { drawer = it },
+                onSearch = { searching = true },
+                onSettings = { settings = true },
+                onAudience = { model.chooseAudience(it) },
+            ) {
             when (val here = where) {
+                is Where.Group -> {
+                    BackHandler { where = Where.Home }
+                    GroupScreen(
+                        group = here.group,
+                        accents = site?.accents.orEmpty(),
+                        bottomPadding = BAR_CLEARANCE,
+                        canOpenHere = { item ->
+                            site?.ladders?.any { it.key == item.key } == true
+                        },
+                        onOpenHere = { item ->
+                            val school = site?.ladders?.firstOrNull { it.key == item.key }
+                            if (school != null) {
+                                model.openLadder(school)
+                                where = Where.Ladder(school)
+                            }
+                        },
+                    )
+                }
+
                 Where.Home -> Home(
                     site = site,
                     stale = stale,
@@ -249,6 +356,30 @@ fun App() {
                     )
                 }
             }
+            }
+
+            if (searching) {
+                SearchScreen(
+                    site = site,
+                    onOpen = { found ->
+                        searching = false
+                        val school = site?.ladders?.firstOrNull { it.key == found.group }
+                        if (school != null) {
+                            model.openLadder(school)
+                            where = Where.Ladder(school)
+                        }
+                    },
+                    onClose = { searching = false },
+                )
+            }
+
+            if (settings) {
+                SettingsSheet(
+                    prefs = prefs,
+                    onChange = { change -> model.changePrefs(change) },
+                    onClose = { settings = false },
+                )
+            }
         }
     }
 }
@@ -257,6 +388,8 @@ fun App() {
     computed table only when the manifest has never arrived. */
 private fun accentOf(school: LadderSchool): Accent =
     Accents.byToken(school.accent) ?: Accents.BY_KEY[school.key] ?: Accents.GREEN
+
+private fun accentOfGroup(group: NavGroup): Accent = tokenAccent(group.accent)
 
 /* ---------- home ---------- */
 
@@ -276,7 +409,10 @@ private fun Home(
     val sway = rememberSway()
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = Gap.s11, bottom = Gap.s10),
+        /* The bar FLOATS over the page rather than pushing it, so
+           the page has to end above it or the last card sits under
+           the bar and looks like the list has been cut off. */
+        contentPadding = PaddingValues(top = Gap.s11, bottom = BAR_CLEARANCE),
     ) {
         item {
             Text(
@@ -378,7 +514,7 @@ private fun Ladder(
     val c = LocalReiad.current
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = Gap.s11, bottom = Gap.s10),
+        contentPadding = PaddingValues(top = Gap.s11, bottom = BAR_CLEARANCE),
     ) {
         item {
             Text(
@@ -497,7 +633,7 @@ private fun Reading(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Gap.s8)
-            .padding(top = Gap.s11, bottom = Gap.s10)
+            .padding(top = Gap.s11, bottom = BAR_CLEARANCE)
     ) {
         Text(
             "← ${stage.bn}",

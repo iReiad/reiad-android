@@ -43,11 +43,65 @@ data class SiteManifest(
     val nav: List<NavGroup> = emptyList(),
     val accents: Map<String, String> = emptyMap(),
     val audiences: List<Audience> = emptyList(),
+
+    /** Which groups lead, per audience. Sent by `/api/site` from
+        the site's own `ORDER` table, so a third audience or a
+        sixth group needs no app release. Dropping this field was
+        the app's own version of the failure `check-app-surface.ts`
+        watches for from the other end: the endpoint sends it and
+        nothing here read it. */
+    val order: Map<String, List<String>> = emptyMap(),
     val ladders: List<LadderSchool> = emptyList(),
     val sections: List<ReadingSection> = emptyList(),
     val tools: List<Tool> = emptyList(),
     val skills: List<Skill> = emptyList(),
     val counts: Map<String, Int> = emptyMap(),
+
+    /** The palette's index: every page of the site that is not
+        private, with the title, the address and one line saying
+        what it is. This is what the Ctrl+K palette searches on
+        the site and what search searches here, and it comes down
+        rather than being built from a copy, so a page added
+        tomorrow is findable with no app release. */
+    val pages: List<PageEntry> = emptyList(),
+
+    /** The A to Z of terms, grouped. Every term is a lesson of the
+        money school's `basics-1` stage, which is why it carries a
+        slug rather than a URL. */
+    val termGroups: List<TermGroup> = emptyList(),
+)
+
+@Serializable
+data class PageEntry(
+    val title: String = "",
+    val url: String = "",
+    /** What kind of thing it is, in one word, for the row's chip. */
+    val hint: String = "",
+    /** Which destination it belongs to, which decides its colour.
+        Absent for the site's own furniture. */
+    val group: String? = null,
+    val blurb: String? = null,
+    /** What a case study IS: a model, an analysis, a piece of
+        research. Only the portfolio pages carry one. */
+    val kind: String? = null,
+    /** The title cut down to fit a card or a chip. */
+    val short: String? = null,
+)
+
+@Serializable
+data class TermGroup(
+    val id: String = "",
+    val bn: String = "",
+    val en: String = "",
+    val terms: List<Term> = emptyList(),
+)
+
+@Serializable
+data class Term(
+    val slug: String = "",
+    val bn: String = "",
+    val en: String = "",
+    val blurb: String = "",
 )
 
 @Serializable
@@ -56,6 +110,7 @@ data class SiteFacts(
     val tagline: String = "",
     val origin: String = SITE_ORIGIN,
     val email: String = "",
+    val linkedin: String = "",
 )
 
 @Serializable
@@ -75,6 +130,8 @@ data class NavItem(
     val key: String? = null,
     val ladder: Boolean = false,
     val soon: Boolean = false,
+    /** What that entry is, in three words, for a card's chip. */
+    val kind: String? = null,
     val blurb: String? = null,
     val accent: String? = null,
 )
@@ -101,6 +158,11 @@ data class ReadingSection(
     val hub: String = "",
     val lang: String = "",
     val blurb: String = "",
+    /** Which list in the site's own manifest backs this section,
+        by name. The app does not resolve it: the endpoint sends
+        the resolved rows separately, and this is the name so that
+        the two can be told apart when both arrive. */
+    val list: String = "",
 )
 
 @Serializable
@@ -116,6 +178,7 @@ data class Skill(
     val blurb: String = "",
     val url: String? = null,
     val course: Boolean = false,
+    val note: String? = null,
 )
 
 /* ---------- /api/schools/<school> ---------- */

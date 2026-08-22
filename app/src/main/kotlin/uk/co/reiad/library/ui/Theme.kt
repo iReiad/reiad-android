@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.sp
 import uk.co.reiad.library.core.Accent
 import uk.co.reiad.library.core.Accents
 import uk.co.reiad.library.core.Kind
-import uk.co.reiad.library.core.Veil
+import uk.co.reiad.library.core.Sheer
 import uk.co.reiad.library.core.rimTint
 import uk.co.reiad.library.core.Oklch
 import uk.co.reiad.library.core.Radius
@@ -52,9 +52,9 @@ import uk.co.reiad.library.core.TypeScale
 
 private fun Oklch.compose(): Color = Color(toArgb())
 
-/** A veil is a colour and how much of it there is, so it becomes
-    a Compose colour with that alpha on it. */
-private fun Veil.compose(): Color = colour.compose().copy(alpha = alpha.toFloat())
+/** A sheer is a colour and how little of it there is, so it
+    becomes a Compose colour with that alpha on it. */
+private fun Sheer.compose(): Color = colour.compose().copy(alpha = alpha.toFloat())
 
 /** Everything a screen needs that Material 3 has no slot for.
     The site's own names are kept: a reader of `site.css` should
@@ -94,13 +94,13 @@ data class ReiadColours(
         themselves: the cut edge disperses by `polish`, which is a
         per-kind number, so the mix cannot be done once here. */
     val accentRaw: Oklch,
-    val glassFaceVeil: Veil,
+    val glassFaceSheer: Sheer,
 )
 
 /** The colour a cut edge of this kind comes back at. */
 fun ReiadColours.rimFace(kind: Kind): Color {
-    val veil = glassFaceVeil.tinted(accentRaw, rimTint(kind))
-    return veil.colour.compose().copy(alpha = veil.alpha.toFloat())
+    val sheer = glassFaceSheer.tinted(accentRaw, rimTint(kind))
+    return sheer.colour.compose().copy(alpha = sheer.alpha.toFloat())
 }
 
 fun coloursOf(accent: Accent, dark: Boolean): ReiadColours {
@@ -124,11 +124,24 @@ fun coloursOf(accent: Accent, dark: Boolean): ReiadColours {
         texA = s.texA.toFloat(),
         texB = s.texB.toFloat(),
         accentRaw = s.accent,
-        glassFaceVeil = s.glassFace,
+        glassFaceSheer = s.glassFace,
     )
 }
 
 val LocalReiad = compositionLocalOf { coloursOf(Accents.GREEN, dark = false) }
+
+/** The accent a token names.
+
+    The site sends an accent as the stylesheet's own spelling,
+    `var(--blue)`, which is the one place that mapping lives. This
+    resolves it through the table computed from the site's OKLCH
+    rather than through a colour typed here, so a retuned accent
+    reaches the app on a rebuild rather than on somebody
+    remembering there is a second copy. Anything unrecognised is
+    the site's own green, which is what a destination with no
+    accent of its own gets there too. */
+fun accentOf(token: String?): Accent =
+    token?.let { Accents.byToken(it) } ?: Accents.GREEN
 
 /** The corner ladder, never a number. A row and a control are
     pills, a card is `card`, a field is `field`. */
