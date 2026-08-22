@@ -37,6 +37,7 @@ import uk.co.reiad.library.core.Theme
 import uk.co.reiad.library.core.School
 import uk.co.reiad.library.core.SITE_ORIGIN
 import uk.co.reiad.library.core.SiteManifest
+import uk.co.reiad.library.core.SyncKeys
 
 /* ============================================================
    Talking to the site, and remembering what the reader did.
@@ -308,6 +309,26 @@ class Reiad(private val context: Context) {
                somebody hiring. Same behaviour, same two keys. */
             if (id == "work") stored.remove(key(TRACK_KEY))
         }
+    }
+
+    /** Which days this reader turned up.
+
+        A SET, for the obvious reason the site gives: a phone on
+        the bus and a laptop at a desk are the same Tuesday, and
+        either one alone under-counts. */
+    suspend fun daysActive(): Set<String> =
+        decode(context.store.data.first()[key(ProgressKeys.DAYS_ACTIVE)])
+
+    /** Every synced value this device holds, raw, for the export.
+
+        Raw rather than parsed because the export writes them out
+        as they are: a copy of somebody's record should be what
+        the record says, not this app's reading of it. */
+    suspend fun everything(): Map<String, String> {
+        val prefs = context.store.data.first()
+        return SyncKeys.ALL.keys.mapNotNull { name ->
+            prefs[key(name)]?.let { name to it }
+        }.toMap()
     }
 
     /* ---------- the bookmark ----------

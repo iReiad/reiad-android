@@ -34,7 +34,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import uk.co.reiad.library.core.Kind
+import androidx.compose.foundation.lazy.items
+import uk.co.reiad.library.core.Kept
 import uk.co.reiad.library.core.Reader
+import uk.co.reiad.library.core.Target
+import uk.co.reiad.library.core.isDone
+import uk.co.reiad.library.core.reachedFor
 
 /* ============================================================
    The account, and what being signed in actually means.
@@ -59,6 +64,14 @@ import uk.co.reiad.library.core.Reader
 @Composable
 fun AccountScreen(
     reader: Reader?,
+    kept: List<Kept>,
+    targets: List<Target>,
+    daysActive: Set<String>,
+    ticksOf: (String) -> Int,
+    onOpenKept: (Kept) -> Unit,
+    onRemoveTarget: (String) -> Unit,
+    onExport: () -> Unit,
+    exported: String?,
     /** What went wrong last time, if anything. Silently doing
         nothing is the one response to a failed sign-in that
         leaves somebody pressing the same button again. */
@@ -119,6 +132,82 @@ fun AccountScreen(
                         "What you type into a practice book stays on this phone and " +
                         "is never sent anywhere.",
                 )
+                Spacer(Modifier.height(Gap.s9))
+            }
+
+            /* ---- a year of days ---- */
+            item("year") {
+                Text("DAYS HERE", style = MaterialTheme.typography.labelSmall, color = c.inkSoft)
+                Spacer(Modifier.height(Gap.s5))
+                Pane { YearOfDays(daysActive) }
+                Spacer(Modifier.height(Gap.s9))
+            }
+
+            /* ---- what is being aimed at ---- */
+            if (targets.isNotEmpty()) {
+                item("targets-head") {
+                    Text("AIMING AT", style = MaterialTheme.typography.labelSmall, color = c.inkSoft)
+                    Spacer(Modifier.height(Gap.s5))
+                }
+                items(targets, key = { "t-" + it.id }) { target ->
+                    TargetRow(target, ticksOf, daysActive.size) { onRemoveTarget(target.id) }
+                    Spacer(Modifier.height(Gap.s5))
+                }
+                item("targets-foot") { Spacer(Modifier.height(Gap.s7)) }
+            }
+
+            /* ---- the reading list ---- */
+            item("kept-head") {
+                Text(
+                    "SAVED AND NOTED",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.inkSoft,
+                )
+                Spacer(Modifier.height(Gap.s5))
+                if (kept.isEmpty()) {
+                    InfoCard(
+                        title = "Nothing saved yet",
+                        dek = "Save is under the byline of every piece and every lesson, " +
+                            "with a note beside it.",
+                    )
+                    Spacer(Modifier.height(Gap.s7))
+                }
+            }
+            items(kept, key = { "k-" + it.id }) { row ->
+                KeptRow(row) { onOpenKept(row) }
+                Spacer(Modifier.height(Gap.s4))
+            }
+
+            /* ---- leaving ---- */
+            item("out") {
+                Spacer(Modifier.height(Gap.s9))
+                Text("LEAVING", style = MaterialTheme.typography.labelSmall, color = c.inkSoft)
+                Spacer(Modifier.height(Gap.s5))
+                Text(
+                    "Leaving should be as easy as arriving.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.inkSoft,
+                )
+                Spacer(Modifier.height(Gap.s5))
+                Control(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.Button, onClick = onExport),
+                    ground = c.panel,
+                ) {
+                    Text(
+                        "Take a copy of everything",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = c.accent,
+                    )
+                }
+                exported?.let {
+                    Spacer(Modifier.height(Gap.s5))
+                    Plate(Modifier.fillMaxWidth()) {
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = c.ink)
+                    }
+                }
+
                 Spacer(Modifier.height(Gap.s7))
                 Control(
                     modifier = Modifier
@@ -139,6 +228,7 @@ fun AccountScreen(
                     style = MaterialTheme.typography.bodySmall,
                     color = c.inkSoft,
                 )
+                Spacer(Modifier.height(Gap.s9))
             }
             return@LazyColumn
         }
@@ -258,6 +348,96 @@ private fun EmailBox(sent: Boolean, onLink: (String) -> Unit) {
                 style = MaterialTheme.typography.labelLarge,
                 color = if ('@' in email) c.paper else c.inkSoft,
             )
+        }
+    }
+}
+
+
+/** One thing being aimed at.
+
+    The bar is COMPUTED for a course and a habit, from what this
+    device already holds, so it moves the moment a lesson is
+    ticked rather than after an exchange. Only a metric shows a
+    stored number, because only a metric has one the site could
+    not work out.
+
+    And finished is what the reader SAID, not where the bar is:
+    somebody may call a goal done at eighty per cent, and somebody
+    else may pass a number and want to keep going. */
+@Composable
+private fun TargetRow(
+    target: Target,
+    ticksOf: (String) -> Int,
+    daysActive: Int,
+    onRemove: () -> Unit,
+) {
+    val c = LocalReiad.current
+    val reached = reachedFor(target, ticksOf, daysActive)
+    val done = isDone(target)
+    Pane {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    target.label,
+                    style = if (isBangla(target.label)) BanglaTitle
+                    else MaterialTheme.typography.titleMedium,
+                    color = c.ink,
+                )
+                Text(
+                    buildString {
+                        append(reached.trim())
+                        append(" of ")
+                        append(target.target.trim())
+                        if (target.unit.isNotBlank()) append(" ").append(target.unit)
+                        if (done) append(" · finished")
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (done) c.accent else c.inkSoft,
+                )
+            }
+            Box(Modifier.clickable(role = Role.Button, onClick = onRemove).padding(Gap.s5)) {
+                Icon("close", size = 16.dp, tint = c.inkSoft)
+            }
+        }
+        Spacer(Modifier.height(Gap.s5))
+        Groove(
+            if (target.target <= 0.0) 0f else (reached / target.target).toFloat(),
+        )
+    }
+}
+
+/** A number without a trailing nought nobody asked for. */
+private fun Double.trim(): String =
+    if (this == toLong().toDouble()) toLong().toString() else toString()
+
+@Composable
+private fun KeptRow(row: Kept, onOpen: () -> Unit) {
+    val c = LocalReiad.current
+    Rung(Modifier.clickable(role = Role.Button, onClick = onOpen)) {
+        Icon(if (row.kind == "lesson") "book" else "pen", size = 18.dp, tint = c.accent)
+        Spacer(Modifier.width(Gap.s6))
+        Column(Modifier.weight(1f)) {
+            Text(
+                row.title.ifBlank { row.url },
+                style = if (isBangla(row.title)) BanglaBody
+                else MaterialTheme.typography.bodyLarge,
+                color = c.ink,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            if (row.note.isNotBlank()) {
+                Text(
+                    row.note,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.inkSoft,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (row.saved) {
+            Spacer(Modifier.width(Gap.s5))
+            Text("✓", style = MaterialTheme.typography.labelMedium, color = c.accent)
         }
     }
 }

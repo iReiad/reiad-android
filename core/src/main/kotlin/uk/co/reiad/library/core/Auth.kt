@@ -247,3 +247,84 @@ fun readToken(jwt: String): Claims? = runCatching {
 /** Whether a session needs refreshing before it is used. */
 fun needsRefresh(session: Session, now: Long): Boolean =
     now >= session.expiresAt - Supabase.EARLY_MS
+
+/* ============================================================
+   The three things an account holds that are not a tick.
+
+   Progress has a local copy because four schools have read
+   localStorage since before there were accounts, and a reader
+   with no account still gets all of it. None of these has that
+   history and none of them works signed out, so none of them has
+   a local copy: a second record to keep in step for nobody's
+   benefit.
+   ============================================================ */
+
+/** A page a reader saved, or wrote a note on.
+
+    ONE ROW PER PERSON PER PAGE, with `saved` and `note` as two
+    columns of it rather than two tables. They are two facts about
+    one thing, and a trigger on the site removes the row once both
+    have gone, so the list can be COUNTED rather than filtered. */
+@kotlinx.serialization.Serializable
+data class Kept(
+    val id: String = "",
+    val url: String = "",
+    val title: String = "",
+    /** `piece` or `lesson`. */
+    val kind: String = "piece",
+    val saved: Boolean = false,
+    val note: String = "",
+)
+
+/** A goal with a number on it.
+
+    Three kinds, and they are three sources of progress that
+    already existed rather than three shapes somebody invented: a
+    `course` reads the reader's ticks, a `habit` reads
+    `days-active`, and a `metric` is a number this site cannot
+    see, so the reader types it in.
+
+    **A fourth kind has to pass that test.** If the site cannot
+    measure it out of something it already holds, the bar would be
+    a decoration. */
+@kotlinx.serialization.Serializable
+data class Target(
+    val id: String = "",
+    val kind: String = "course",
+    /** A course id for `course`, a unit of time for `habit`, free
+        text naming the number for `metric`. */
+    val subject: String = "",
+    val label: String = "",
+    val target: Double = 0.0,
+    /** Only ever written for `metric`. The other two are computed
+        from what the reader has actually done, and a stored copy
+        of a derived number is a copy that goes stale. */
+    val reached: Double = 0.0,
+    val unit: String = "",
+    @kotlinx.serialization.SerialName("done_at") val doneAt: String? = null,
+)
+
+/** How far along a target is, worked out rather than read.
+
+    A `course` counts ticks and a `habit` counts days, both from
+    what this device already holds, so the bar is right the moment
+    a lesson is ticked rather than after an exchange. Only a
+    `metric` uses the stored number, because only a metric has
+    one the site could not compute. */
+fun reachedFor(
+    target: Target,
+    ticks: (String) -> Int,
+    daysActive: Int,
+): Double = when (target.kind) {
+    "course" -> ticks(target.subject).toDouble()
+    "habit" -> daysActive.toDouble()
+    else -> target.reached
+}
+
+/** And whether it is finished, which is NOT the same as the bar
+    reaching the end.
+
+    Somebody may decide a goal is done at eighty per cent, and
+    somebody else may pass a number and want to keep going. The
+    reader says, and `done_at` is where they said it. */
+fun isDone(target: Target): Boolean = !target.doneAt.isNullOrBlank()

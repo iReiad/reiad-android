@@ -148,8 +148,24 @@ A tick made on a train lands later without the app being open,
 which is the half a browser cannot have: WorkManager runs the
 exchange when a network comes back.
 
-Not yet: the reading list and notes, targets, the year of days,
-export and erase, and the tools. `ROADMAP.md` is the
+The account holds more than ticks: a reading list with notes on
+it, targets, and a year of days. None of those has a local copy
+and that is deliberate, not an omission: progress has one because
+four schools have read localStorage since before there were
+accounts, and nothing here has that history or works signed out.
+
+A target's bar is COMPUTED for a course and a habit, from what the
+phone already holds, so it moves the moment a lesson is ticked.
+Only a metric shows a stored number, because only a metric has one
+the site could not work out. A fourth kind has to pass that test
+or the bar would be a decoration.
+
+The year of days has no flame, nothing red and nothing counting
+down. A year of quiet marks says "here is what you did"; a streak
+counter says "do not stop", and those are different things to say
+to somebody learning a language in their spare time.
+
+Not yet: the tools. `ROADMAP.md` is the
 twelve blocks that finish it, with a scorecard that says where it
 stands rather than how it feels.
 

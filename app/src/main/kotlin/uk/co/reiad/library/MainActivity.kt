@@ -70,10 +70,14 @@ import uk.co.reiad.library.core.checkpointCount
 import uk.co.reiad.library.core.lessonId
 import uk.co.reiad.library.core.lessonUrl
 import uk.co.reiad.library.account.Account
+import uk.co.reiad.library.account.Library
 import uk.co.reiad.library.account.Sync
 import uk.co.reiad.library.account.SyncWorker
+import uk.co.reiad.library.account.exportAll
 import uk.co.reiad.library.core.Arrival
+import uk.co.reiad.library.core.Kept
 import uk.co.reiad.library.core.Reader
+import uk.co.reiad.library.core.Target
 import uk.co.reiad.library.data.Reiad
 import uk.co.reiad.library.ui.AccentRail
 import uk.co.reiad.library.ui.AccountScreen
@@ -329,14 +333,31 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
 
     private var account: Account? = null
     private var sync: Sync? = null
+    private var library: Library? = null
+
+    private val _kept = MutableStateFlow<List<Kept>>(emptyList())
+    val kept: StateFlow<List<Kept>> = _kept.asStateFlow()
+
+    private val _targets = MutableStateFlow<List<Target>>(emptyList())
+    val targets: StateFlow<List<Target>> = _targets.asStateFlow()
+
+    private val _daysActive = MutableStateFlow<Set<String>>(emptySet())
+    val daysActive: StateFlow<Set<String>> = _daysActive.asStateFlow()
+
+    private val _exported = MutableStateFlow<String?>(null)
+    val exported: StateFlow<String?> = _exported.asStateFlow()
 
     fun account(context: android.content.Context): Account {
         account?.let { return it }
         val made = Account(context.applicationContext)
         account = made
+        library = Library(made)
         host = context.applicationContext
         sync = Sync(context.applicationContext, made, reiad.store)
-        viewModelScope.launch { _reader.value = made.reader.first() }
+        viewModelScope.launch {
+            _reader.value = made.reader.first()
+            if (_reader.value != null) loadAccount()
+        }
         return made
     }
 
@@ -354,11 +375,60 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
                        exchange of a session ADOPTS. */
                     sync?.exchange()
                     loadMarks()
+                    loadAccount()
                     SyncWorker.soon(context)
                 }
                 is Arrival.Failed -> _authProblem.value = answer.reason
                 Arrival.NotAnArrival -> Unit
             }
+        }
+    }
+
+    /** What the ACCOUNT holds, as opposed to what the phone
+        holds. Neither the reading list nor the targets has a
+        local copy, so this is the only place they come from. */
+    fun loadAccount() {
+        val shelf = library ?: return
+        viewModelScope.launch {
+            _kept.value = shelf.kept()
+            _targets.value = shelf.targets()
+            _daysActive.value = reiad.daysActive()
+        }
+    }
+
+    fun keep(url: String, title: String, kind: String, saved: Boolean? = null, note: String? = null) {
+        val shelf = library ?: return
+        viewModelScope.launch {
+            /* Shown immediately and confirmed after, because a
+               Save that waits for a round trip is a Save a reader
+               presses twice. */
+            _kept.value = _kept.value.map {
+                if (it.url != url) it
+                else it.copy(saved = saved ?: it.saved, note = note ?: it.note)
+            }.ifEmpty {
+                listOf(Kept(url = url, title = title, kind = kind,
+                    saved = saved ?: false, note = note.orEmpty()))
+            }
+            shelf.keep(url, title, kind, saved, note)
+            _kept.value = shelf.kept()
+        }
+    }
+
+    fun removeTarget(id: String) {
+        val shelf = library ?: return
+        viewModelScope.launch {
+            shelf.removeTarget(id)
+            _targets.value = shelf.targets()
+        }
+    }
+
+    fun export() {
+        val shelf = library ?: return
+        viewModelScope.launch {
+            _exported.value = "Preparing…"
+            val file = shelf.exportAll(_reader.value, reiad.everything())
+            _exported.value = "${file.length} characters. " +
+                "Sharing it to a file comes with the share sheet."
         }
     }
 
@@ -374,6 +444,9 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
             sync?.forget()
             account(context).signOut()
             _reader.value = null
+            _kept.value = emptyList()
+            _targets.value = emptyList()
+            _exported.value = null
             loadMarks()
         }
     }
@@ -529,6 +602,10 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val reader by model.reader.collectAsState()
     val authProblem by model.authProblem.collectAsState()
     val linkSent by model.linkSent.collectAsState()
+    val kept by model.kept.collectAsState()
+    val targets by model.targets.collectAsState()
+    val daysActive by model.daysActive.collectAsState()
+    val exported by model.exported.collectAsState()
     val checks by model.checks.collectAsState()
     val bookmarks by model.bookmarks.collectAsState()
     val book by model.book.collectAsState()
@@ -625,6 +702,14 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     BackHandler { where = Where.Home }
                     AccountScreen(
                         reader = reader,
+                        kept = kept,
+                        targets = targets,
+                        daysActive = daysActive,
+                        ticksOf = { key -> ticks[key].orEmpty().size },
+                        onOpenKept = { row -> openOnSite(context, row.url, colours) },
+                        onRemoveTarget = { model.removeTarget(it) },
+                        onExport = { model.export() },
+                        exported = exported,
                         problem = authProblem,
                         linkSent = linkSent,
                         bottomPadding = BAR_CLEARANCE,
@@ -658,6 +743,17 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     val at = siblings.indexOfFirst { it.slug == shown.slug }
                     PieceScreen(
                         piece = shown,
+                        /* Looked up by URL, which is what the row
+                           is keyed on: one row per person per
+                           page. Null until the account has
+                           answered at all. */
+                        kept = if (reader == null) null
+                        else kept.firstOrNull { it.url == shown.url }
+                            ?: Kept(url = shown.url, title = shown.title, kind = "piece"),
+                        signedIn = reader != null,
+                        onKeep = { saved, note ->
+                            model.keep(shown.url, shown.title, "piece", saved, note)
+                        },
                         previous = siblings.getOrNull(at - 1),
                         next = siblings.getOrNull(at + 1),
                         stale = stale,

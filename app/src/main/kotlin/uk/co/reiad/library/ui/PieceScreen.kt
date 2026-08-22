@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import uk.co.reiad.library.core.Block
 import uk.co.reiad.library.core.BodyParser
+import uk.co.reiad.library.core.Kept
 import uk.co.reiad.library.core.Kind
 import uk.co.reiad.library.core.Pace
 import uk.co.reiad.library.core.Piece
@@ -64,6 +65,12 @@ fun PieceScreen(
     next: Piece?,
     stale: Boolean,
     bottomPadding: Dp,
+    /** Null while the account has not answered, which is not the
+        same as "no row": drawing an unsaved Save in that window
+        makes a reader who saved this last week watch it flip. */
+    kept: Kept?,
+    signedIn: Boolean,
+    onKeep: (Boolean?, String?) -> Unit,
     onOpen: (Piece) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -124,6 +131,13 @@ fun PieceScreen(
                     Spacer(Modifier.height(Gap.s5))
                     Chip("SAVED COPY")
                 }
+                Spacer(Modifier.height(Gap.s6))
+                Keep(
+                    state = kept,
+                    signedIn = signedIn,
+                    onSave = { onKeep(it, null) },
+                    onNote = { onKeep(null, it) },
+                )
                 Spacer(Modifier.height(Gap.s6))
                 ReadAloudBar(piece, lines.isNotEmpty(), speaking)
                 Spacer(Modifier.height(Gap.s8))

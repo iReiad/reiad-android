@@ -188,3 +188,47 @@ class AuthTest {
         assertEquals(null, readToken(jwt("""{"sub":"s"}""")), "no exp is no claims")
     }
 }
+
+/* ============================================================
+   The three kinds of target, and the test a fourth has to pass.
+   ============================================================ */
+class TargetTest {
+
+    @Test
+    fun `a course target counts the reader's own ticks`() {
+        val target = Target(kind = "course", subject = "money", target = 60.0)
+        assertEquals(12.0, reachedFor(target, ticks = { if (it == "money") 12 else 0 }, daysActive = 5))
+    }
+
+    @Test
+    fun `a habit target counts the days turned up`() {
+        val target = Target(kind = "habit", subject = "day", target = 30.0)
+        assertEquals(5.0, reachedFor(target, ticks = { 99 }, daysActive = 5))
+    }
+
+    /** The one kind that uses its stored number, because it is
+        the one the site cannot see. */
+    @Test
+    fun `a metric target is the number the reader typed`() {
+        val target = Target(kind = "metric", label = "Weight", reached = 74.5, target = 70.0)
+        assertEquals(74.5, reachedFor(target, ticks = { 99 }, daysActive = 99))
+    }
+
+    /** A derived number is never stored, so a course target whose
+        `reached` column says something else is still counted from
+        the ticks. A stored copy of a derived number is a copy
+        that goes stale. */
+    @Test
+    fun `a stored number does not override a derived one`() {
+        val stale = Target(kind = "course", subject = "money", reached = 999.0)
+        assertEquals(3.0, reachedFor(stale, ticks = { 3 }, daysActive = 0))
+    }
+
+    /** Finished is the reader's word, not the bar's. */
+    @Test
+    fun `done is what the reader said and not where the bar is`() {
+        assertTrue(!isDone(Target(kind = "metric", reached = 100.0, target = 10.0)))
+        assertTrue(isDone(Target(doneAt = "2026-08-22T00:00:00Z")))
+        assertTrue(!isDone(Target(doneAt = "")))
+    }
+}
