@@ -1,5 +1,6 @@
 package uk.co.reiad.library
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -47,10 +48,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.StateFlow as KStateFlow
 import kotlinx.coroutines.launch
 import uk.co.reiad.library.core.Accent
 import uk.co.reiad.library.core.Accents
 import uk.co.reiad.library.core.BodyParser
+import uk.co.reiad.library.core.Bookmark
 import uk.co.reiad.library.core.LadderSchool
 import uk.co.reiad.library.core.Lesson
 import uk.co.reiad.library.core.LessonPage
@@ -65,8 +68,15 @@ import uk.co.reiad.library.core.bengaliNumber
 import uk.co.reiad.library.core.checkpointBases
 import uk.co.reiad.library.core.checkpointCount
 import uk.co.reiad.library.core.lessonId
+import uk.co.reiad.library.core.lessonUrl
+import uk.co.reiad.library.account.Account
+import uk.co.reiad.library.account.Sync
+import uk.co.reiad.library.account.SyncWorker
+import uk.co.reiad.library.core.Arrival
+import uk.co.reiad.library.core.Reader
 import uk.co.reiad.library.data.Reiad
 import uk.co.reiad.library.ui.AccentRail
+import uk.co.reiad.library.ui.AccountScreen
 import uk.co.reiad.library.ui.BodyView
 import uk.co.reiad.library.ui.Faces
 import uk.co.reiad.library.ui.Checkpoints
@@ -122,10 +132,28 @@ import uk.co.reiad.library.ui.rememberSway
    ============================================================ */
 
 class MainActivity : ComponentActivity() {
+
+    /** The URI a sign-in came back on, or null.
+
+        Held as state rather than read from the intent inside the
+        composition, because `onNewIntent` is how a redirect
+        arrives when the app is ALREADY open, which is the usual
+        case: the Custom Tab is on top of a running activity. An
+        app that only read `onCreate`'s intent would sign a reader
+        in on a cold start and do nothing on a warm one. */
+    private val arrival = MutableStateFlow<String?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { App() }
+        arrival.value = intent?.data?.toString()
+        setContent { App(arrival) }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        arrival.value = intent.data?.toString()
     }
 }
 
@@ -151,6 +179,7 @@ private sealed interface Where {
 
     /** A practice book. One page, returned to thirty times. */
     data class Book(val school: LadderSchool, val stage: Stage) : Where
+    data object Account : Where
     data class Ladder(val school: LadderSchool) : Where
     data class Reading(val school: LadderSchool, val stage: Stage, val lesson: Lesson) : Where
 }
@@ -217,12 +246,28 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
         }
     }
 
+    /** A tick, and a request that it reach the account.
+
+        `SyncWorker.soon` is queued rather than an exchange being
+        run: a reader on a train ticks four lessons and the work
+        runs once, when there is a network, whether or not the app
+        is still open. That is the half a browser cannot have,
+        where a tick made offline waits for the next page load. */
     fun tick(school: LadderSchool, stage: Stage, lesson: Lesson) {
         val which = School.of(school.key) ?: return
         viewModelScope.launch {
             val after = reiad.toggleTick(which, lessonId(stage.slug, lesson.slug))
             _ticks.value = _ticks.value + (which.id to after)
+            queueSync()
         }
+    }
+
+    /** Where the app is running, for the worker. Null until the
+        account has been asked for once, which every launch does. */
+    private var host: android.content.Context? = null
+
+    private fun queueSync() {
+        host?.let { if (account != null) SyncWorker.soon(it) }
     }
 
     fun ticksOf(key: String): Set<String> = _ticks.value[key].orEmpty()
@@ -232,13 +277,13 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
     private val _checks = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
     val checks: StateFlow<Map<String, Set<String>>> = _checks.asStateFlow()
 
-    private val _bookmarks = MutableStateFlow<Map<String, String>>(emptyMap())
-    val bookmarks: StateFlow<Map<String, String>> = _bookmarks.asStateFlow()
+    private val _bookmarks = MutableStateFlow<Map<String, Bookmark>>(emptyMap())
+    val bookmarks: StateFlow<Map<String, Bookmark>> = _bookmarks.asStateFlow()
 
     fun loadMarks() {
         viewModelScope.launch {
             val checks = mutableMapOf<String, Set<String>>()
-            val marks = mutableMapOf<String, String>()
+            val marks = mutableMapOf<String, Bookmark>()
             for (school in School.entries) {
                 checks[school.id] = reiad.checkpoints(school).first()
                 reiad.bookmark(school).first()?.let { marks[school.id] = it }
@@ -252,6 +297,7 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
         viewModelScope.launch {
             val after = reiad.toggleCheckpoint(school, id)
             _checks.value = _checks.value + (school.id to after)
+            queueSync()
         }
     }
 
@@ -262,10 +308,73 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
         site: the money school's tick is a button, and the other
         three mark a lesson as READ on opening, which is a
         different fact from where somebody last was. */
-    fun visited(school: School, lessonId: String) {
+    fun visited(school: School, mark: Bookmark) {
         viewModelScope.launch {
-            reiad.remember(school, lessonId)
-            _bookmarks.value = _bookmarks.value + (school.id to lessonId)
+            reiad.remember(school, mark)
+            _bookmarks.value = _bookmarks.value + (school.id to mark)
+            queueSync()
+        }
+    }
+
+    /* ---------- the account ---------- */
+
+    private val _reader = MutableStateFlow<Reader?>(null)
+    val reader: StateFlow<Reader?> = _reader.asStateFlow()
+
+    private val _authProblem = MutableStateFlow<String?>(null)
+    val authProblem: StateFlow<String?> = _authProblem.asStateFlow()
+
+    private val _linkSent = MutableStateFlow(false)
+    val linkSent: StateFlow<Boolean> = _linkSent.asStateFlow()
+
+    private var account: Account? = null
+    private var sync: Sync? = null
+
+    fun account(context: android.content.Context): Account {
+        account?.let { return it }
+        val made = Account(context.applicationContext)
+        account = made
+        host = context.applicationContext
+        sync = Sync(context.applicationContext, made, reiad.store)
+        viewModelScope.launch { _reader.value = made.reader.first() }
+        return made
+    }
+
+    /** A sign-in came back. */
+    fun arrived(context: android.content.Context, uri: String) {
+        viewModelScope.launch {
+            when (val answer = account(context).arrived(uri)) {
+                is Arrival.SignedIn -> {
+                    _authProblem.value = null
+                    _linkSent.value = false
+                    _reader.value = answer.session.reader
+                    /* The account's rows come down straight away,
+                       because a reader who has just signed in
+                       expects to see their reading, and the first
+                       exchange of a session ADOPTS. */
+                    sync?.exchange()
+                    loadMarks()
+                    SyncWorker.soon(context)
+                }
+                is Arrival.Failed -> _authProblem.value = answer.reason
+                Arrival.NotAnArrival -> Unit
+            }
+        }
+    }
+
+    fun sendLink(context: android.content.Context, email: String) {
+        viewModelScope.launch {
+            _linkSent.value = account(context).sendLink(email)
+            if (!_linkSent.value) _authProblem.value = "That email would not send."
+        }
+    }
+
+    fun signOut(context: android.content.Context) {
+        viewModelScope.launch {
+            sync?.forget()
+            account(context).signOut()
+            _reader.value = null
+            loadMarks()
         }
     }
 
@@ -325,6 +434,7 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
     fun tickDay(school: School, id: String) {
         viewModelScope.launch {
             _days.value = _days.value + (school.id to reiad.toggleDay(school, id))
+            queueSync()
         }
     }
 
@@ -382,7 +492,10 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     fun changePrefs(change: (Prefs) -> Prefs) {
-        viewModelScope.launch { reiad.savePrefs(change) }
+        viewModelScope.launch {
+            reiad.savePrefs(change)
+            queueSync()
+        }
     }
 
     fun chooseAudience(id: String) {
@@ -393,7 +506,7 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
 /* ---------- the app ---------- */
 
 @Composable
-fun App() {
+fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val context = LocalContext.current
     val reiad = remember { Reiad(context.applicationContext) }
     val model = remember { AppModel(reiad) }
@@ -413,6 +526,9 @@ fun App() {
     val audience by model.audience.collectAsState()
     val pieces by model.pieces.collectAsState()
     val openPiece by model.open.collectAsState()
+    val reader by model.reader.collectAsState()
+    val authProblem by model.authProblem.collectAsState()
+    val linkSent by model.linkSent.collectAsState()
     val checks by model.checks.collectAsState()
     val bookmarks by model.bookmarks.collectAsState()
     val book by model.book.collectAsState()
@@ -428,9 +544,21 @@ fun App() {
     LaunchedEffect(Unit) {
         model.loadPieces()
         model.loadMarks()
+        /* Built here rather than lazily inside a handler, so a
+           reader who is already signed in has their name on the
+           first frame rather than after they press something. */
+        model.account(context)
+    }
+
+    /* A sign-in coming back. Keyed on the URI so the same arrival
+       is not processed twice on a recomposition. */
+    val arrival by arrivals.collectAsState()
+    LaunchedEffect(arrival) {
+        arrival?.let { model.arrived(context, it) }
     }
 
     val accent: Accent = when (val here = where) {
+        Where.Account -> Accents.GREEN
         is Where.Book -> accentOf(here.school)
         is Where.Ladder -> accentOf(here.school)
         is Where.Reading -> accentOf(here.school)
@@ -453,6 +581,7 @@ fun App() {
     /** Where the reader is, in the site's own vocabulary, so the
         rail and the bar can mark it. */
     val current = when (val here = where) {
+        Where.Account -> "account"
         is Where.Book -> here.school.key
         is Where.Ladder -> here.school.key
         is Where.Reading -> here.school.key
@@ -492,6 +621,19 @@ fun App() {
                 onAudience = { model.chooseAudience(it) },
             ) {
             when (val here = where) {
+                Where.Account -> {
+                    BackHandler { where = Where.Home }
+                    AccountScreen(
+                        reader = reader,
+                        problem = authProblem,
+                        linkSent = linkSent,
+                        bottomPadding = BAR_CLEARANCE,
+                        onGoogle = { model.account(context).signIn("google") },
+                        onLink = { model.sendLink(context, it) },
+                        onSignOut = { model.signOut(context) },
+                    )
+                }
+
                 is Where.Hub -> {
                     BackHandler { where = Where.Home }
                     ReadingHub(
@@ -565,13 +707,15 @@ fun App() {
                         accents = site?.accents.orEmpty(),
                         bottomPadding = BAR_CLEARANCE,
                         canOpenHere = { item ->
-                            site?.ladders?.any { it.key == item.key } == true ||
+                            item.key == "account" ||
+                                site?.ladders?.any { it.key == item.key } == true ||
                                 readingSection(site, item.key) != null
                         },
                         onOpenHere = { item ->
                             val school = site?.ladders?.firstOrNull { it.key == item.key }
                             val section = readingSection(site, item.key)
                             when {
+                                item.key == "account" -> where = Where.Account
                                 school != null -> {
                                     model.openLadder(school)
                                     where = Where.Ladder(school)
@@ -622,7 +766,25 @@ fun App() {
                        nothing. Keyed on the lesson so coming back
                        to the same one does not write again. */
                     LaunchedEffect(id, which) {
-                        if (which != null) model.visited(which, id)
+                        if (which != null) {
+                            model.visited(
+                                which,
+                                Bookmark(
+                                    id = id,
+                                    title = here.lesson.bn,
+                                    stage = here.stage.slug,
+                                    /* A hint, and labelled one on
+                                       the site for the same
+                                       reason: a lesson can move
+                                       and an id cannot. */
+                                    url = lessonUrl(
+                                        here.school.key,
+                                        here.stage,
+                                        here.lesson.slug,
+                                    ),
+                                ),
+                            )
+                        }
                     }
                     Reading(
                         school = here.school,
@@ -829,7 +991,7 @@ private fun Ladder(
     onBack: () -> Unit,
     onOpen: (Stage, Lesson) -> Unit,
     onOpenBook: (Stage) -> Unit,
-    bookmark: String? = null,
+    bookmark: Bookmark? = null,
 ) {
     val c = LocalReiad.current
     LazyColumn(
@@ -861,9 +1023,9 @@ private fun Ladder(
             }
 
             /* Where they were, not where they got to. */
-            val at = bookmark?.let { id ->
+            val at = bookmark?.let { mark ->
                 stages.firstNotNullOfOrNull { stage ->
-                    stage.lessons.firstOrNull { lessonId(stage.slug, it.slug) == id }
+                    stage.lessons.firstOrNull { lessonId(stage.slug, it.slug) == mark.id }
                         ?.let { stage to it }
                 }
             }

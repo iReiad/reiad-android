@@ -136,7 +136,20 @@ school's shape, `stufe-1/tag-3` against `term-1/day-3`, because
 both are in real browsers and the site's shared engine built the
 German shape for both once.
 
-Not yet: the account and sync, the tools. `ROADMAP.md` is the
+**And there is an account.** Sign in with Google or an email link,
+through a Custom Tab rather than a WebView, coming back on the
+app's own scheme. Signing in ADOPTS: the account's rows are
+written on to the phone and any synced key the account does not
+have is removed, because a phone is not a copy of an account and
+may have been lent to somebody for five minutes. The screen says
+that before the button rather than after.
+
+A tick made on a train lands later without the app being open,
+which is the half a browser cannot have: WorkManager runs the
+exchange when a network comes back.
+
+Not yet: the reading list and notes, targets, the year of days,
+export and erase, and the tools. `ROADMAP.md` is the
 twelve blocks that finish it, with a scorecard that says where it
 stands rather than how it feels.
 

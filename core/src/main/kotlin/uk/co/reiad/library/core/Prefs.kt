@@ -181,11 +181,35 @@ fun orderFor(
 data class Prefs(
     @SerialName("text") val text: String = "normal",
     @SerialName("measure") val measure: String = "normal",
-    @SerialName("theme") val theme: String = Theme.SYSTEM.id,
     @SerialName("lang") val lang: String = "bn",
     @SerialName("glass") val glass: String = Finish.FROST.id,
     @SerialName("blur") val blur: String = Blur.NORMAL.id,
     @SerialName("veil") val veil: String = Veil.NORMAL.id,
+
+    /** When this record was last written, in epoch millis.
+
+        `reader-prefs` is the one key in the sync table whose rule
+        is MARK rather than SET, and a mark reconciles on the `ts`
+        INSIDE its value. A record written without one is a record
+        that always loses: it reads as timestamp zero, so a
+        preference set on this phone would be overwritten by a
+        laptop's every single exchange, silently, for ever.
+
+        The site writes `Date.now()` here on every save and this
+        does the same. */
+    @SerialName("ts") val ts: Long = 0L,
+
+    /** NOT part of the stored record, and that is the site's
+        arrangement rather than an omission here.
+
+        The theme is written to its own `theme` key beside this
+        one, because the pre-paint boot script has to answer
+        "which theme" before it can afford to parse JSON. So
+        `readPrefs` on the site reads this record and then
+        overrides the theme from that key, and a device that put
+        the theme INSIDE the record would be writing a field the
+        site never reads. */
+    @kotlinx.serialization.Transient val theme: String = Theme.SYSTEM.id,
 ) {
     val themeChoice: Theme get() = themeOf(theme)
     val finish: Finish get() = finishOf(glass)

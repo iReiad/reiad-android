@@ -197,3 +197,27 @@ fun bengaliNumber(n: Int): String = buildString {
         else append(digit)
     }
 }
+
+
+/** Where a reader last was, as the site stores it.
+
+    A JSON OBJECT and not a bare id, and the difference is not
+    cosmetic. `<school>-last` is a MARK in the sync table, and a
+    mark reconciles on the `ts` inside its value: a bare string is
+    not an object, has no `ts`, and is not even valid JSON, so an
+    exchange would skip the key entirely and every bookmark would
+    stay on the device it was made on. Nothing would fail.
+
+    `id` is the only field anything decides anything by. The rest
+    is what the front door needs to say "carry on where you left
+    off" across four schools without reading four ladders, and
+    `url` is labelled a hint on the site for the same reason: a
+    lesson can move and an id cannot. */
+@kotlinx.serialization.Serializable
+data class Bookmark(
+    val id: String = "",
+    val title: String = "",
+    val stage: String = "",
+    val url: String? = null,
+    val ts: Long = 0L,
+)

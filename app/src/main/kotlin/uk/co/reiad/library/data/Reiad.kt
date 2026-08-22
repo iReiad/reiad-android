@@ -24,6 +24,7 @@ import uk.co.reiad.library.core.LessonResponse
 import uk.co.reiad.library.core.AUDIENCE_KEY
 import uk.co.reiad.library.core.PREFS_KEY
 import uk.co.reiad.library.core.Prefs
+import uk.co.reiad.library.core.Bookmark
 import uk.co.reiad.library.core.BookKeyResponse
 import uk.co.reiad.library.core.BookResponse
 import uk.co.reiad.library.core.PieceResponse
@@ -70,6 +71,16 @@ import uk.co.reiad.library.core.SiteManifest
 private val Context.store by preferencesDataStore(name = "reiad")
 
 class Reiad(private val context: Context) {
+
+    /** The one store, shared with `Sync`.
+
+        Exposed rather than reached for a second time, because
+        `preferencesDataStore(name = "reiad")` declared twice
+        gives two objects over one file and DataStore throws on
+        the second read. A tick written through one and looked for
+        through the other would be a tick that vanished. */
+    val store: androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences>
+        get() = context.store
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -247,16 +258,26 @@ class Reiad(private val context: Context) {
 
     val prefs: Flow<Prefs> = context.store.data.map { stored ->
         val raw = stored[key(PREFS_KEY)]
-        if (raw.isNullOrBlank()) Prefs()
+        val record = if (raw.isNullOrBlank()) Prefs()
         else runCatching { json.decodeFromString(Prefs.serializer(), raw) }.getOrDefault(Prefs())
+        /* The theme comes from its OWN key, because that is where
+           the site keeps it: the record deliberately has no theme
+           field, so a device reading one out of it would read
+           nothing. Absent means "follow the system", which is
+           what removing the key means on the site too. */
+        record.copy(theme = stored[key(THEME_KEY)] ?: Theme.SYSTEM.id)
     }
 
     suspend fun savePrefs(change: (Prefs) -> Prefs) {
         context.store.edit { stored ->
             val raw = stored[key(PREFS_KEY)]
-            val now = if (raw.isNullOrBlank()) Prefs()
-            else runCatching { json.decodeFromString(Prefs.serializer(), raw) }.getOrDefault(Prefs())
-            val next = change(now)
+            val now = (if (raw.isNullOrBlank()) Prefs()
+            else runCatching { json.decodeFromString(Prefs.serializer(), raw) }.getOrDefault(Prefs()))
+                .copy(theme = stored[key(THEME_KEY)] ?: Theme.SYSTEM.id)
+            /* Stamped on every save. `reader-prefs` reconciles
+               on the `ts` inside its value, so a record written
+               without a fresh one loses the exchange. */
+            val next = change(now).copy(ts = System.currentTimeMillis())
             stored[key(PREFS_KEY)] = json.encodeToString(Prefs.serializer(), next)
 
             /* The site writes `theme` and `tool-lang` BESIDE the
@@ -300,11 +321,24 @@ class Reiad(private val context: Context) {
        a URL, so a lesson that moved took the bookmark with it and
        the resume card pointed at a page that was not there. */
 
-    fun bookmark(school: School): Flow<String?> =
-        context.store.data.map { it[key(ProgressKeys.last(school))] }
+    fun bookmark(school: School): Flow<Bookmark?> =
+        context.store.data.map { stored ->
+            val raw = stored[key(ProgressKeys.last(school))] ?: return@map null
+            runCatching { json.decodeFromString(Bookmark.serializer(), raw) }.getOrNull()
+        }
 
-    suspend fun remember(school: School, lessonId: String) {
-        context.store.edit { it[key(ProgressKeys.last(school))] = lessonId }
+    suspend fun remember(school: School, mark: Bookmark) {
+        context.store.edit {
+            /* Stamped here rather than by the caller, so a
+               bookmark cannot be written without one: the key is
+               a MARK and a value with no `ts` loses every
+               exchange it is in. */
+            it[key(ProgressKeys.last(school))] =
+                json.encodeToString(
+                    Bookmark.serializer(),
+                    mark.copy(ts = System.currentTimeMillis()),
+                )
+        }
     }
 
     /* ---------- checkpoints, which are the ticks inside a lesson ----------
