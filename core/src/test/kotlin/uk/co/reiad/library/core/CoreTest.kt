@@ -423,3 +423,57 @@ private fun List<Block>.text(): String = joinToString(" ") { block ->
         Block.Rule -> ""
     }
 }
+
+/* ============================================================
+   The two keys that must never reach an account.
+
+   Every other progress key travels: a tick, a bookmark, a
+   checkpoint, a day. These two do not, and the difference is what
+   they hold. A tick is one bit saying a lesson was read. A
+   practice book holds sentences somebody wrote about their own
+   life, in a language they are learning badly, and the whole
+   point of a practice book is that being bad at it is safe.
+
+   Nothing enforces that but this test and the fact that
+   `SyncKeys.ALL` does not name them, so the test names them.
+   ============================================================ */
+class WritingStaysHereTest {
+
+    @Test
+    fun `the two write keys are spelled the way they have always been spelled`() {
+        assertEquals("deutsch-schrift", ProgressKeys.write(School.DEUTSCH))
+        assertEquals("english-write", ProgressKeys.write(School.ENGLISH))
+    }
+
+    /** Two schools named the same thing in two languages before
+        there was an engine shared between them. The asymmetry is
+        not a bug to tidy: both strings are in real browsers. */
+    @Test
+    fun `only the two schools with a book have one`() {
+        assertEquals(null, ProgressKeys.write(School.MONEY))
+        assertEquals(null, ProgressKeys.write(School.QURAN))
+    }
+
+    @Test
+    fun `neither is carried to the account`() {
+        for (school in School.entries) {
+            val key = ProgressKeys.write(school) ?: continue
+            assertEquals(
+                null,
+                SyncKeys.ruleOf(key),
+                "$key would be uploaded. A practice book is the reader's, not the account's.",
+            )
+            assertTrue(key !in SyncKeys.ALL)
+        }
+    }
+
+    /** And everything else IS carried, so this test cannot pass
+        by the sync table being empty. */
+    @Test
+    fun `every other progress key does travel`() {
+        for (school in School.entries) {
+            assertTrue(ProgressKeys.read(school) in SyncKeys.ALL)
+            assertTrue(ProgressKeys.checks(school) in SyncKeys.ALL)
+        }
+    }
+}

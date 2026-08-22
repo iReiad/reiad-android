@@ -79,6 +79,26 @@ object ProgressKeys {
         else -> null
     }
 
+    /** What a learner TYPED into a practice book.
+
+        `deutsch-schrift` and `english-write`, and the asymmetry
+        is real: two schools named the same thing in two languages
+        before there was an engine shared between them, and both
+        strings are in real browsers. Renaming one does not move
+        somebody's writing, it loses it.
+
+        **These are the only progress keys that never leave the
+        device**, and that is a decision rather than an omission.
+        A tick is one bit saying a lesson was read; this is a
+        paragraph somebody wrote about their own life in a
+        language they are learning badly. `SyncKeysTest` asserts
+        the absence. */
+    fun write(school: School): String? = when (school) {
+        School.DEUTSCH -> "deutsch-schrift"
+        School.ENGLISH -> "english-write"
+        else -> null
+    }
+
     /** The school's own half of a key name. Money is `learn`. */
     private fun prefix(school: School): String =
         if (school == School.MONEY) "learn" else school.id
@@ -141,4 +161,39 @@ fun dayId(school: School, stage: String, day: Int): String = when (school) {
     School.DEUTSCH -> "$stage/tag-$day"
     School.ENGLISH -> "$stage/day-$day"
     else -> "$stage/day-$day"
+}
+
+/** Which box in a practice book a piece of writing belongs to.
+
+    `<day>:<box>`, inside the one JSON object filed under the
+    school's write key. A day has several boxes: one per prompt it
+    asks a learner to translate, and one for the free writing at
+    the foot, so a day alone is not enough to say where a sentence
+    goes.
+
+    Numbered by the day rather than the date, because a learner
+    who misses a week comes back to day eight rather than to
+    Tuesday. */
+fun writeSlot(day: Int, box: String): String = "tag-$day:$box"
+
+
+/** Bangla numerals, built from the code point rather than typed.
+
+    The site's own note is the whole argument and it is worth
+    repeating here: a port of the same function RETYPED the
+    literal and produced the DEVANAGARI digits, which look close
+    enough in a diff to survive review and put every number on a
+    Bangla page into the wrong script.
+
+    So the digits are derived from U+09E6, Bengali zero, and
+    `BanglaNumeralTest` asserts the code point rather than
+    comparing against a string somebody typed, because a test that
+    compared two typed literals would agree with the mistake. */
+private const val BENGALI_ZERO = 0x09E6
+
+fun bengaliNumber(n: Int): String = buildString {
+    for (digit in n.toString()) {
+        if (digit.isDigit()) append((BENGALI_ZERO + (digit - '0')).toChar())
+        else append(digit)
+    }
 }

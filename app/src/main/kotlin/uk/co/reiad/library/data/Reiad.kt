@@ -16,11 +16,23 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import uk.co.reiad.library.core.LadderResponse
 import uk.co.reiad.library.core.LessonResponse
+import uk.co.reiad.library.core.AUDIENCE_KEY
+import uk.co.reiad.library.core.PREFS_KEY
+import uk.co.reiad.library.core.Prefs
+import uk.co.reiad.library.core.BookKeyResponse
+import uk.co.reiad.library.core.BookResponse
+import uk.co.reiad.library.core.PieceResponse
+import uk.co.reiad.library.core.PiecesResponse
 import uk.co.reiad.library.core.ProgressKeys
+import uk.co.reiad.library.core.THEME_KEY
+import uk.co.reiad.library.core.TOOL_LANG_KEY
+import uk.co.reiad.library.core.TRACK_KEY
+import uk.co.reiad.library.core.Theme
 import uk.co.reiad.library.core.School
 import uk.co.reiad.library.core.SITE_ORIGIN
 import uk.co.reiad.library.core.SiteManifest
@@ -88,6 +100,37 @@ class Reiad(private val context: Context) {
     suspend fun ladder(school: String): Cached<LadderResponse> =
         fetch("$SITE_ORIGIN/api/schools/$school", "cache:ladder:$school", LadderResponse.serializer())
 
+    /** Every live piece, without bodies. The endpoint splits it
+        that way and the split is right for a handset too: a hub
+        of six pieces should not pull six bodies. */
+    suspend fun pieces(): Cached<PiecesResponse> =
+        fetch("$SITE_ORIGIN/api/articles", "cache:pieces", PiecesResponse.serializer())
+
+    /** One piece, body included. Cached under its own slug, so a
+        piece read once is readable on a train. */
+    suspend fun piece(slug: String): Cached<PieceResponse> =
+        fetch("$SITE_ORIGIN/api/articles/$slug", "cache:piece:$slug", PieceResponse.serializer())
+
+    /** A practice book, with every answer already taken out by
+        the endpoint. */
+    suspend fun book(stage: String): Cached<BookResponse> =
+        fetch("$SITE_ORIGIN/api/book/$stage", "cache:book:$stage", BookResponse.serializer())
+
+    /** And one day's answers, asked for only when the reader
+        presses Show.
+
+        NOT cached to disk, and that is the difference between
+        this and everything else here. A book cached is a book
+        readable on a train, which is the point; a key cached is
+        a key sitting on the device beside the prompts, which
+        undoes the reason the endpoint splits them at all. */
+    suspend fun bookKey(stage: String, day: Int): List<String> = runCatching {
+        json.decodeFromString(
+            BookKeyResponse.serializer(),
+            http.get("$SITE_ORIGIN/api/book/$stage/key/$day").bodyAsText(),
+        ).answers
+    }.getOrDefault(emptyList())
+
     suspend fun lesson(school: String, stage: String, slug: String): Cached<LessonResponse> =
         fetch(
             "$SITE_ORIGIN/api/schools/$school/$stage/$slug",
@@ -129,6 +172,35 @@ class Reiad(private val context: Context) {
 
     private fun key(name: String) = stringPreferencesKey(name)
 
+    /** Which practice-book days have been ticked. */
+    fun days(school: School): Flow<Set<String>> =
+        context.store.data.map { prefs ->
+            val name = ProgressKeys.days(school) ?: return@map emptySet()
+            decode(prefs[key(name)])
+        }
+
+    suspend fun toggleDay(school: School, id: String): Set<String> {
+        val name = ProgressKeys.days(school) ?: return emptySet()
+        var after: Set<String> = emptySet()
+        context.store.edit { prefs ->
+            val now = decode(prefs[key(name)])
+            after = if (id in now) now - id else now + id
+            prefs[key(name)] = encode(after)
+
+            /* The furthest day reached, which is a COUNT rather
+               than a set and is filed under its own key. It only
+               ever goes up: un-ticking day twelve does not mean a
+               reader has not seen it. */
+            ProgressKeys.dayCount(school)?.let { counter ->
+                val reached = after.mapNotNull { it.substringAfterLast('-').toIntOrNull() }
+                    .maxOrNull() ?: 0
+                val had = prefs[key(counter)]?.toIntOrNull() ?: 0
+                if (reached > had) prefs[key(counter)] = reached.toString()
+            }
+        }
+        return after
+    }
+
     fun ticks(school: School): Flow<Set<String>> =
         context.store.data.map { prefs -> decode(prefs[key(ProgressKeys.read(school))]) }
 
@@ -159,6 +231,141 @@ class Reiad(private val context: Context) {
         }
         return after
     }
+
+    /* ---------- what the reader has chosen ----------
+
+       Stored under the site's own key, `reader-prefs`, holding
+       the site's own JSON. The rule above about a tick's key
+       covers this exactly: renaming it does not move somebody's
+       setting, it loses it, and a reader who set the type larger
+       on their laptop should find it larger here.
+
+       The whole record is round-tripped, including the three
+       fields this app does not use yet, because a device that
+       drops what it does not understand resets a setting made
+       somewhere else, silently, on first launch. */
+
+    val prefs: Flow<Prefs> = context.store.data.map { stored ->
+        val raw = stored[key(PREFS_KEY)]
+        if (raw.isNullOrBlank()) Prefs()
+        else runCatching { json.decodeFromString(Prefs.serializer(), raw) }.getOrDefault(Prefs())
+    }
+
+    suspend fun savePrefs(change: (Prefs) -> Prefs) {
+        context.store.edit { stored ->
+            val raw = stored[key(PREFS_KEY)]
+            val now = if (raw.isNullOrBlank()) Prefs()
+            else runCatching { json.decodeFromString(Prefs.serializer(), raw) }.getOrDefault(Prefs())
+            val next = change(now)
+            stored[key(PREFS_KEY)] = json.encodeToString(Prefs.serializer(), next)
+
+            /* The site writes `theme` and `tool-lang` BESIDE the
+               record, and they are not duplicates to be tidied:
+               they are the names other code reads. Its boot
+               script answers "which theme" before it can afford
+               to parse JSON, and the calculators have read
+               `tool-lang` since long before there were accounts.
+               A device that wrote only the record would sync a
+               theme the browser then ignored. */
+            if (next.themeChoice == Theme.SYSTEM) stored.remove(key(THEME_KEY))
+            else stored[key(THEME_KEY)] = next.themeChoice.id
+            stored[key(TOOL_LANG_KEY)] = next.lang
+        }
+    }
+
+    /** Which groups lead. Null is a real answer and means the
+        reader has never said, so they get the site's own order
+        rather than one chosen for them. */
+    val audience: Flow<String?> = context.store.data.map { it[key(AUDIENCE_KEY)] }
+
+    suspend fun setAudience(id: String) {
+        context.store.edit { stored ->
+            stored[key(AUDIENCE_KEY)] = id
+            /* The site clears `track` when somebody says they are
+               here for work, because a track is a learner's
+               answer to "which school" and means nothing to
+               somebody hiring. Same behaviour, same two keys. */
+            if (id == "work") stored.remove(key(TRACK_KEY))
+        }
+    }
+
+    /* ---------- the bookmark ----------
+
+       Where a reader last WAS, under `<school>-last`. Not where
+       they got to: opening is not finishing, so a visit moves
+       this and ticks nothing.
+
+       It stores a lesson ID rather than a URL, and that is the
+       site's own correction: the money school's old module stored
+       a URL, so a lesson that moved took the bookmark with it and
+       the resume card pointed at a page that was not there. */
+
+    fun bookmark(school: School): Flow<String?> =
+        context.store.data.map { it[key(ProgressKeys.last(school))] }
+
+    suspend fun remember(school: School, lessonId: String) {
+        context.store.edit { it[key(ProgressKeys.last(school))] = lessonId }
+    }
+
+    /* ---------- checkpoints, which are the ticks inside a lesson ----------
+
+       A lesson's own tick is about the whole page and is the
+       right unit for a ladder. A checklist inside the prose is
+       five things a reader does over a fortnight, and without
+       this the page cannot remember which three are done.
+
+       Filed `<lesson id>#<n>` under `<school>-checks`, which is
+       the shape and the key the browser already uses, and
+       carried to the account like any other tick.
+
+       **Counted towards no ladder, anywhere.** A checkpoint is
+       not a lesson, and the one way to get this wrong is to let
+       it into the arithmetic that draws a school's ring. */
+
+    fun checkpoints(school: School): Flow<Set<String>> =
+        context.store.data.map { decode(it[key(ProgressKeys.checks(school))]) }
+
+    suspend fun toggleCheckpoint(school: School, id: String): Set<String> {
+        var after: Set<String> = emptySet()
+        context.store.edit { prefs ->
+            val name = key(ProgressKeys.checks(school))
+            val now = decode(prefs[name])
+            after = if (id in now) now - id else now + id
+            prefs[name] = encode(after)
+        }
+        return after
+    }
+
+    /* ---------- and what a learner typed, which stays here ----------
+
+       `deutsch-schrift` and `english-write`. The only progress
+       keys with no path to an account, and see `ProgressKeys` for
+       why: a tick is one bit, and this is somebody writing about
+       their own life in a language they are learning badly. */
+
+    fun writing(school: School): Flow<Map<String, String>> =
+        context.store.data.map { prefs ->
+            val name = ProgressKeys.write(school) ?: return@map emptyMap()
+            val raw = prefs[key(name)]
+            if (raw.isNullOrBlank()) emptyMap()
+            else runCatching { json.decodeFromString(writings, raw) }.getOrDefault(emptyMap())
+        }
+
+    suspend fun write(school: School, slot: String, text: String) {
+        val name = ProgressKeys.write(school) ?: return
+        context.store.edit { prefs ->
+            val raw = prefs[key(name)]
+            val now = if (raw.isNullOrBlank()) emptyMap()
+            else runCatching { json.decodeFromString(writings, raw) }.getOrDefault(emptyMap())
+            /* An emptied box REMOVES its slot rather than storing
+               an empty string, so the record is what was written
+               rather than every box ever touched. */
+            val next = if (text.isBlank()) now - slot else now + (slot to text)
+            prefs[key(name)] = json.encodeToString(writings, next)
+        }
+    }
+
+    private val writings = MapSerializer(String.serializer(), String.serializer())
 
     /* The serializer is named rather than reified, so that a
        release build stripping type information cannot change what

@@ -460,3 +460,74 @@ fun List<Inline>.text(): String = joinToString("") { inline ->
         Inline.Break -> "\n"
     }
 }
+
+/* ============================================================
+   Where a checkpoint's number comes from.
+
+   A checklist inside a school lesson becomes tickable
+   checkpoints, filed `<lesson id>#<n>`. The site numbers them
+   with one `querySelectorAll(".checklist > li")` over the whole
+   article, so `n` runs across EVERY checklist item in the lesson
+   in document order, not from zero inside each list.
+
+   That distinction is a storage identity rather than a detail. A
+   lesson with two checklists of three items files them 0 to 5;
+   numbering each list from zero would file them 0,1,2,0,1,2 and
+   every existing tick in every real account would point at the
+   wrong line. This was written the wrong way first.
+
+   Position rather than text, and that is the site's reason too:
+   prose gets edited, and a checkpoint that forgot itself over a
+   fixed typo is worse than one that stays put when a line is
+   reworded.
+
+   Returned as a map from a block's PATH to the number its first
+   item takes, because a checklist can be nested inside a callout
+   and a renderer needs to find its own base without recounting.
+   ============================================================ */
+
+/** The number each checklist's first item takes, by path.
+
+    A path is the block's position, dotted for nesting: `"3"` is
+    the fourth top-level block, `"3.1"` the second block inside
+    it. */
+fun checkpointBases(blocks: List<Block>): Map<String, Int> {
+    val bases = mutableMapOf<String, Int>()
+    var next = 0
+
+    fun walk(list: List<Block>, prefix: String) {
+        for ((index, block) in list.withIndex()) {
+            val path = if (prefix.isEmpty()) "$index" else "$prefix.$index"
+            when (block) {
+                is Block.Checklist -> {
+                    bases[path] = next
+                    next += block.items.size
+                }
+                /* A callout holds blocks, and a checklist inside
+                   one is a descendant of the article like any
+                   other: the site's selector finds it and counts
+                   it in place. */
+                is Block.Callout -> walk(block.body, path)
+                else -> Unit
+            }
+        }
+    }
+
+    walk(blocks, "")
+    return bases
+}
+
+/** How many checkpoints a lesson has at all, which is what a
+    "3 of 5 done" line counts against. */
+fun checkpointCount(blocks: List<Block>): Int {
+    var total = 0
+    fun walk(list: List<Block>) {
+        for (block in list) when (block) {
+            is Block.Checklist -> total += block.items.size
+            is Block.Callout -> walk(block.body)
+            else -> Unit
+        }
+    }
+    walk(blocks)
+    return total
+}

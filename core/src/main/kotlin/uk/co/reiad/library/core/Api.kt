@@ -43,11 +43,65 @@ data class SiteManifest(
     val nav: List<NavGroup> = emptyList(),
     val accents: Map<String, String> = emptyMap(),
     val audiences: List<Audience> = emptyList(),
+
+    /** Which groups lead, per audience. Sent by `/api/site` from
+        the site's own `ORDER` table, so a third audience or a
+        sixth group needs no app release. Dropping this field was
+        the app's own version of the failure `check-app-surface.ts`
+        watches for from the other end: the endpoint sends it and
+        nothing here read it. */
+    val order: Map<String, List<String>> = emptyMap(),
     val ladders: List<LadderSchool> = emptyList(),
     val sections: List<ReadingSection> = emptyList(),
     val tools: List<Tool> = emptyList(),
     val skills: List<Skill> = emptyList(),
     val counts: Map<String, Int> = emptyMap(),
+
+    /** The palette's index: every page of the site that is not
+        private, with the title, the address and one line saying
+        what it is. This is what the Ctrl+K palette searches on
+        the site and what search searches here, and it comes down
+        rather than being built from a copy, so a page added
+        tomorrow is findable with no app release. */
+    val pages: List<PageEntry> = emptyList(),
+
+    /** The A to Z of terms, grouped. Every term is a lesson of the
+        money school's `basics-1` stage, which is why it carries a
+        slug rather than a URL. */
+    val termGroups: List<TermGroup> = emptyList(),
+)
+
+@Serializable
+data class PageEntry(
+    val title: String = "",
+    val url: String = "",
+    /** What kind of thing it is, in one word, for the row's chip. */
+    val hint: String = "",
+    /** Which destination it belongs to, which decides its colour.
+        Absent for the site's own furniture. */
+    val group: String? = null,
+    val blurb: String? = null,
+    /** What a case study IS: a model, an analysis, a piece of
+        research. Only the portfolio pages carry one. */
+    val kind: String? = null,
+    /** The title cut down to fit a card or a chip. */
+    val short: String? = null,
+)
+
+@Serializable
+data class TermGroup(
+    val id: String = "",
+    val bn: String = "",
+    val en: String = "",
+    val terms: List<Term> = emptyList(),
+)
+
+@Serializable
+data class Term(
+    val slug: String = "",
+    val bn: String = "",
+    val en: String = "",
+    val blurb: String = "",
 )
 
 @Serializable
@@ -56,6 +110,7 @@ data class SiteFacts(
     val tagline: String = "",
     val origin: String = SITE_ORIGIN,
     val email: String = "",
+    val linkedin: String = "",
 )
 
 @Serializable
@@ -75,6 +130,8 @@ data class NavItem(
     val key: String? = null,
     val ladder: Boolean = false,
     val soon: Boolean = false,
+    /** What that entry is, in three words, for a card's chip. */
+    val kind: String? = null,
     val blurb: String? = null,
     val accent: String? = null,
 )
@@ -101,7 +158,20 @@ data class ReadingSection(
     val hub: String = "",
     val lang: String = "",
     val blurb: String = "",
+    /** Which list in the site's own manifest backs this section,
+        by name. The app does not resolve it: the endpoint sends
+        the resolved rows separately, and this is the name so that
+        the two can be told apart when both arrive. */
+    val list: String = "",
 )
+
+/** A practice book: a slug and how many days it runs for.
+
+    The DAYS are the whole of its structure. A book is not a
+    ladder of lessons: it is one page a learner returns to, thirty
+    or sixty or ninety times, writing into it. */
+@Serializable
+data class Workbook(val slug: String = "", val days: Int = 0)
 
 @Serializable
 data class Tool(val id: String = "", val bn: String = "", val en: String = "", val blurb: String = "")
@@ -116,6 +186,7 @@ data class Skill(
     val blurb: String = "",
     val url: String? = null,
     val course: Boolean = false,
+    val note: String? = null,
 )
 
 /* ---------- /api/schools/<school> ---------- */
@@ -141,6 +212,41 @@ data class Stage(
     val who: String? = null,
     val blurb: String? = null,
     val status: String = "live",
+
+    /** What a learner will be able to DO at the end of a stage,
+        in one sentence. The school's own promise, and the thing a
+        stage card is really selling. */
+    val can: String? = null,
+
+    /** The practice book that goes with this stage, where there
+        is one. Two schools have books and two do not, so this is
+        absent rather than empty most of the time. */
+    val workbook: Workbook? = null,
+
+    /** And what a stage says INSTEAD of a book, where the
+        practice is not a book.
+
+        The German school's fourth stage carries "real news every
+        day, a book, a series, a friendship: at this level not a
+        practice book, life". A stage with neither a workbook nor
+        one of these is a stage that simply has no practice
+        attached, and shows nothing. */
+    val uebung: String? = null,
+
+    /** Stage slugs a reader should have read first.
+
+        A SUGGESTION and never a lock. Nothing on this site is
+        gated: a reader who wants stage six on their first day
+        gets stage six, and the site has never had a padlock on
+        it. What this earns is a quiet line saying where the
+        ground under a stage was laid, which is the difference
+        between a ladder and a corridor.
+
+        Sent by the endpoint from the school's own curriculum and
+        read by nothing on the site itself, which is why it took a
+        surface check to notice it existed. */
+    val needs: List<String> = emptyList(),
+
     /** Where this stage's lessons live. `basics-1` carries
         `/money/terms/` because those pages were the glossary
         before the school had a builder. Absent means the ordinary
@@ -164,6 +270,12 @@ data class Section(
     @SerialName("lessons") private val lessonsKey: List<Lesson> = emptyList(),
     @SerialName("teile") private val teileKey: List<Lesson> = emptyList(),
     @SerialName("parts") private val partsKey: List<Lesson> = emptyList(),
+
+    /** The section's name in the language being LEARNT, where it
+        has one. German sections carry it; the money school's do
+        not, because a section about compounding has no second
+        name to give. */
+    val de: String? = null,
 ) {
     val lessons: List<Lesson>
         get() = when {
@@ -257,3 +369,169 @@ fun resolveHref(href: String, school: String, stage: Stage): String = when {
     href.startsWith("#") -> href
     else -> (stage.base ?: "/$school/${stage.slug}/") + href
 }
+
+/* ---------- /api/articles ---------- */
+
+/* A piece: an article, a recipe, a travel note. One table, one
+   endpoint, three sections, and which section a piece is in
+   decides where it lives and what colour it wears.
+
+   `/api/articles` answers with every LIVE piece and no bodies;
+   `/api/articles/<slug>` answers with one, body included. That
+   split is the endpoint's, and it is the right one for a handset
+   too: a hub of six pieces should not pull six bodies. */
+
+@Serializable
+data class PiecesResponse(
+    val ok: Boolean = true,
+    val articles: List<Piece> = emptyList(),
+)
+
+@Serializable
+data class PieceResponse(
+    val ok: Boolean = true,
+    val article: Piece = Piece(),
+)
+
+@Serializable
+data class Piece(
+    val slug: String = "",
+    val title: String = "",
+    /** The standfirst: one or two sentences under the title. */
+    val dek: String = "",
+    /** The topics as one string, which is what the row holds.
+        `topics` below is the same thing split, and both arrive. */
+    val tag: String = "",
+    val topics: List<String> = emptyList(),
+    /** `bn` or `en`. Decides the face and the leading, and it is
+        a fact about the piece rather than about the reader. */
+    val lang: String = "en",
+    val minutes: Int = 0,
+    val status: String = "live",
+    /** `insights`, `cooking` or `travel`. */
+    val section: String = "insights",
+    /** The share card, drawn rather than borrowed: a 1200x630
+        JPEG made from the lead photo. Empty where a piece has
+        none, and empty is not an error. */
+    val cover: String = "",
+    /** The date the piece went live, `2026-08-14`. */
+    @SerialName("published_at") val publishedAt: String = "",
+    @SerialName("updated_at") val updatedAt: String = "",
+    /** Only on the single-piece answer. */
+    val body: String = "",
+) {
+    /** An address of the shape the site actually serves.
+
+        A piece keeps its `.html`, and that is not an oversight:
+        the suffix is part of the SLUG rather than part of a
+        route. It is in every link inside every lesson body in the
+        database and in the `public.library` row of everybody who
+        has saved a piece, so inventing the suffixless spelling
+        here would be a dead link with a plausible shape. */
+    val url: String get() = "/$section/$slug.html"
+
+    val isBangla: Boolean get() = lang == "bn"
+}
+
+/* ---------- /api/book/<stage> ---------- */
+
+/* A practice book, with every answer taken out.
+
+   The site's own note is why the endpoint exists at all: the
+   books are read on the server and never sent as data, because
+   every prompt has its answer beside it. `/api/book/<stage>`
+   sends the days with `say[].a` stripped and
+   `/api/book/<stage>/key/<day>` sends one day's answers when the
+   reader presses the button.
+
+   **So there is no `a` on `Prompt` here, and that is deliberate.**
+   A field for it would be a field that is always null, and a
+   field that is always null is one somebody later fills in from
+   the wrong place. */
+
+@Serializable
+data class BookResponse(
+    val ok: Boolean = true,
+    val stage: String = "",
+    val book: Book = Book(),
+)
+
+@Serializable
+data class Book(
+    /** `deutsch` or `english`, which decides the storage key and
+        the language a target line is tagged with. */
+    val school: String = "",
+    /** The second line of every day's footer tick, which grows
+        with the level: Stufe 1 asks whether yesterday's page was
+        read first, Stufe 3 asks for a whole story. */
+    val foot: String = "",
+    val lede: BookLine = BookLine(),
+    /** The sound key from the front of the book. Only the first
+        book of each school has one: after that the sounds are
+        behind you, and a section repeating them would be the book
+        treating a reader as if they had not moved. */
+    val sounds: List<BookSound> = emptyList(),
+    val collect: BookCollection = BookCollection(),
+    val end: BookLine = BookLine(),
+    val motto: BookLine = BookLine(),
+    val days: List<BookDay> = emptyList(),
+)
+
+/** A pair of lines: what you say, and what it means. `target` is
+    the language being learnt, whichever that is. */
+@Serializable
+data class BookLine(val target: String = "", val bn: String = "")
+
+@Serializable
+data class BookSound(val pair: String = "", val words: String = "", val how: String = "")
+
+@Serializable
+data class BookCollection(
+    val key: String = "",
+    val target: String = "",
+    val bn: String = "",
+    val blurb: String = "",
+    val columns: List<BookColumn> = emptyList(),
+)
+
+@Serializable
+data class BookColumn(val key: String = "", val head: String = "", val placeholder: String = "")
+
+/** One day. Always the same four parts, which is the whole point
+    of the book: the shape of the page never changes, only what is
+    poured into it. */
+@Serializable
+data class BookDay(
+    val n: Int = 0,
+    /** The day's title, in the language being learnt. */
+    val target: String = "",
+    val bn: String = "",
+    val pattern: BookPattern = BookPattern(),
+    /** Model lines to read aloud. */
+    val watch: List<BookLine> = emptyList(),
+    /** Prompts to translate. Speak first, write second. */
+    val say: List<BookPrompt> = emptyList(),
+    /** The free writing. */
+    val heart: BookLine = BookLine(),
+)
+
+@Serializable
+data class BookPattern(
+    val shape: String = "",
+    val why: String = "",
+    val examples: String = "",
+    val tip: String = "",
+)
+
+/** A prompt, and NO answer. See the note above this section. */
+@Serializable
+data class BookPrompt(val q: String = "")
+
+/** One day's answers, in the order its prompts are in. */
+@Serializable
+data class BookKeyResponse(
+    val ok: Boolean = true,
+    val stage: String = "",
+    val day: Int = 0,
+    val answers: List<String> = emptyList(),
+)
