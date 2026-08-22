@@ -1,0 +1,460 @@
+{
+  "now": "2026-08-22T00:00:00.000Z",
+  "summaries": [
+    {
+      "name": "ordinary",
+      "why": "a funded account in profit, with cash and something parked in pies",
+      "summary": {
+        "currency": "GBP",
+        "totalValue": 18420.55,
+        "cash": {
+          "availableToTrade": 1240.1,
+          "inPies": 300,
+          "reservedForOrders": 0
+        },
+        "investments": {
+          "currentValue": 16880.45,
+          "realizedProfitLoss": 812.33,
+          "totalCost": 15100,
+          "unrealizedProfitLoss": 1780.45
+        }
+      },
+      "out": {
+        "currency": "GBP",
+        "total": 18420.55,
+        "invested": 16880.45,
+        "cost": 15100,
+        "unrealised": 1780.45,
+        "unrealisedPct": 11.791059602649007,
+        "realised": 812.33,
+        "freeCash": 1240.1,
+        "inPies": 300
+      }
+    },
+    {
+      "name": "at-a-loss",
+      "why": "the sign has to survive: a percentage that loses its minus is the one number on this page nobody would question",
+      "summary": {
+        "currency": "USD",
+        "totalValue": 7400,
+        "cash": {
+          "availableToTrade": 400,
+          "inPies": 0
+        },
+        "investments": {
+          "currentValue": 7000,
+          "realizedProfitLoss": -220,
+          "totalCost": 9000,
+          "unrealizedProfitLoss": -2000
+        }
+      },
+      "out": {
+        "currency": "USD",
+        "total": 7400,
+        "invested": 7000,
+        "cost": 9000,
+        "unrealised": -2000,
+        "unrealisedPct": -22.22222222222222,
+        "realised": -220,
+        "freeCash": 400,
+        "inPies": 0
+      }
+    },
+    {
+      "name": "empty",
+      "why": "a new account, where every ratio divides by nought and must answer nought rather than NaN",
+      "summary": {
+        "currency": "GBP",
+        "totalValue": 0,
+        "cash": {
+          "availableToTrade": 0,
+          "inPies": 0
+        },
+        "investments": {
+          "currentValue": 0,
+          "realizedProfitLoss": 0,
+          "totalCost": 0,
+          "unrealizedProfitLoss": 0
+        }
+      },
+      "out": {
+        "currency": "GBP",
+        "total": 0,
+        "invested": 0,
+        "cost": 0,
+        "unrealised": 0,
+        "unrealisedPct": 0,
+        "realised": 0,
+        "freeCash": 0,
+        "inPies": 0
+      }
+    },
+    {
+      "name": "broker-changed-a-name",
+      "why": "the failure this whole layer is defensive about: fields missing, a number arriving as a string, and no currency at all. It must render a page of noughts rather than throwing",
+      "summary": {
+        "totalValue": "18420.55",
+        "investments": {
+          "currentValue": 16880.45
+        }
+      },
+      "out": {
+        "currency": "GBP",
+        "total": 0,
+        "invested": 16880.45,
+        "cost": 0,
+        "unrealised": 0,
+        "unrealisedPct": 0,
+        "realised": 0,
+        "freeCash": 0,
+        "inPies": 0
+      }
+    }
+  ],
+  "positions": [
+    {
+      "name": "mixed",
+      "why": "four holdings out of order, in two currencies, one at a loss, one bought for nothing (an infinite gain if it is not guarded) and one whose ticker carries no underscore to split on",
+      "positions": [
+        {
+          "averagePricePaid": 141.2,
+          "currentPrice": 186.4,
+          "quantity": 12.5,
+          "instrument": {
+            "name": "Apple Inc",
+            "ticker": "AAPL_US_EQ",
+            "currency": "USD"
+          },
+          "walletImpact": {
+            "currentValue": 2330,
+            "totalCost": 1765,
+            "unrealizedProfitLoss": 565
+          }
+        },
+        {
+          "averagePricePaid": 55,
+          "currentPrice": 51.2,
+          "quantity": 100,
+          "instrument": {
+            "name": "Vanguard FTSE All-World",
+            "ticker": "VWRL",
+            "currency": "GBP"
+          },
+          "walletImpact": {
+            "currentValue": 5120,
+            "totalCost": 5500,
+            "unrealizedProfitLoss": -380
+          }
+        },
+        {
+          "averagePricePaid": 9.4,
+          "currentPrice": 21.05,
+          "quantity": 450.6667,
+          "instrument": {
+            "name": "A Company With A Very Long Name That Will Not Fit In A Column At All"
+          },
+          "walletImpact": {
+            "currentValue": 9472.5,
+            "totalCost": 4230,
+            "unrealizedProfitLoss": 5242.5
+          }
+        },
+        {
+          "averagePricePaid": 0,
+          "currentPrice": 3,
+          "quantity": 1,
+          "instrument": {
+            "name": "Free Share",
+            "ticker": "FREE_EQ"
+          },
+          "walletImpact": {
+            "currentValue": 3,
+            "totalCost": 0,
+            "unrealizedProfitLoss": 3
+          }
+        }
+      ],
+      "out": {
+        "invested16880": [
+          {
+            "name": "A Company With A Very Long Name That Will Not Fit In A Colum",
+            "ticker": "",
+            "currency": "",
+            "quantity": 450.6667,
+            "averagePaid": 9.4,
+            "price": 21.05,
+            "value": 9472.5,
+            "cost": 4230,
+            "gain": 5242.5,
+            "gainPct": 123.93617021276594,
+            "weightPct": 56.11521019878024,
+            "barPct": 100
+          },
+          {
+            "name": "Vanguard FTSE All-World",
+            "ticker": "VWRL",
+            "currency": "GBP",
+            "quantity": 100,
+            "averagePaid": 55,
+            "price": 51.2,
+            "value": 5120,
+            "cost": 5500,
+            "gain": -380,
+            "gainPct": -6.909090909090909,
+            "weightPct": 30.330944968884122,
+            "barPct": 54.05120084455002
+          },
+          {
+            "name": "Apple Inc",
+            "ticker": "AAPL",
+            "currency": "USD",
+            "quantity": 12.5,
+            "averagePaid": 141.2,
+            "price": 186.4,
+            "value": 2330,
+            "cost": 1765,
+            "gain": 565,
+            "gainPct": 32.01133144475921,
+            "weightPct": 13.802949565917968,
+            "barPct": 24.59751913433624
+          },
+          {
+            "name": "Free Share",
+            "ticker": "FREE",
+            "currency": "",
+            "quantity": 1,
+            "averagePaid": 0,
+            "price": 3,
+            "value": 3,
+            "cost": 0,
+            "gain": 3,
+            "gainPct": 0,
+            "weightPct": 0.017772038067705543,
+            "barPct": 2
+          }
+        ],
+        "investedNought": [
+          {
+            "name": "A Company With A Very Long Name That Will Not Fit In A Colum",
+            "ticker": "",
+            "currency": "",
+            "quantity": 450.6667,
+            "averagePaid": 9.4,
+            "price": 21.05,
+            "value": 9472.5,
+            "cost": 4230,
+            "gain": 5242.5,
+            "gainPct": 123.93617021276594,
+            "weightPct": 0,
+            "barPct": 100
+          },
+          {
+            "name": "Vanguard FTSE All-World",
+            "ticker": "VWRL",
+            "currency": "GBP",
+            "quantity": 100,
+            "averagePaid": 55,
+            "price": 51.2,
+            "value": 5120,
+            "cost": 5500,
+            "gain": -380,
+            "gainPct": -6.909090909090909,
+            "weightPct": 0,
+            "barPct": 54.05120084455002
+          },
+          {
+            "name": "Apple Inc",
+            "ticker": "AAPL",
+            "currency": "USD",
+            "quantity": 12.5,
+            "averagePaid": 141.2,
+            "price": 186.4,
+            "value": 2330,
+            "cost": 1765,
+            "gain": 565,
+            "gainPct": 32.01133144475921,
+            "weightPct": 0,
+            "barPct": 24.59751913433624
+          },
+          {
+            "name": "Free Share",
+            "ticker": "FREE",
+            "currency": "",
+            "quantity": 1,
+            "averagePaid": 0,
+            "price": 3,
+            "value": 3,
+            "cost": 0,
+            "gain": 3,
+            "gainPct": 0,
+            "weightPct": 0,
+            "barPct": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "none",
+      "why": "an account holding nothing, where the largest holding does not exist and every bar would divide by it",
+      "positions": [],
+      "out": {
+        "invested16880": [],
+        "investedNought": []
+      }
+    },
+    {
+      "name": "not-an-array",
+      "why": "what a changed endpoint sends: this must be an empty list rather than a throw",
+      "positions": {
+        "error": "nope"
+      },
+      "out": {
+        "invested16880": [],
+        "investedNought": []
+      }
+    }
+  ],
+  "dividends": [
+    {
+      "name": "sparse",
+      "why": "two in one month, one outside the window, one with no date at all, and eight months with nothing in them. The empty months are the point: a chart of only the months that paid has no gaps and reads as a monthly income",
+      "items": [
+        {
+          "paidOn": "2026-08-03T00:00:00Z",
+          "amount": 12.4
+        },
+        {
+          "paidOn": "2026-08-19T00:00:00Z",
+          "amount": 3.1
+        },
+        {
+          "paidOn": "2026-05-02T00:00:00Z",
+          "amount": 22
+        },
+        {
+          "paidOn": "2025-11-11T00:00:00Z",
+          "amount": 7.5
+        },
+        {
+          "paidOn": "",
+          "amount": 99
+        },
+        {
+          "paidOn": "2024-01-01T00:00:00Z",
+          "amount": 500
+        }
+      ],
+      "out": {
+        "months": [
+          {
+            "key": "2025-09",
+            "amount": 0
+          },
+          {
+            "key": "2025-10",
+            "amount": 0
+          },
+          {
+            "key": "2025-11",
+            "amount": 7.5
+          },
+          {
+            "key": "2025-12",
+            "amount": 0
+          },
+          {
+            "key": "2026-01",
+            "amount": 0
+          },
+          {
+            "key": "2026-02",
+            "amount": 0
+          },
+          {
+            "key": "2026-03",
+            "amount": 0
+          },
+          {
+            "key": "2026-04",
+            "amount": 0
+          },
+          {
+            "key": "2026-05",
+            "amount": 22
+          },
+          {
+            "key": "2026-06",
+            "amount": 0
+          },
+          {
+            "key": "2026-07",
+            "amount": 0
+          },
+          {
+            "key": "2026-08",
+            "amount": 15.5
+          }
+        ],
+        "total": 45
+      }
+    },
+    {
+      "name": "none",
+      "why": "a portfolio that pays nothing, where the total is nought and the chart is twelve empty columns rather than an absence",
+      "items": [],
+      "out": {
+        "months": [
+          {
+            "key": "2025-09",
+            "amount": 0
+          },
+          {
+            "key": "2025-10",
+            "amount": 0
+          },
+          {
+            "key": "2025-11",
+            "amount": 0
+          },
+          {
+            "key": "2025-12",
+            "amount": 0
+          },
+          {
+            "key": "2026-01",
+            "amount": 0
+          },
+          {
+            "key": "2026-02",
+            "amount": 0
+          },
+          {
+            "key": "2026-03",
+            "amount": 0
+          },
+          {
+            "key": "2026-04",
+            "amount": 0
+          },
+          {
+            "key": "2026-05",
+            "amount": 0
+          },
+          {
+            "key": "2026-06",
+            "amount": 0
+          },
+          {
+            "key": "2026-07",
+            "amount": 0
+          },
+          {
+            "key": "2026-08",
+            "amount": 0
+          }
+        ],
+        "total": 0
+      }
+    }
+  ]
+}

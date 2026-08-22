@@ -89,6 +89,13 @@ import uk.co.reiad.library.ui.Waiting
 import uk.co.reiad.library.ui.StockState
 import uk.co.reiad.library.ui.CalcState
 import uk.co.reiad.library.ui.CalculatorsScreen
+import uk.co.reiad.library.ui.LiveScreen
+import uk.co.reiad.library.ui.LiveState
+import uk.co.reiad.library.broker.Answer
+import uk.co.reiad.library.broker.Broker
+import uk.co.reiad.library.core.broker.dividendMonths
+import uk.co.reiad.library.core.broker.holdingsOf
+import uk.co.reiad.library.core.broker.totalsOf
 import uk.co.reiad.library.ui.AccentRail
 import uk.co.reiad.library.ui.AccountScreen
 import uk.co.reiad.library.ui.BodyView
@@ -188,6 +195,9 @@ private const val STOCK_KEY = "stock"
 /** And the other five, which share one nav entry. */
 private const val TOOLS_KEY = "tools"
 
+/** The live portfolio. */
+private const val LIVE_KEY = "live"
+
 /* ---------- where the reader is ---------- */
 
 private sealed interface Where {
@@ -214,6 +224,12 @@ private sealed interface Where {
     /** The other five calculators, which share a screen and a
         model for the same reason. */
     data object Calculators : Where
+
+    /** One real portfolio, live. The only screen here that
+        cannot be read offline, and it says so rather than
+        showing a cached balance: a live portfolio that is not
+        live is a screenshot. */
+    data object Live : Where
 }
 
 private class AppModel(private val reiad: Reiad) : ViewModel() {
@@ -253,6 +269,9 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
     private val _calc = MutableStateFlow(CalcState())
     val calc: StateFlow<CalcState> = _calc.asStateFlow()
 
+    private val _live = MutableStateFlow(LiveState())
+    val live: StateFlow<LiveState> = _live.asStateFlow()
+
     private val _toolNote = MutableStateFlow<String?>(null)
     val toolNote: StateFlow<String?> = _toolNote.asStateFlow()
 
@@ -267,6 +286,70 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
     fun setStock(next: StockState) { _stock.value = next }
 
     fun setCalc(next: CalcState) { _calc.value = next }
+
+    /** Ask for everything the live page shows, in one go.
+
+        The public portfolio ALWAYS, because it is what a reader
+        with no account sees and what a reader with one compares
+        against. The reader's own only where a key is saved, and
+        `no-key` back from the Worker is an invitation rather than
+        a failure.
+
+        Re-asked on every visit rather than cached: the numbers
+        are the point, the Worker already meters them at a minute,
+        and a cached balance shown as live is a screenshot. */
+    fun openLive(context: android.content.Context) {
+        val broker = broker(context)
+        _live.value = LiveState(loading = true)
+        viewModelScope.launch {
+            val site = broker.public()
+            _live.value = _live.value.copy(
+                site = (site as? Answer.Got)?.value,
+                trouble = (site as? Answer.Failed)?.trouble,
+            )
+
+            val standing = (broker.me() as? Answer.Got)?.value
+            _live.value = _live.value.copy(standing = standing)
+
+            /* Nothing further for a reader with no key. Asking
+               anyway would spend one of the broker's six calls a
+               minute to be told so. */
+            if (standing?.savedLabel == null) {
+                _live.value = _live.value.copy(loading = false)
+                return@launch
+            }
+
+            when (val own = broker.live()) {
+                is Answer.Got -> {
+                    val totals = totalsOf(own.value.summary)
+                    _live.value = _live.value.copy(
+                        own = own.value,
+                        ownTotals = totals,
+                        ownHoldings = holdingsOf(own.value.positions, totals.invested),
+                    )
+                    /* Dividends are a second call against a
+                       second limit, so they come after the
+                       numbers rather than beside them: a reader
+                       should see their balance while this is
+                       still in the air. */
+                    (broker.history() as? Answer.Got)?.value?.let { history ->
+                        val now = java.time.LocalDate.now()
+                        _live.value = _live.value.copy(
+                            dividends = dividendMonths(
+                                history["dividends"], now.year, now.monthValue,
+                            ),
+                        )
+                    }
+                }
+                is Answer.Failed -> _live.value = _live.value.copy(trouble = own.trouble)
+            }
+            _live.value = _live.value.copy(loading = false)
+        }
+    }
+
+    private var brokerClient: Broker? = null
+    private fun broker(context: android.content.Context): Broker =
+        brokerClient ?: Broker(account(context)).also { brokerClient = it }
 
     /** Which language the calculators open in.
 
@@ -796,6 +879,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val words by model.words.collectAsState()
     val stockState by model.stock.collectAsState()
     val calcState by model.calc.collectAsState()
+    val liveState by model.live.collectAsState()
     val toolNote by model.toolNote.collectAsState()
     val openPiece by model.open.collectAsState()
     val reader by model.reader.collectAsState()
@@ -848,6 +932,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
            page change colour. */
         Where.Stock -> Accents.GOLD
         Where.Calculators -> Accents.GOLD
+        Where.Live -> Accents.GOLD
         Where.Home -> Accents.GREEN
     }
 
@@ -873,6 +958,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         is Where.Group -> here.group.items.firstOrNull()?.key
         Where.Stock -> STOCK_KEY
         Where.Calculators -> TOOLS_KEY
+        Where.Live -> LIVE_KEY
         Where.Home -> null
     }
 
@@ -1006,6 +1092,22 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     )
                 }
 
+                Where.Live -> {
+                    BackHandler { where = Where.Home }
+                    LiveScreen(
+                        state = liveState,
+                        /* The key is typed on the SITE, never
+                           here: a broker credential is the one
+                           thing worth making somebody enter where
+                           they can see the address bar. */
+                        onConnect = { openOnSite(context, "/tools/live", colours) },
+                        contentPadding = PaddingValues(
+                            start = Gap.s8, end = Gap.s8,
+                            top = Gap.s11, bottom = BAR_CLEARANCE,
+                        ),
+                    )
+                }
+
                 Where.Calculators -> {
                     BackHandler { where = Where.Home }
                     val toolWords = words
@@ -1072,7 +1174,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         bottomPadding = BAR_CLEARANCE,
                         canOpenHere = { item ->
                             item.key == "account" || item.key == STOCK_KEY ||
-                                item.key == TOOLS_KEY ||
+                                item.key == TOOLS_KEY || item.key == LIVE_KEY ||
                                 site?.ladders?.any { it.key == item.key } == true ||
                                 readingSection(site, item.key) != null
                         },
@@ -1088,6 +1190,10 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                                 item.key == TOOLS_KEY -> {
                                     model.openTools()
                                     where = Where.Calculators
+                                }
+                                item.key == LIVE_KEY -> {
+                                    model.openLive(context)
+                                    where = Where.Live
                                 }
                                 school != null -> {
                                     model.openLadder(school)
