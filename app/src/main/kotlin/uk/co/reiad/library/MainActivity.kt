@@ -87,6 +87,8 @@ import uk.co.reiad.library.core.stock.toCsv
 import uk.co.reiad.library.ui.StockScreen
 import uk.co.reiad.library.ui.Waiting
 import uk.co.reiad.library.ui.StockState
+import uk.co.reiad.library.ui.CalcState
+import uk.co.reiad.library.ui.CalculatorsScreen
 import uk.co.reiad.library.ui.AccentRail
 import uk.co.reiad.library.ui.AccountScreen
 import uk.co.reiad.library.ui.BodyView
@@ -183,6 +185,9 @@ private val BAR_CLEARANCE = 96.dp
     that silently starts opening the site in a browser instead. */
 private const val STOCK_KEY = "stock"
 
+/** And the other five, which share one nav entry. */
+private const val TOOLS_KEY = "tools"
+
 /* ---------- where the reader is ---------- */
 
 private sealed interface Where {
@@ -205,6 +210,10 @@ private sealed interface Where {
         content is computed rather than fetched: the model is in
         `core` and its words come down from `/api/tools`. */
     data object Stock : Where
+
+    /** The other five calculators, which share a screen and a
+        model for the same reason. */
+    data object Calculators : Where
 }
 
 private class AppModel(private val reiad: Reiad) : ViewModel() {
@@ -241,6 +250,9 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
     private val _stock = MutableStateFlow(StockState())
     val stock: StateFlow<StockState> = _stock.asStateFlow()
 
+    private val _calc = MutableStateFlow(CalcState())
+    val calc: StateFlow<CalcState> = _calc.asStateFlow()
+
     private val _toolNote = MutableStateFlow<String?>(null)
     val toolNote: StateFlow<String?> = _toolNote.asStateFlow()
 
@@ -253,6 +265,8 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
     }
 
     fun setStock(next: StockState) { _stock.value = next }
+
+    fun setCalc(next: CalcState) { _calc.value = next }
 
     /** Which language the calculators open in.
 
@@ -781,6 +795,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val pieces by model.pieces.collectAsState()
     val words by model.words.collectAsState()
     val stockState by model.stock.collectAsState()
+    val calcState by model.calc.collectAsState()
     val toolNote by model.toolNote.collectAsState()
     val openPiece by model.open.collectAsState()
     val reader by model.reader.collectAsState()
@@ -832,6 +847,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
            arriving from the tools tab does not watch the whole
            page change colour. */
         Where.Stock -> Accents.GOLD
+        Where.Calculators -> Accents.GOLD
         Where.Home -> Accents.GREEN
     }
 
@@ -856,6 +872,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         is Where.Reading2 -> here.section
         is Where.Group -> here.group.items.firstOrNull()?.key
         Where.Stock -> STOCK_KEY
+        Where.Calculators -> TOOLS_KEY
         Where.Home -> null
     }
 
@@ -989,6 +1006,31 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     )
                 }
 
+                Where.Calculators -> {
+                    BackHandler { where = Where.Home }
+                    val toolWords = words
+                    if (toolWords == null) {
+                        Waiting()
+                    } else {
+                        CalculatorsScreen(
+                            words = toolWords,
+                            state = calcState,
+                            onState = { model.setCalc(it) },
+                            lang = prefs.lang,
+                            onLang = { model.chooseToolLang(it) },
+                            /* The names out of the manifest, both
+                               languages, rather than a second copy
+                               in the phrase table. */
+                            titles = site?.tools.orEmpty()
+                                .associate { it.id to (it.en to it.bn) },
+                            contentPadding = PaddingValues(
+                                start = Gap.s8, end = Gap.s8,
+                                top = Gap.s11, bottom = BAR_CLEARANCE,
+                            ),
+                        )
+                    }
+                }
+
                 Where.Stock -> {
                     BackHandler { where = Where.Home }
                     val toolWords = words
@@ -1030,6 +1072,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         bottomPadding = BAR_CLEARANCE,
                         canOpenHere = { item ->
                             item.key == "account" || item.key == STOCK_KEY ||
+                                item.key == TOOLS_KEY ||
                                 site?.ladders?.any { it.key == item.key } == true ||
                                 readingSection(site, item.key) != null
                         },
@@ -1041,6 +1084,10 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                                 item.key == STOCK_KEY -> {
                                     model.openTools()
                                     where = Where.Stock
+                                }
+                                item.key == TOOLS_KEY -> {
+                                    model.openTools()
+                                    where = Where.Calculators
                                 }
                                 school != null -> {
                                     model.openLadder(school)
