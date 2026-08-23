@@ -363,9 +363,16 @@ private fun BarScrim(height: Dp, fromTop: Boolean, modifier: Modifier = Modifier
 
 /** One of the round buttons in the top bar.
 
-    A `control`, because it is one of two on a bar and each acts
-    on its own: the site's rule is that a lone button has to look
-    pressable because nothing else says it is. */
+    **Not a `control`, and that is the design system's own
+    answer rather than a saving.** `--standing` is the axis for
+    exactly this: a LONE button has to look pressable because
+    nothing else says it is, and a row of them does not, because
+    the row is the affordance. Three 44dp circles of glass, each
+    with its own hairline rim, ten apart, read as one
+    three-lobed object and were reported twice as congested.
+
+    The target is still 44dp. What went is the ring around it,
+    not the room to press it. */
 @Composable
 private fun RoundButton(icon: String, label: String, onClick: () -> Unit) {
     val c = LocalReiad.current
@@ -373,12 +380,6 @@ private fun RoundButton(icon: String, label: String, onClick: () -> Unit) {
         Modifier
             .size(Gap.tap)
             .clip(RoundedCornerShape(Corner.pill))
-            .material(Kind.CONTROL, c, Corner.pill)
-            /* A visible rim. The material gives a control its
-               lit edge, and at 44dp against a pane of the same
-               glass that edge is not enough to say "this is a
-               button": the site draws a hairline circle. */
-            .border(1.dp, c.hairline, RoundedCornerShape(Corner.pill))
             .clickable(role = Role.Button, onClick = onClick)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
@@ -902,10 +903,27 @@ private fun DrawerRow(
                 )
             }
         }
-        /* A school still being written APPEARS, and says so. The
-           site's own rule: a thing promised and not delivered is
-           worse hidden than shown. */
-        if (item.soon) Chip("আসছে")
+        /* The right of the row, which was empty on every one of
+           twenty rows: an icon and two lines hard against the
+           left edge of a full-width tile, and then nothing. It
+           was reported by somebody drawing on a photograph of it.
+
+           What goes there is what the row IS, out of the nav
+           table's own `kind`, and then a chevron. Both are facts
+           rather than filler: the chip says whether this is a
+           course or a piece of writing, and the chevron says the
+           row goes somewhere, which on a list where some rows
+           open in the app and some leave for the browser is worth
+           saying. */
+        if (item.soon) {
+            Chip("আসছে")
+        } else {
+            item.kind?.takeIf { it.isNotBlank() }?.let { kind ->
+                Chip(kind, tone = c.inkSoft)
+                Spacer(Modifier.width(Gap.s5))
+            }
+            Icon("chevron", size = 15.dp, tint = c.inkSoft)
+        }
     }
 }
 

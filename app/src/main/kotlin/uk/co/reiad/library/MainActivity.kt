@@ -194,7 +194,12 @@ import uk.co.reiad.library.ui.DRAWABLE
 import uk.co.reiad.library.ui.PillButton
 import uk.co.reiad.library.ui.Widget
 import uk.co.reiad.library.ui.WidgetFrame
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import uk.co.reiad.library.ui.WidgetPicker
+import uk.co.reiad.library.ui.dragHandle
+import uk.co.reiad.library.ui.rememberBoardDrag
 import uk.co.reiad.library.ui.topClearance
 import uk.co.reiad.library.ui.Chip
 import uk.co.reiad.library.ui.Control
@@ -2712,8 +2717,20 @@ fun Home(
         if (placed.any { it.id == "market" }) onNeedNews()
     }
 
+    val listState = rememberLazyListState()
+    /* Hold a widget's grip and move it: the board reorders under
+       the finger as it passes each neighbour, and every question
+       about where the finger is goes to what the list actually
+       laid out. See `ui/BoardDrag.kt`. */
+    val drag = rememberBoardDrag(
+        state = listState,
+        indexOf = { key -> placed.indexOfFirst { it.id == key }.takeIf { it >= 0 } },
+        onMove = { from, to -> onBoard(storedOf(moved(placed, from, to))) },
+    )
+
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
+        state = listState,
         /* The bar FLOATS over the page rather than pushing it, so
            the page has to end above it or the last card sits under
            the bar and looks like the list has been cut off. */
@@ -2795,7 +2812,20 @@ fun Home(
                landed; falling back to the ID put `continue` and
                `pulse` down the side of a Bangla front page. */
             val kind = kindOf(p.id, catalogue, p.size)
+            val carried = drag.carrying == p.id
             WidgetFrame(
+                modifier = Modifier
+                    .zIndex(if (carried) 1f else 0f)
+                    .graphicsLayer {
+                        if (!carried) return@graphicsLayer
+                        translationY = drag.offset
+                        /* A card in the hand is off the board:
+                           lifted, and slightly proud of the rest
+                           so it is obvious which one is moving. */
+                        scaleX = 1.02f
+                        scaleY = 1.02f
+                        shadowElevation = 12f
+                    },
                 kind = kind,
                 placed = p,
                 arranging = arranging,
@@ -2811,6 +2841,7 @@ fun Home(
                 onRemove = {
                     onBoard(storedOf(placed.filterIndexed { i, _ -> i != at }))
                 },
+                grip = Modifier.dragHandle(drag, p.id),
             ) {
                 Widget(p.id, data, act)
             }

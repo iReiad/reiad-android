@@ -71,6 +71,7 @@ import uk.co.reiad.library.core.WidgetSize
     into twenty boxes. */
 @Composable
 fun WidgetFrame(
+    modifier: Modifier = Modifier,
     kind: WidgetKind,
     placed: Placed,
     arranging: Boolean,
@@ -81,15 +82,19 @@ fun WidgetFrame(
     onDown: () -> Unit,
     onResize: () -> Unit,
     onRemove: () -> Unit,
+    /** Pick it up and move it. Applied to the grip at the left of
+        the strip rather than to the whole widget: a long press on
+        a card a reader is reading belongs to the card. */
+    grip: Modifier = Modifier,
     body: @Composable () -> Unit,
 ) {
     if (!arranging) {
-        body()
+        Box(modifier) { body() }
         return
     }
 
     val c = LocalReiad.current
-    Column(Modifier.fillMaxWidth()) {
+    Column(modifier.fillMaxWidth()) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -98,14 +103,32 @@ fun WidgetFrame(
                 .padding(horizontal = Gap.s4, vertical = Gap.s2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                kind.name(lang),
-                style = MaterialTheme.typography.labelMedium,
-                color = c.inkSoft,
-                modifier = Modifier
+            /* The grip. Press and hold it, then move: the board
+               reorders under the finger as it passes each
+               neighbour rather than waiting for the release, so
+               nobody has to guess where a card will land.
+
+               The arrows stay, and not as decoration: a drag
+               cannot be reached by a switch or a screen reader,
+               and those two still move a widget one step at a
+               time. */
+            Row(
+                grip
                     .weight(1f)
-                    .padding(start = Gap.s4),
-            )
+                    .height(Gap.tap)
+                    .semantics {
+                        contentDescription = "${kind.name(lang)}: ধরে সরান"
+                    },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon("menu", size = 15.dp, tint = c.inkSoft)
+                Spacer(Modifier.width(Gap.s4))
+                Text(
+                    kind.name(lang),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = c.inkSoft,
+                )
+            }
             /* Absent rather than present and inert at the ends of
                the list. A control that cannot do anything is a
                control a reader presses twice before deciding the
