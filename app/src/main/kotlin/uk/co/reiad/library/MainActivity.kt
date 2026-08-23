@@ -68,6 +68,7 @@ import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.nav.Destination
 import uk.co.reiad.library.core.nav.LIVE_KEY
+import uk.co.reiad.library.core.nav.DIET_KEY
 import uk.co.reiad.library.core.nav.ROUTINE_KEY
 import uk.co.reiad.library.core.nav.STOCK_KEY
 import uk.co.reiad.library.core.nav.TOOLS_KEY
@@ -121,7 +122,19 @@ import uk.co.reiad.library.ui.LiveScreen
 import uk.co.reiad.library.ui.LiveState
 import uk.co.reiad.library.ui.RoutineScreen
 import uk.co.reiad.library.ui.RoutineState
+import uk.co.reiad.library.diet.Log
 import uk.co.reiad.library.routine.Days
+import uk.co.reiad.library.core.diet.DietDay
+import uk.co.reiad.library.core.diet.DietEntry
+import uk.co.reiad.library.core.diet.DietProfile
+import uk.co.reiad.library.core.diet.GoalKind
+import uk.co.reiad.library.core.diet.activityFactor
+import uk.co.reiad.library.core.diet.bodyOf
+import uk.co.reiad.library.core.diet.estimatedBurn
+import uk.co.reiad.library.core.diet.restingBurn
+import uk.co.reiad.library.core.diet.target
+import uk.co.reiad.library.ui.DietScreen
+import uk.co.reiad.library.ui.DietState
 import uk.co.reiad.library.routine.RoutineRow
 import uk.co.reiad.library.core.routine.consistency
 import uk.co.reiad.library.core.routine.dayBefore
@@ -304,6 +317,7 @@ internal sealed interface Where {
         there is nothing to show signed out, and that is not an
         error. */
     data object Routine : Where
+    data object Diet : Where
 }
 
 internal class AppModel(private val reiad: Reiad) : ViewModel() {
@@ -374,6 +388,11 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     val routine: StateFlow<RoutineState> = _routine.asStateFlow()
 
     private var routineStore: Days? = null
+
+    private val _diet = MutableStateFlow(DietState())
+    val diet: StateFlow<DietState> = _diet.asStateFlow()
+
+    private var dietStore: Log? = null
 
     private val _toolNote = MutableStateFlow<String?>(null)
     val toolNote: StateFlow<String?> = _toolNote.asStateFlow()
@@ -486,6 +505,101 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             val entries = store.entries(dayBefore(today, 365))
             _routine.value = readRoutine(row, entries, today)
         }
+    }
+
+    /**
+     * Today's log, the reader's own answers, and what the two make
+     * together.
+     *
+     * Derived in ONE place rather than in the screen, for the
+     * reason the routine's own loader gives: a figure and the bar
+     * under it must not be able to disagree about what today is.
+     */
+    fun openDiet(context: android.content.Context) {
+        val store = dietStore ?: Log(account(context)).also { dietStore = it }
+        _diet.value = DietState(loading = true)
+        viewModelScope.launch {
+            if (account(context).token() == null) {
+                _diet.value = DietState(loading = false, signedOut = true)
+                return@launch
+            }
+            val today = java.time.LocalDate.now().toString()
+            val profile = store.profile()
+            /* A fortnight, which is the shortest window the trend
+               means anything over and the longest one this screen
+               needs: the long view is `/tools/diet/trend`. */
+            val days = store.days(dayBefore(today, 14))
+            val entries = store.entries(today)
+            _diet.value = readDiet(profile, days, entries, today)
+        }
+    }
+
+    /** A weight, saved. A PARTIAL upsert: the day's other columns
+        are absent from the body, so this does not erase a waist
+        measured this morning. */
+    fun weighIn(context: android.content.Context, kg: Double) {
+        val store = dietStore ?: return
+        val today = _diet.value.today.ifBlank { java.time.LocalDate.now().toString() }
+        _diet.value = _diet.value.copy(saving = true)
+        viewModelScope.launch {
+            store.saveDay(DietDay(date = today, weightKg = kg))
+            openDiet(context)
+        }
+    }
+
+    fun removeEaten(context: android.content.Context, id: String) {
+        val store = dietStore ?: return
+        viewModelScope.launch {
+            store.removeEntry(id)
+            openDiet(context)
+        }
+    }
+
+    private fun readDiet(
+        profile: DietProfile?,
+        days: List<DietDay>,
+        entries: List<DietEntry>,
+        today: String,
+    ): DietState {
+        /* The most recent weight rather than today's, and that is
+           deliberate: a reader who weighs twice a week still has a
+           body, and a screen that showed no BMI on the days
+           between would be describing the scale rather than the
+           person. */
+        val latest = days.firstOrNull { it.weightKg != null }
+        val day = days.firstOrNull { it.date == today }
+        val body = bodyOf(profile, day ?: latest, java.time.LocalDate.now().year)
+            ?: bodyOf(profile, latest, java.time.LocalDate.now().year)
+
+        val resting = body?.let { restingBurn(it) }
+        val maintenance = resting?.let {
+            estimatedBurn(it.kcal, activityFactor(profile?.activity ?: "sedentary"))
+        }
+        val goal = when (profile?.goal) {
+            "gain" -> GoalKind.GAIN
+            "maintain" -> GoalKind.MAINTAIN
+            else -> GoalKind.LOSE
+        }
+        return DietState(
+            loading = false,
+            today = today,
+            profile = profile,
+            day = day,
+            entries = entries,
+            body = body,
+            maintenance = maintenance,
+            target = if (body == null || resting == null || maintenance == null) {
+                null
+            } else {
+                target(
+                    body = body,
+                    maintenance = maintenance,
+                    restingKcal = resting.kcal,
+                    kind = goal,
+                    ratePct = profile?.ratePct ?: 0.5,
+                )
+            },
+        )
     }
 
     /** Everything the screen draws, derived in one place so a
@@ -1218,6 +1332,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val calcState by model.calc.collectAsState()
     val liveState by model.live.collectAsState()
     val routineState by model.routine.collectAsState()
+    val dietState by model.diet.collectAsState()
     val toolNote by model.toolNote.collectAsState()
     val openPiece by model.open.collectAsState()
     val reader by model.reader.collectAsState()
@@ -1268,6 +1383,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         Where.Calculators -> Accents.GOLD
         Where.Live -> Accents.GOLD
         Where.Routine -> Accents.GOLD
+        Where.Diet -> Accents.GOLD
         Where.Home -> Accents.GREEN
     }
 
@@ -1351,6 +1467,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     TOOLS_KEY -> { model.openTools(); where = Where.Calculators }
                     LIVE_KEY -> { model.openLive(context); where = Where.Live }
                     ROUTINE_KEY -> { model.openRoutine(context); where = Where.Routine }
+                    DIET_KEY -> { model.openDiet(context); where = Where.Diet }
                     else -> Unit
                 }
             }
@@ -1381,6 +1498,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         Where.Calculators -> TOOLS_KEY
         Where.Live -> LIVE_KEY
         Where.Routine -> ROUTINE_KEY
+        Where.Diet -> DIET_KEY
         Where.Home -> null
     }
 
@@ -1523,6 +1641,25 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         onTickDay = { id -> which?.let { model.tickDay(it, id) } },
                         onReveal = { day -> model.reveal(here.stage.slug, day) },
                         onBack = { where = Where.Ladder(here.school) },
+                    )
+                }
+
+                Where.Diet -> {
+                    BackHandler { where = Where.Home }
+                    DietScreen(
+                        state = dietState,
+                        onWeight = { model.weighIn(context, it) },
+                        onRemove = { model.removeEaten(context, it) },
+                        /* The other thirteen pages of the tool are
+                           the site's. This one opens the log
+                           rather than pretending the app has it. */
+                        onOpenSite = {
+                            openOnSite(context, "/tools/diet/log", colours)
+                        },
+                        contentPadding = PaddingValues(
+                            start = Gap.s8, end = Gap.s8,
+                            top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                        ),
                     )
                 }
 
@@ -1791,7 +1928,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
 internal fun opensHere(site: SiteManifest?, item: NavItem): Boolean =
     item.key == "account" || item.key == STOCK_KEY ||
         item.key == TOOLS_KEY || item.key == LIVE_KEY ||
-        item.key == ROUTINE_KEY ||
+        item.key == ROUTINE_KEY || item.key == DIET_KEY ||
         site?.ladders?.any { it.key == item.key } == true ||
         readingSection(site, item.key) != null
 
@@ -1816,6 +1953,7 @@ internal fun goTo(
         item.key == TOOLS_KEY -> { model.openTools(); Where.Calculators }
         item.key == LIVE_KEY -> { model.openLive(context); Where.Live }
         item.key == ROUTINE_KEY -> { model.openRoutine(context); Where.Routine }
+        item.key == DIET_KEY -> { model.openDiet(context); Where.Diet }
         school != null -> { model.openLadder(school); Where.Ladder(school) }
         section != null -> Where.Hub(section, sectionTitle(site, section))
         else -> now

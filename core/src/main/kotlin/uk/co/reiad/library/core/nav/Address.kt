@@ -71,6 +71,7 @@ const val STOCK_KEY = "stock"
 const val TOOLS_KEY = "tools"
 const val LIVE_KEY = "live"
 const val ROUTINE_KEY = "routine"
+const val DIET_KEY = "diet"
 
 /**
  * Where a site address goes.
@@ -96,8 +97,16 @@ fun destinationOf(url: String, site: SiteManifest?): Destination {
             "stock" -> Destination.Tool(STOCK_KEY)
             "live" -> Destination.Tool(LIVE_KEY)
             "routine" -> Destination.Tool(ROUTINE_KEY)
-            /* `/tools/diet/...` and the course player are the
-               site's, and a link to one opens there. */
+            /* `/tools/diet` is today's log, which the app draws.
+               Its other thirteen pages are the site's, so
+               `/tools/diet/trend` opens there: a deep link into a
+               page this app does not have must not land on the
+               nearest one it does. */
+            "diet" -> if (parts.size == 2) {
+                Destination.Tool(DIET_KEY)
+            } else {
+                Destination.Elsewhere(url)
+            }
             else -> Destination.Elsewhere(url)
         }
     }

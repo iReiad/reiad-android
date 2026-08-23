@@ -26,6 +26,16 @@ import uk.co.reiad.library.ui.ShellState
 import uk.co.reiad.library.ui.Skeleton
 import uk.co.reiad.library.ui.StockScreen
 import uk.co.reiad.library.ui.StockState
+import uk.co.reiad.library.ui.DietScreen
+import uk.co.reiad.library.ui.DietState
+import uk.co.reiad.library.core.diet.Ancestry
+import uk.co.reiad.library.core.diet.Body
+import uk.co.reiad.library.core.diet.DietDay
+import uk.co.reiad.library.core.diet.DietEntry
+import uk.co.reiad.library.core.diet.DietProfile
+import uk.co.reiad.library.core.diet.FloorHit
+import uk.co.reiad.library.core.diet.Sex
+import uk.co.reiad.library.core.diet.Target
 import uk.co.reiad.library.ui.GroupScreen
 import uk.co.reiad.library.ui.LiveScreen
 import uk.co.reiad.library.ui.LiveState
@@ -261,6 +271,50 @@ class ScreensLookTest {
             onTickDay = {},
             onReveal = {},
             onBack = {},
+        )
+    }
+
+    @Test fun diet() = page {
+        DietScreen(
+            state = DietState(
+                loading = false,
+                today = "2026-08-23",
+                profile = DietProfile(
+                    heightCm = 172.0, birthYear = 1992, sex = "male",
+                    ancestry = "asian", activity = "light", goal = "lose", ratePct = 0.5,
+                ),
+                day = DietDay(date = "2026-08-23", weightKg = 74.0, waistCm = 88.0),
+                entries = listOf(
+                    DietEntry(id = "1", date = "2026-08-23", label = "Rice, cooked",
+                        labelBn = "\u09ad\u09be\u09a4", qty = 200.0, unit = "g", kcal = 260.0),
+                    DietEntry(id = "2", date = "2026-08-23", label = "Dal",
+                        labelBn = "\u09a1\u09be\u09b2", qty = 150.0, unit = "g", kcal = 180.0),
+                    DietEntry(id = "3", date = "2026-08-23", label = "Egg",
+                        labelBn = "\u09a1\u09bf\u09ae", qty = 2.0, unit = "", kcal = 155.0),
+                ),
+                body = Body(172.0, 74.0, 34.0, Sex.MALE, Ancestry.ASIAN, waistCm = 88.0),
+                target = Target(1900, -400, listOf(), 0.5),
+                maintenance = 2300.0,
+            ),
+            onWeight = {}, onRemove = {}, onOpenSite = {},
+            contentPadding = PaddingValues(
+                start = Gap.s8, end = Gap.s8, top = 84.dp, bottom = 96.dp,
+            ),
+        )
+    }
+
+    @Test fun dietEmpty() = page {
+        DietScreen(
+            state = DietState(
+                loading = false,
+                today = "2026-08-23",
+                profile = DietProfile(heightCm = 172.0, birthYear = 1992, sex = "male"),
+                target = Target(1200, -8, listOf(FloorHit.RATE, FloorHit.RESTING, FloorHit.ABSOLUTE), 0.01),
+            ),
+            onWeight = {}, onRemove = {}, onOpenSite = {},
+            contentPadding = PaddingValues(
+                start = Gap.s8, end = Gap.s8, top = 84.dp, bottom = 96.dp,
+            ),
         )
     }
 }
