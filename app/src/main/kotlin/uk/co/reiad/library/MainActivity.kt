@@ -2235,6 +2235,8 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         onOpenSite = {
                             openOnSite(context, "/tools/diet/log", colours)
                         },
+                        words = site?.dietWords ?: uk.co.reiad.library.core.DietWords(),
+                        lang = prefs.lang,
                         contentPadding = PaddingValues(
                             start = Gap.s8, end = Gap.s8,
                             top = topClearance(), bottom = barClearance(),

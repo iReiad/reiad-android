@@ -124,7 +124,7 @@ data class SiteManifest(
         Empty until a deployment carries it, and a screen that
         reads it renders the figures with no explanation rather
         than the key in square brackets. */
-    val dietWords: Map<String, Phrase> = emptyMap(),
+    val dietWords: DietWords = DietWords(),
 
     /** The palette's index: every page of the site that is not
         private, with the title, the address and one line saying
@@ -269,6 +269,39 @@ data class NewsResponse(
     val count: Int = 0,
     val items: List<Story> = emptyList(),
 )
+
+/** The diet tool's own words, as `/api/site` sends them.
+
+    `phrases` is keyed by a phrase id (`dt.bmi.why`); the four
+    below are keyed by a TOKEN the arithmetic in `core/diet/`
+    returns, which is what lets a band this app computed have a
+    sentence without this app holding a single one of them.
+
+    Empty until a deployment carries it, and `say()` answers null
+    rather than the key: a figure with no explanation under it is
+    a figure, and a figure with `dt.bmi.why` under it is a bug
+    somebody has to report. */
+@Serializable
+data class DietWords(
+    val phrases: Map<String, Phrase> = emptyMap(),
+    val bmiBands: Map<String, Phrase> = emptyMap(),
+    val whtrBands: Map<String, Phrase> = emptyMap(),
+    val sexForms: Map<String, Phrase> = emptyMap(),
+    val cutSets: Map<String, Phrase> = emptyMap(),
+) {
+    private fun pick(p: Phrase?, lang: String): String? {
+        val said = if (lang == "bn") p?.bn ?: p?.en else p?.en ?: p?.bn
+        return said?.takeIf { it.isNotBlank() }
+    }
+
+    /** One phrase, or null where the table has not arrived. */
+    fun say(key: String, lang: String): String? = pick(phrases[key], lang)
+
+    fun bmiBand(token: String, lang: String): String? = pick(bmiBands[token], lang)
+    fun whtrBand(token: String, lang: String): String? = pick(whtrBands[token], lang)
+    fun sexForm(token: String, lang: String): String? = pick(sexForms[token], lang)
+    fun cutSet(token: String, lang: String): String? = pick(cutSets[token], lang)
+}
 
 @Serializable
 data class Audience(val id: String = "", val label: String = "", val sub: String = "")

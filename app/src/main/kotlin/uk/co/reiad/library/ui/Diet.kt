@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -85,8 +86,17 @@ fun DietScreen(
     onOpenSite: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    /** The tool's own words, out of `/api/site`, so nothing about
+        a body is written in Kotlin. */
+    words: uk.co.reiad.library.core.DietWords = uk.co.reiad.library.core.DietWords(),
+    lang: String = "bn",
 ) {
     val c = LocalReiad.current
+    /* Two of the tool's fourteen pages, and the switch says which
+       rather than a tab bar for two: today's log, and what the
+       measurements say. The other twelve are the site's until
+       they are ported. */
+    var page by rememberSaveable { mutableStateOf("today") }
     val eaten = remember(state.entries) { totalOf(state.entries) }
 
     LazyColumn(
@@ -114,6 +124,39 @@ fun DietScreen(
         }
         if (state.profile?.heightCm == null) {
             item("setup") { NeedsSetup(onOpenSite) }
+            return@LazyColumn
+        }
+
+        item("pages") {
+            val pages = listOf(
+                "today" to (if (lang == "bn") "আজ" else "Today"),
+                "you" to (if (lang == "bn") "শরীর" else "You"),
+            )
+            Segmented(
+                options = pages,
+                chosen = pages.firstOrNull { it.first == page },
+                onChoose = { page = it.first },
+                height = Gap.tap,
+                label = { it.second },
+            ) { option, on ->
+                Text(
+                    option.second,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (on) c.paper else c.inkSoft,
+                )
+            }
+            Spacer(Modifier.height(Gap.s6))
+        }
+
+        if (page == "you") {
+            item("body") {
+                DietBodyPanel(
+                    body = state.body,
+                    words = words,
+                    lang = lang,
+                    onOpenSite = onOpenSite,
+                )
+            }
             return@LazyColumn
         }
 
