@@ -172,11 +172,38 @@ data class NavItem(
     val key: String? = null,
     val ladder: Boolean = false,
     val soon: Boolean = false,
+    /** This entry IS its group's own front page.
+
+        A card linking to the page you are already on is a dead
+        card, so the group tab drops it and takes that page's own
+        head from `heads` instead. The site's `/skills` filtered
+        on its own key for a year, which is a fact one page held
+        and this app could not read: the Learning tab opened with
+        a card titled দক্ষতা that led to a copy of the list under
+        it. Absent until a deployment carries it, and false is the
+        harmless answer. */
+    val hub: Boolean = false,
     /** What that entry is, in three words, for a card's chip. */
     val kind: String? = null,
     val blurb: String? = null,
     val accent: String? = null,
 )
+
+/** The entry that IS this group's own front page, if it has one. */
+fun NavGroup.hubItem(): NavItem? = items.firstOrNull { it.hub }
+
+/** The rows a group's own tab lists.
+
+    Its hub is dropped, because a card taking a reader to the list
+    they are reading is a dead card and it was the FIRST one on
+    the Learning tab: দক্ষতা, no blurb, leading to a copy of what
+    was under it.
+
+    Unless the hub is all there is. The reading group is one entry
+    and that entry is its hub, so filtering it leaves a tab with
+    nothing on it, which is worse than the repetition. */
+fun rowsOf(group: NavGroup): List<NavItem> =
+    group.items.filter { !it.hub }.ifEmpty { group.items }
 
 @Serializable
 data class Audience(val id: String = "", val label: String = "", val sub: String = "")

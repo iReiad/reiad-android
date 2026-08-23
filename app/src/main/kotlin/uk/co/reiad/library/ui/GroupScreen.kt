@@ -21,6 +21,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import uk.co.reiad.library.core.NavGroup
+import uk.co.reiad.library.core.PageHeadWords
+import uk.co.reiad.library.core.hubItem
+import uk.co.reiad.library.core.rowsOf
 import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.SITE_ORIGIN
 
@@ -62,26 +65,47 @@ fun GroupScreen(
     bottomPadding: Dp,
     canOpenHere: (NavItem) -> Boolean,
     onOpenHere: (NavItem) -> Unit,
+    /** Every hub page's own words, out of `/api/site`. The tab
+        for a group that HAS a hub is that hub, so it says what
+        the site's page says rather than repeating the group's
+        two-word label. */
+    heads: Map<String, PageHeadWords> = emptyMap(),
 ) {
     val c = LocalReiad.current
     val context = LocalContext.current
+
+    /* A group's own front page, listed inside itself, is a card
+       that takes you to the list you are reading. It was the
+       first card of the Learning tab: দক্ষতা, with no blurb,
+       leading to a copy. The flag is `shared/nav.ts`'s, so this
+       needs no release the day a fifth hub appears.
+
+       Kept where it is the ONLY item, because the alternative is
+       a tab with nothing on it: the reading group is one entry
+       and that entry is its hub. */
+    val hub = group.hubItem()
+    val rows = rowsOf(group)
+    val head = hub?.key?.let { heads[it] }
+
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
+        contentPadding = PaddingValues(top = topClearance(), bottom = bottomPadding),
     ) {
         item {
             PageHead(
-                /* The group's own two halves as the site writes
-                   them: the Bangla name is the heading and the
-                   English is the eyebrow above it. */
-                title = tabLabel(group.label),
-                eyebrow = group.label.substringAfter("\u00b7", "").trim()
-                    .ifBlank { null },
+                /* The hub page's own head where there is one, and
+                   the group's two halves where there is not: the
+                   Bangla name is the heading and the English is
+                   the eyebrow above it. */
+                title = head?.title?.ifBlank { null } ?: tabLabel(group.label),
+                eyebrow = head?.eyebrow?.ifBlank { null }
+                    ?: group.label.substringAfter("\u00b7", "").trim().ifBlank { null },
+                lede = head?.lede?.ifBlank { null },
             )
             Spacer(Modifier.height(Gap.s9))
         }
 
-        items(group.items, key = { it.href }) { item ->
+        items(rows, key = { it.href }) { item ->
             val accent = accents[item.key] ?: item.accent ?: group.accent
             ReiadTheme(
                 accent = accentOf(accent),
@@ -108,7 +132,11 @@ fun GroupScreen(
                             title = item.sub ?: item.label,
                             dek = item.blurb,
                             chip = item.kindLabel(),
-                            go = "পড়া শুরু",
+                            /* The site's own two, decided by what
+                               the thing IS. Six cards in a column
+                               all saying পড়া শুরু is six cards
+                               saying nothing. */
+                            go = item.goWords(),
                             onOpen = { onOpenHere(item) },
                         )
 
@@ -144,6 +172,18 @@ fun GroupScreen(
  */
 private fun NavItem.kindLabel(): String? =
     label.takeIf { it.isNotBlank() } ?: kind?.takeIf { it.isNotBlank() }
+
+/** What the card's action line says.
+
+    `/skills` on the site writes one of two, off the entry's own
+    kind: a course is opened and a collection of writing is
+    browsed. This said পড়া শুরু on every card of every group,
+    including the calculators, where nothing is read at all. */
+private fun NavItem.goWords(): String = when {
+    kind == "\u0995\u09cb\u09b0\u09cd\u09b8" -> "\u0995\u09cb\u09b0\u09cd\u09b8\u099f\u09be \u0996\u09c1\u09b2\u09c1\u09a8"
+    ladder -> "\u09b2\u09c7\u0996\u09be\u0997\u09c1\u09b2\u09cb \u09a6\u09c7\u0996\u09c1\u09a8"
+    else -> "\u0996\u09c1\u09b2\u09c1\u09a8"
+}
 
 /** The reader's own browser, tinted to match, with the site's
     address bar left visible so nobody is in any doubt about

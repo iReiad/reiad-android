@@ -55,9 +55,27 @@ internal val SHAPES: Map<String, String> = mapOf(
     "person" to "M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-3.9 3.6-6 8-6s8 2.1 8 6",
     "mail" to "M3 6h18v12H3zM3 7l9 6 9-6",
     "user" to "M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-3.9 3.6-6 8-6s8 2.1 8 6",
-    "search" to "M11 18a7 7 0 100-14 7 7 0 000 14zM16 16l5 5",
-    "magnifier" to "M11 18a7 7 0 100-14 7 7 0 000 14zM16 16l5 5",
-    "theme" to "M12 3a9 9 0 100 18 9 9 0 000-18zM12 3v18",
+    /* The site's own proportions, out of `next/components/icons.tsx`:
+       r 6.3 at (10.8, 10.8) with the handle from 15.4 to 20.5. It
+       was r 7 at (11, 11) with a handle running to 21, which is a
+       lens filling the whole grid and a stub poking out of it, and
+       at 19dp in a round button it reads as a letter P. */
+    "search" to "M10.8 17.1a6.3 6.3 0 100-12.6 6.3 6.3 0 000 12.6zM15.4 15.4l5.1 5.1",
+    "magnifier" to "M10.8 17.1a6.3 6.3 0 100-12.6 6.3 6.3 0 000 12.6zM15.4 15.4l5.1 5.1",
+    /* A crescent, not the site's half-filled circle.
+
+       `icons.tsx` draws a circle with the left half FILLED, which
+       is the contrast mark everybody knows. Everything here is
+       STROKED, so that drawing arrives as a circle with a line
+       down the middle of it, which is the international sign for
+       "no". It was in the top bar at 19dp for three releases and
+       was reported as one. A crescent survives being stroked. */
+    "theme" to "M20.2 14.8A8.5 8.5 0 019.2 3.8a8.5 8.5 0 1011 11z",
+    /* Settings, which is what the top bar's second button opens.
+       It was `theme` there, and a theme mark on a screen holding
+       type size, measure, theme and language names one row of
+       four. */
+    "sliders" to "M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M8 14v6",
     "chevron" to "M9 5l7 7-7 7",
     "arrow" to "M4 12h15M13.5 6.5L20 12l-6.5 5.5",
     "menu" to "M4 7h16M4 12h16M4 17h16",

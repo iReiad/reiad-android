@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,14 +30,23 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -146,6 +156,21 @@ fun Shell(
     val chrome = rememberChrome()
     val groups = groupsFor(state.site, state.audience)
 
+    /* What the two floating bars actually came to, in pixels,
+       fed back so a page knows how far to keep clear. Nought
+       until the first layout pass, which is what the seeded
+       default in `LocalChromeGaps` is for. */
+    var topPx by remember { mutableIntStateOf(0) }
+    var bottomPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val gaps = ChromeGaps(
+        top = if (topPx > 0) with(density) { topPx.toDp() } + Gap.s6 else TOP_BAR_ONLY,
+        bottom = if (bottomPx > 0) with(density) { bottomPx.toDp() } + Gap.s6 else BOTTOM_BAR_ONLY,
+    )
+    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val navBar = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
+    CompositionLocalProvider(LocalChromeGaps provides gaps) {
     Box(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxSize()) {
             if (chrome != Chrome.BAR && groups.isNotEmpty()) {
@@ -164,9 +189,22 @@ fun Shell(
                        are not destinations. The app had neither,
                        so search was reachable only through a
                        drawer nobody opens for it. */
+                    /* Under the bar and over the page, so prose
+                       leaves before it reaches the clock. */
+                    BarScrim(
+                        height = statusBar + Gap.s7,
+                        fromTop = true,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                    )
                     TopBar(
                         name = state.site?.site?.name ?: "Reiad's Library",
-                        modifier = Modifier.align(Alignment.TopCenter),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            /* `ChromeGapTest` reads this back: the
+                               clearance a page keeps has to be
+                               what the bar came to. */
+                            .testTag("topbar")
+                            .onSizeChanged { topPx = it.height },
                         signedIn = state.signedIn,
                         onHome = onHome,
                         onSearch = onSearch,
@@ -175,10 +213,18 @@ fun Shell(
                     )
                 }
                 if (chrome == Chrome.BAR && groups.isNotEmpty()) {
+                    BarScrim(
+                        height = navBar + Gap.s7,
+                        fromTop = false,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
                     Bar(
                         groups = groups,
                         current = state.current,
-                        modifier = Modifier.align(Alignment.BottomCenter),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .testTag("bottombar")
+                            .onSizeChanged { bottomPx = it.height },
                         onHome = onHome,
                         onGroup = onGroup,
                         onMore = { onDrawer(true) },
@@ -200,6 +246,7 @@ fun Shell(
             )
         }
     }
+    }
 }
 
 /* ---------- how far a page has to keep clear ----------
@@ -215,11 +262,48 @@ fun Shell(
    every one of them opened at the old distance and every one of
    them had its heading cut in half. */
 
-/** Clear of the top bar. */
-val TOP_CLEARANCE = 84.dp
+/** What the bar is on its own, before the system's own bars are
+    added to it. Not the answer: `topClearance()` is. */
+private val TOP_BAR_ONLY = 84.dp
+private val BOTTOM_BAR_ONLY = 96.dp
 
-/** Clear of the bottom bar. */
-val BAR_CLEARANCE = 96.dp
+/** How tall each floating bar actually measured, plus a gap.
+
+    **Measured rather than written down, and that is the whole
+    fix.** Both of these were constants, and both were wrong on
+    every phone with a notch: a bar carries
+    `windowInsetsPadding(statusBars)`, so its bottom edge sits
+    that much lower than the number said, and the page opened
+    UNDER it. The first heading of every screen was cut in half
+    and prose ran into the clock. It is worse than a fixed number
+    that is merely too small, because it is right on whatever
+    device it was tuned on: an emulator with no cutout.
+
+    A bar's height is not a constant for a second reason. It holds
+    text, and the reader chooses the type size, so at 150% the bar
+    grows and a constant cannot follow it.
+
+    Seeded with the analytic guess so the first frame is close and
+    nothing jumps, then replaced by what the bar measured. */
+data class ChromeGaps(val top: Dp, val bottom: Dp)
+
+val LocalChromeGaps = compositionLocalOf { ChromeGaps(TOP_BAR_ONLY, BOTTOM_BAR_ONLY) }
+
+/** How far below the top of the window a page's first line goes. */
+@Composable
+fun topClearance(): Dp =
+    if (rememberChrome() == Chrome.BAR) LocalChromeGaps.current.top else Gap.s10
+
+/** How far above the bottom of the window a page's last line
+    ends. A rail has no bottom bar, so there only the system's own
+    navigation bar has to be cleared. */
+@Composable
+fun barClearance(): Dp =
+    if (rememberChrome() == Chrome.BAR) {
+        LocalChromeGaps.current.bottom
+    } else {
+        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + Gap.s8
+    }
 
 /** What a scrolling page's `contentPadding` should be.
 
@@ -230,9 +314,40 @@ fun pagePadding(horizontal: Dp = Gap.s8, extraTop: Dp = 0.dp): PaddingValues =
     PaddingValues(
         start = horizontal,
         end = horizontal,
-        top = (if (rememberChrome() == Chrome.BAR) TOP_CLEARANCE else Gap.s10) + extraTop,
-        bottom = BAR_CLEARANCE,
+        top = topClearance() + extraTop,
+        bottom = barClearance(),
     )
+
+/** The fade behind a system bar.
+
+    A glass bar that floats lets a reader see prose through it,
+    which is the point. The system's own bar is not glass and does
+    not move: the clock and the battery are painted on top of
+    whatever scrolls under them, so a line of Bangla arriving
+    there collides with the time and both become unreadable. This
+    is the page's own ground fading out under it, so text leaves
+    rather than crashes.
+
+    Not a solid block, because a hard edge across the top of the
+    screen is a title bar, and this site does not have one. */
+@Composable
+private fun BarScrim(height: Dp, fromTop: Boolean, modifier: Modifier = Modifier) {
+    if (height <= 0.dp) return
+    val c = LocalReiad.current
+    val stops = listOf(c.paper, c.paper.copy(alpha = 0.86f), Color.Transparent)
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(height)
+            .background(
+                if (fromTop) {
+                    Brush.verticalGradient(stops)
+                } else {
+                    Brush.verticalGradient(stops.reversed())
+                },
+            ),
+    )
+}
 
 /* ---------- the top bar ---------- */
 
@@ -319,10 +434,14 @@ fun TopBar(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        /* One step wider than they were. Three 44dp circles, each
+           with its own hairline rim, eight apart read as one
+           three-lobed object rather than three buttons. */
+        Spacer(Modifier.width(Gap.s5))
         RoundButton("search", "Search", onSearch)
-        Spacer(Modifier.width(Gap.s4))
-        RoundButton("theme", "Settings", onSettings)
-        Spacer(Modifier.width(Gap.s4))
+        Spacer(Modifier.width(Gap.s5))
+        RoundButton("sliders", "Settings", onSettings)
+        Spacer(Modifier.width(Gap.s5))
         /* Third and last, which is where `aab/src/signin.ts`
            appends it on the site: after the theme toggle, so the
            order does not change for anybody used to it.

@@ -114,7 +114,7 @@ fun WorkbookScreen(
 
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
+        contentPadding = PaddingValues(top = topClearance(), bottom = bottomPadding),
     ) {
         item("head") {
             Crumb(stageName, onBack)

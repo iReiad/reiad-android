@@ -234,12 +234,23 @@ const val RIM_SPLIT_DEGREES = 62.0
 /** How bright the reflection off the outer face is.
 
     The glow is light INSIDE the material; this is light coming
-    off the front of it, and they must stay distinguishable. It is
-    barely there at rest and blooms under a finger, because a
-    reflection at full strength on every surface at once is not a
-    material, it is a sheen on everything. */
+    off the front of it, and they must stay distinguishable. It
+    blooms under a finger, because a reflection at full strength
+    on every surface at once is not a material, it is a sheen on
+    everything.
+
+    **Nought at rest, and that is the site's rule rather than a
+    taste.** CLAUDE.md: flat on top, the thickness is at the cut
+    edge, "a hairline rim, nothing at all across the whole face".
+    This read `0.30 + a * 0.55`, so every card on every screen
+    carried a raked band across its middle for ever: with no
+    finger on it `nx` is nought, so the band sat dead centre, on
+    all of them, at once. It looked like a defect in the glass
+    and it was reported as one. The top of the range is
+    unchanged, so a surface under a finger looks exactly as it
+    did. */
 fun specularStrength(glass: Material, a: Double): Double =
-    glass.polish * glass.standing * (0.30 + a * 0.55)
+    glass.polish * glass.standing * a * 0.85
 fun specularStrength(kind: Kind, a: Double): Double = specularStrength(kind.glass, a)
 
 /* ---------- the tilt, which is the same arithmetic twice ---------- */

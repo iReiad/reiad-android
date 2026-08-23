@@ -194,14 +194,32 @@ class MaterialTest {
         assertEquals(62.0, RIM_SPLIT_DEGREES)
     }
 
-    /** The specular is barely there at rest and blooms under a
-        finger. A reflection at full strength on every surface at
-        once is a sheen on everything, not a material. */
+    /** Nought at rest, on every kind, and it blooms under a
+        finger.
+
+        `lit > rest * 2` was the old assertion and it is why this
+        shipped: at `0.30 + a * 0.55` the rest value was 0.15 on a
+        card and the ratio was 5.7, so the test was happy while
+        every card on every screen carried a raked band across its
+        middle. With no finger on it `nx` is nought, so the band
+        sat dead centre, on all of them, at once, and it was
+        reported as a defect in the glass.
+
+        CLAUDE.md's own words are the rule: flat on top, the
+        thickness is at the cut edge, "a hairline rim, nothing at
+        all across the whole face". Nothing is nought, not
+        barely. */
     @Test
-    fun `the specular blooms rather than sitting there`() {
-        val rest = specularStrength(Kind.CARD, a = 0.0)
-        val lit = specularStrength(Kind.CARD, a = 1.0)
-        assertTrue(lit > rest * 2, "the specular must be mostly response, not rest state")
+    fun `the specular is nought at rest and blooms under a finger`() {
+        for (kind in Kind.entries) {
+            assertEquals(
+                0.0, specularStrength(kind, a = 0.0), 1e-9,
+                "$kind has a light on its face with nothing touching it",
+            )
+        }
+        assertTrue(specularStrength(Kind.CARD, a = 1.0) > 0.3, "and it must still bloom")
+        /* A groove stands on nothing, so nothing reflects off its
+           face however hard it is pressed. */
         assertEquals(0.0, specularStrength(Kind.GROOVE, a = 1.0), 1e-9)
     }
 

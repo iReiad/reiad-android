@@ -175,8 +175,8 @@ import uk.co.reiad.library.ui.AccountScreen
 import uk.co.reiad.library.ui.BodyView
 import uk.co.reiad.library.ui.Faces
 import uk.co.reiad.library.ui.Checkpoints
-import uk.co.reiad.library.ui.BAR_CLEARANCE
-import uk.co.reiad.library.ui.TOP_CLEARANCE
+import uk.co.reiad.library.ui.barClearance
+import uk.co.reiad.library.ui.topClearance
 import uk.co.reiad.library.ui.Chip
 import uk.co.reiad.library.ui.Control
 import uk.co.reiad.library.ui.Corner
@@ -1947,7 +1947,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                            them. */
                         group = site?.nav?.firstOrNull { it.id == "learn" },
                         head = site?.heads?.get(SKILLS_KEY),
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         onOpen = { item ->
                             /* Through the ONE function that
                                decides where a nav item goes, so a
@@ -1972,7 +1972,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                            screen with no release. */
                         cases = site?.pages.orEmpty().filter { it.group == "case" },
                         head = site?.heads?.get(PORTFOLIO_KEY),
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         onOpen = { page -> openOnSite(context, page.url, colours) },
                     )
                 }
@@ -1993,7 +1993,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         erasing = erasing,
                         problem = authProblem,
                         linkSent = linkSent,
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         onGoogle = { model.signInWith(context, "google") },
                         onLink = { model.sendLink(context, it) },
                         onSignOut = { model.signOut(context) },
@@ -2037,7 +2037,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         title = here.title,
                         pieces = pieces.filter { it.section == here.section },
                         stale = stale,
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         onOpen = { piece ->
                             model.openPiece(piece)
                             where = Where.Reading2(here.section, piece)
@@ -2069,7 +2069,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         previous = siblings.getOrNull(at - 1),
                         next = siblings.getOrNull(at + 1),
                         stale = stale,
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         onOpen = { piece ->
                             model.openPiece(piece)
                             where = Where.Reading2(here.section, piece)
@@ -2110,7 +2110,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         days = which?.let { bookDays[it.id] }.orEmpty(),
                         written = written,
                         answers = answers,
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         onWrite = { slot, text -> which?.let { model.write(it, slot, text) } },
                         onTickDay = { id -> which?.let { model.tickDay(it, id) } },
                         onReveal = { day -> model.reveal(here.stage.slug, day) },
@@ -2132,7 +2132,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         },
                         contentPadding = PaddingValues(
                             start = Gap.s8, end = Gap.s8,
-                            top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                            top = topClearance(), bottom = barClearance(),
                         ),
                     )
                 }
@@ -2147,7 +2147,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         onOpenSite = { openOnSite(context, "/tools/routine", colours) },
                         contentPadding = PaddingValues(
                             start = Gap.s8, end = Gap.s8,
-                            top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                            top = topClearance(), bottom = barClearance(),
                         ),
                     )
                 }
@@ -2163,7 +2163,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         onConnect = { openOnSite(context, "/tools/live", colours) },
                         contentPadding = PaddingValues(
                             start = Gap.s8, end = Gap.s8,
-                            top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                            top = topClearance(), bottom = barClearance(),
                         ),
                     )
                 }
@@ -2187,7 +2187,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                                 .associate { it.id to (it.en to it.bn) },
                             contentPadding = PaddingValues(
                                 start = Gap.s8, end = Gap.s8,
-                                top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                                top = topClearance(), bottom = barClearance(),
                             ),
                         )
                     }
@@ -2231,7 +2231,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             note = toolNote,
                             contentPadding = PaddingValues(
                                 start = Gap.s8, end = Gap.s8,
-                                top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                                top = topClearance(), bottom = barClearance(),
                             ),
                         )
                     }
@@ -2242,9 +2242,10 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     GroupScreen(
                         group = here.group,
                         accents = site?.accents.orEmpty(),
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         canOpenHere = { item -> opensHere(site, item) },
                         onOpenHere = { item -> where = goTo(model, context, site, item, where) },
+                        heads = site?.heads.orEmpty(),
                     )
                 }
 
@@ -2526,7 +2527,7 @@ fun Home(
         /* The bar FLOATS over the page rather than pushing it, so
            the page has to end above it or the last card sits under
            the bar and looks like the list has been cut off. */
-        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = BAR_CLEARANCE),
+        contentPadding = PaddingValues(top = topClearance(), bottom = barClearance()),
     ) {
         item("door") {
             if (copy != null) {
@@ -2680,7 +2681,7 @@ fun Ladder(
     val c = LocalReiad.current
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = BAR_CLEARANCE),
+        contentPadding = PaddingValues(top = topClearance(), bottom = barClearance()),
     ) {
         item {
             Crumb("Home", onBack)
@@ -2897,7 +2898,7 @@ fun Reading(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Gap.s8)
-            .padding(top = TOP_CLEARANCE, bottom = BAR_CLEARANCE)
+            .padding(top = topClearance(), bottom = barClearance())
     ) {
         Crumb(stage.bn, onBack)
         Spacer(Modifier.height(Gap.s7))
