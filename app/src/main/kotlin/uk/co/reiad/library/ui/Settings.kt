@@ -34,6 +34,7 @@ import uk.co.reiad.library.core.Blur
 import uk.co.reiad.library.core.Finish
 import uk.co.reiad.library.core.GLASSES
 import uk.co.reiad.library.core.Kind
+import uk.co.reiad.library.data.Held
 import uk.co.reiad.library.core.PrefOption
 import uk.co.reiad.library.core.Prefs
 import uk.co.reiad.library.core.THEMES
@@ -68,6 +69,11 @@ fun SettingsSheet(
     prefs: Prefs,
     onChange: ((Prefs) -> Prefs) -> Unit,
     onClose: () -> Unit,
+    /** What the app is holding for offline reading, and the way
+        to be rid of it. Optional so that this sheet can still be
+        drawn on its own, which is what the render test does. */
+    held: Held? = null,
+    onForget: () -> Unit = {},
 ) {
     val c = LocalReiad.current
     val reduced = rememberReducedMotion()
@@ -152,6 +158,23 @@ fun SettingsSheet(
                     style = MaterialTheme.typography.bodySmall,
                     color = c.inkSoft,
                 )
+            }
+
+            /* Offline, and it is BELOW the reading preferences on
+               purpose: those travel with the account and this one
+               is about this handset only. Two different kinds of
+               setting, and the sheet says so. */
+            if (held != null) {
+                Spacer(Modifier.height(Gap.s10))
+                Text("Offline", style = MaterialTheme.typography.headlineSmall, color = c.ink)
+                Spacer(Modifier.height(Gap.s3))
+                Text(
+                    "This one is about this phone and does not travel.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.inkSoft,
+                )
+                Spacer(Modifier.height(Gap.s7))
+                HeldPanel(held, onForget)
             }
             Spacer(Modifier.height(Gap.s10))
         }

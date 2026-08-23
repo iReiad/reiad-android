@@ -79,7 +79,13 @@ import uk.co.reiad.library.core.Arrival
 import uk.co.reiad.library.core.Kept
 import uk.co.reiad.library.core.Reader
 import uk.co.reiad.library.core.Target
+import uk.co.reiad.library.data.Held
 import uk.co.reiad.library.data.Reiad
+import uk.co.reiad.library.data.SchoolWorker
+import uk.co.reiad.library.data.Shelf
+import uk.co.reiad.library.data.forgetHeld
+import uk.co.reiad.library.data.heldAll
+import uk.co.reiad.library.data.heldFor
 import uk.co.reiad.library.core.stock.Keys
 import uk.co.reiad.library.core.stock.ToolWords
 import uk.co.reiad.library.core.stock.analyse
@@ -91,6 +97,8 @@ import uk.co.reiad.library.ui.Skeleton
 import uk.co.reiad.library.ui.Problem
 import uk.co.reiad.library.ui.RowCard
 import uk.co.reiad.library.ui.Crumb
+import uk.co.reiad.library.ui.HeldPanel
+import uk.co.reiad.library.ui.KeepSchool
 import uk.co.reiad.library.ui.Door
 import uk.co.reiad.library.ui.PageHead
 import uk.co.reiad.library.ui.Fact
@@ -276,6 +284,20 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
 
     private val _note = MutableStateFlow<String?>(null)
     val note: StateFlow<String?> = _note.asStateFlow()
+
+    /* ---------- the offline shelf ----------
+
+       Which schools the reader asked to keep, and how much of
+       each is actually here. `held` is COUNTED from the cache
+       every time the ladder opens rather than remembered: a
+       number this app kept for itself would go on saying "kept"
+       about a school somebody cleared in Android's settings. */
+
+    private val _shelf = MutableStateFlow<Set<String>>(emptySet())
+    val shelf: StateFlow<Set<String>> = _shelf.asStateFlow()
+
+    private val _held = MutableStateFlow(Held(0, 0))
+    val held: StateFlow<Held> = _held.asStateFlow()
 
     private val _stages = MutableStateFlow<List<Stage>>(emptyList())
     val stages: StateFlow<List<Stage>> = _stages.asStateFlow()
@@ -627,6 +649,43 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             for (school in School.entries) {
                 _ticks.value = _ticks.value + (school.id to reiad.ticksNow(school))
             }
+        }
+    }
+
+    /** Keep this school, or stop keeping it.
+
+        Following queues the fetch; unfollowing cancels it AND
+        leaves what is already held alone, which is deliberate: a
+        reader who stops following has said "do not fetch more",
+        not "delete what I have". Forgetting is its own button in
+        settings, and it says what it touches. */
+    fun keepSchool(context: android.content.Context, school: String) {
+        viewModelScope.launch {
+            val after = Shelf(context).toggle(school)
+            _shelf.value = after
+            if (school in after) SchoolWorker.fetch(context, school)
+            else SchoolWorker.stop(context, school)
+            _held.value = heldFor(context, school)
+        }
+    }
+
+    /** What is on the shelf, and how much of ONE school is here.
+
+        Per school rather than in total, because the number is
+        drawn beside "12 of 60" on that school's own ladder and a
+        total there would be a number about somewhere else. The
+        settings sheet asks for the total separately. */
+    fun readShelf(context: android.content.Context, school: String? = null) {
+        viewModelScope.launch {
+            _shelf.value = Shelf(context).schools().first()
+            _held.value = if (school == null) heldAll(context) else heldFor(context, school)
+        }
+    }
+
+    fun forgetHeldNow(context: android.content.Context) {
+        viewModelScope.launch {
+            forgetHeld(context)
+            _held.value = heldAll(context)
         }
     }
 
@@ -1077,6 +1136,8 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val pieces by model.pieces.collectAsState()
     val words by model.words.collectAsState()
     val wordsProblem by model.wordsProblem.collectAsState()
+    val shelf by model.shelf.collectAsState()
+    val held by model.held.collectAsState()
     val stockState by model.stock.collectAsState()
     val calcState by model.calc.collectAsState()
     val liveState by model.live.collectAsState()
@@ -1203,7 +1264,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                 },
                 onDrawer = { drawer = it },
                 onSearch = { searching = true },
-                onSettings = { settings = true },
+                onSettings = { settings = true; model.readShelf(context) },
                 onAudience = { model.chooseAudience(it) },
             ) {
             when (val here = where) {
@@ -1437,12 +1498,24 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
 
                 is Where.Ladder -> {
                     BackHandler { where = Where.Home }
+                    /* Counted when the ladder opens and again
+                       whenever the school changes, because the
+                       background fetch is still arriving: a
+                       reader watching "3 of 60" become "60 of 60"
+                       is the whole of what this feature promises
+                       being kept in front of them. */
+                    LaunchedEffect(here.school.key) {
+                        model.readShelf(context, here.school.key)
+                    }
                     Ladder(
                         school = here.school,
                         stages = stages,
                         ticks = ticks[here.school.key].orEmpty(),
                         stale = stale,
                         bookmark = bookmarks[here.school.key],
+                        following = here.school.key in shelf,
+                        held = held,
+                        onKeep = { model.keepSchool(context, here.school.key) },
                         onBack = { where = Where.Home },
                         onOpen = { stage, lesson ->
                             model.openLesson(here.school, stage, lesson)
@@ -1541,6 +1614,8 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     prefs = prefs,
                     onChange = { change -> model.changePrefs(change) },
                     onClose = { settings = false },
+                    held = held,
+                    onForget = { model.forgetHeldNow(context) },
                 )
             }
         }
@@ -1783,6 +1858,13 @@ fun Ladder(
     onOpen: (Stage, Lesson) -> Unit,
     onOpenBook: (Stage) -> Unit,
     bookmark: Bookmark? = null,
+    /** Whether this school is on the shelf, and how much of it
+        actually reached the phone. Both are the caller's, because
+        the second one is counted from the cache and this is a
+        drawing. */
+    following: Boolean = false,
+    held: Held = Held(0, 0),
+    onKeep: () -> Unit = {},
 ) {
     val c = LocalReiad.current
     LazyColumn(
@@ -1818,6 +1900,20 @@ fun Ladder(
             if (at != null) {
                 Spacer(Modifier.height(Gap.s8))
                 ResumeCard(at.first, at.second, onOpen)
+            }
+
+            /* Will this work on a plane. The one question a
+               reader has about offline, answered with a count
+               rather than a promise. */
+            if (lessons > 0) {
+                Spacer(Modifier.height(Gap.s8))
+                KeepSchool(
+                    following = following,
+                    held = held,
+                    lessons = lessons,
+                    waiting = following && held.lessons == 0,
+                    onToggle = onKeep,
+                )
             }
 
             Spacer(Modifier.height(Gap.s9))

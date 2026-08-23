@@ -7,6 +7,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -113,6 +118,57 @@ fun Control(
         verticalAlignment = Alignment.CenterVertically,
         content = content,
     )
+}
+
+/**
+ * A control with a label on it, which is what a button is.
+ *
+ * `Control` is the surface and this is the thing you press. The
+ * difference matters because the material's lit edge is not
+ * enough on its own at this size: a control on a pane of the same
+ * glass reads as a label until it has a rim, and the site draws
+ * one. It shipped without, five times over, and every one of them
+ * looked like text somebody had coloured green.
+ *
+ * `filled` is a latch rather than an emphasis: a thing that is ON
+ * is the accent, a thing that ACTS is the rim.
+ */
+@Composable
+fun PillButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: String? = null,
+    filled: Boolean = false,
+    description: String? = null,
+) {
+    val c = LocalReiad.current
+    val ink = if (filled) c.paper else c.accent
+    Control(
+        modifier
+            .clip(RoundedCornerShape(Corner.pill))
+            .then(
+                if (filled) Modifier
+                else Modifier.border(1.dp, c.hairline, RoundedCornerShape(Corner.pill)),
+            )
+            .clickable(role = Role.Button, onClick = onClick)
+            .then(
+                if (description == null) Modifier
+                else Modifier.semantics { contentDescription = description },
+            ),
+        ground = if (filled) c.accent else null,
+    ) {
+        if (icon != null) {
+            Icon(icon, size = 15.dp, tint = ink)
+            Spacer(Modifier.width(Gap.s4))
+        }
+        Text(
+            label.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = ink,
+            maxLines = 1,
+        )
+    }
 }
 
 /** A row in a column of rows.

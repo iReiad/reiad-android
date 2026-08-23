@@ -150,25 +150,7 @@ fun Problem(
     InfoCard(title = title, dek = detail, modifier = modifier) {
         if (onRetry != null) {
             Spacer(Modifier.height(Gap.s6))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier
-                        .clip(RoundedCornerShape(Corner.pill))
-                        .material(Kind.CONTROL, c, Corner.pill)
-                        .clickable(role = Role.Button, onClick = onRetry)
-                        .padding(horizontal = Gap.s7, vertical = Gap.s5),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            retryLabel.uppercase(),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = c.accent,
-                        )
-                        Spacer(Modifier.width(Gap.s4))
-                        Icon("chevron", size = 13.dp, tint = c.accent)
-                    }
-                }
-            }
+            PillButton(retryLabel, onRetry, icon = "arrow")
         }
     }
 }

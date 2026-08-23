@@ -70,7 +70,11 @@ import uk.co.reiad.library.core.SyncKeys
    line eighty further down.)
    ============================================================ */
 
-private val Context.store by preferencesDataStore(name = "reiad")
+/** The one store. `internal` rather than private because
+    `Shelf.kt` reads the same file: two `preferencesDataStore`
+    declarations over one name give two objects and DataStore
+    throws on the second read. */
+internal val Context.store by preferencesDataStore(name = "reiad")
 
 class Reiad(private val context: Context) {
 

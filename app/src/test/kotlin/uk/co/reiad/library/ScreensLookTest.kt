@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
@@ -24,6 +26,9 @@ import uk.co.reiad.library.ui.ShellState
 import uk.co.reiad.library.ui.Skeleton
 import uk.co.reiad.library.ui.StockScreen
 import uk.co.reiad.library.ui.StockState
+import uk.co.reiad.library.ui.KeepSchool
+import uk.co.reiad.library.ui.HeldPanel
+import uk.co.reiad.library.data.Held
 import uk.co.reiad.library.ui.RoutineScreen
 import uk.co.reiad.library.ui.RoutineState
 import uk.co.reiad.library.core.routine.RoutineShape
@@ -179,5 +184,20 @@ class ScreensLookTest {
                 start = Gap.s8, end = Gap.s8, top = 84.dp, bottom = 96.dp,
             ),
         )
+    }
+
+    @Test fun keepSchool() = page {
+        Column(Modifier.fillMaxSize().padding(Gap.s8)) {
+            Spacer(Modifier.height(Gap.s10))
+            KeepSchool(following = false, held = Held(0, 0), lessons = 89, waiting = false, onToggle = {})
+            Spacer(Modifier.height(Gap.s9))
+            KeepSchool(following = true, held = Held(0, 0), lessons = 89, waiting = true, onToggle = {})
+            Spacer(Modifier.height(Gap.s9))
+            KeepSchool(following = true, held = Held(41, 620_000), lessons = 89, waiting = false, onToggle = {})
+            Spacer(Modifier.height(Gap.s9))
+            KeepSchool(following = true, held = Held(89, 1_430_000), lessons = 89, waiting = false, onToggle = {})
+            Spacer(Modifier.height(Gap.s10))
+            HeldPanel(Held(89, 1_430_000), onForget = {})
+        }
     }
 }
