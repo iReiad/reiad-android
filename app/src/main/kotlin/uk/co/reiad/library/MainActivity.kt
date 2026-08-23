@@ -1,5 +1,13 @@
 package uk.co.reiad.library
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -195,8 +203,10 @@ import uk.co.reiad.library.core.storedOf
 import uk.co.reiad.library.ui.BoardActions
 import uk.co.reiad.library.ui.BoardData
 import uk.co.reiad.library.ui.DRAWABLE
+import uk.co.reiad.library.core.Motion
 import uk.co.reiad.library.ui.ButtonKind
 import uk.co.reiad.library.ui.PillButton
+import uk.co.reiad.library.ui.rememberReducedMotion
 import uk.co.reiad.library.ui.Widget
 import uk.co.reiad.library.ui.WidgetFrame
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -2110,7 +2120,37 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                 onAccount = { where = Where.Account },
                 onAudience = { model.chooseAudience(it) },
             ) {
-            when (val here = where) {
+            /* ---------- how a screen arrives ----------
+
+               The platform's own fade-through rather than a cut:
+               the leaving screen drops fast, the arriving one
+               fades up from a whisker small, on the site's own
+               timings. A cut is what made every navigation feel
+               like a page load, and it is the single cheapest
+               difference between "a website in a wrapper" and an
+               app.
+
+               Under reduced motion it IS a cut, which is what
+               that setting asks for. */
+            val reduced = rememberReducedMotion()
+            AnimatedContent(
+                targetState = where,
+                transitionSpec = {
+                    if (reduced) {
+                        EnterTransition.None togetherWith ExitTransition.None
+                    } else {
+                        (
+                            fadeIn(tween(Motion.ENTER_MS, delayMillis = 80)) +
+                                scaleIn(
+                                    initialScale = 0.97f,
+                                    animationSpec = tween(Motion.ENTER_MS, delayMillis = 80),
+                                )
+                            ).togetherWith(fadeOut(tween(90)))
+                    }
+                },
+                label = "screen",
+            ) { here ->
+            when (here) {
                 Where.Skills -> {
                     BackHandler { where = Where.Home }
                     SkillsScreen(
@@ -2563,6 +2603,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         lessonKey = id,
                     )
                 }
+            }
             }
             }
 

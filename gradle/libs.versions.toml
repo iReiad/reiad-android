@@ -4,6 +4,7 @@ agp = "8.7.3"
 serialization = "1.7.3"
 coroutines = "1.9.0"
 composeBom = "2024.12.01"
+haze = "1.5.4"
 adaptive = "1.0.0"
 activityCompose = "1.9.3"
 lifecycle = "2.8.7"
@@ -25,6 +26,7 @@ compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
+haze = { module = "dev.chrisbanes.haze:haze", version.ref = "haze" }
 compose-ui = { module = "androidx.compose.ui:ui" }
 compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }

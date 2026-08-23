@@ -39,6 +39,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -171,6 +176,33 @@ fun Shell(
     val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val navBar = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
+    /* ---------- the glass ----------
+
+       The page is the SOURCE and the two floating bars are the
+       EFFECT, so prose scrolls under them and shows through
+       frosted. That is the one thing the site's glass cannot do
+       and a phone's can: a browser's backdrop-filter stops at
+       the viewport, and a native bar blurs the page actually
+       moving beneath it.
+
+       The tint is the paper at just over half, NOT an opaque
+       ground: the material's grain and edge still paint on top,
+       so the bars keep the site's weave and gain the depth. The
+       noise is nought because the grain is already ours.
+
+       Where RenderEffect is not there (Android 11, a snapshot
+       renderer), haze paints the tint alone, which is exactly
+       the translucent bar this replaces: the fallback IS the old
+       design. */
+    val c = LocalReiad.current
+    val glass = remember { HazeState() }
+    val glassStyle = HazeStyle(
+        backgroundColor = c.paper,
+        tint = HazeTint(c.paper.copy(alpha = 0.62f)),
+        blurRadius = 22.dp,
+        noiseFactor = 0f,
+    )
+
     CompositionLocalProvider(LocalChromeGaps provides gaps) {
     Box(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxSize()) {
@@ -181,7 +213,7 @@ fun Shell(
                 )
             }
             Box(Modifier.weight(1f).fillMaxHeight()) {
-                content()
+                Box(Modifier.fillMaxSize().hazeSource(glass)) { content() }
                 if (chrome == Chrome.BAR) {
                     /* The site's own top bar, and it is the app's
                        identity as much as the colours are: every
@@ -204,6 +236,7 @@ fun Shell(
                     )
                     TopBar(
                         name = state.site?.site?.name ?: "Reiad's Library",
+                        backdrop = Modifier.hazeEffect(glass, glassStyle),
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             /* `ChromeGapTest` reads this back: the
@@ -233,6 +266,7 @@ fun Shell(
                     Bar(
                         groups = groups,
                         current = state.current,
+                        backdrop = Modifier.hazeEffect(glass, glassStyle),
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .testTag("bottombar")
@@ -448,6 +482,13 @@ fun TopBar(
         deliberately never offers the account, so this control is
         the only one that can say so. */
     onAccountPage: Boolean = false,
+    /** The frosted backdrop, applied AFTER the clip so the blur
+        is bounded by the pill: unclipped, the effect paints its
+        rectangle and the corners read as a pane of dirtier
+        glass behind the bar. The shell owns the haze state, so
+        this arrives as a modifier rather than the bar knowing
+        the machinery. */
+    backdrop: Modifier = Modifier,
     onHome: () -> Unit,
     onSearch: () -> Unit,
     onSettings: () -> Unit,
@@ -460,7 +501,12 @@ fun TopBar(
             .windowInsetsPadding(WindowInsets.statusBars)
             .padding(horizontal = Gap.s7, vertical = Gap.s5)
             .clip(RoundedCornerShape(Corner.pill))
-            .material(Kind.PANE, c, Corner.pill)
+            .then(backdrop)
+            /* A TRANSLUCENT ground over the blur, where alone it
+               is opaque: the material's grain and edge still
+               paint, so the bar keeps the site's weave and gains
+               the page moving frosted beneath it. */
+            .material(Kind.PANE, c, Corner.pill, ground = c.paper.copy(alpha = 0.30f))
             .padding(horizontal = Gap.s5, vertical = Gap.s4),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -529,6 +575,9 @@ private fun Bar(
     groups: List<NavGroup>,
     current: String?,
     modifier: Modifier = Modifier,
+    /** See `TopBar.backdrop`: the frosted glass, clipped to the
+        pill by arriving after the clip. */
+    backdrop: Modifier = Modifier,
     onHome: () -> Unit,
     onGroup: (NavGroup) -> Unit,
     onMore: () -> Unit,
@@ -577,7 +626,8 @@ private fun Bar(
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = Gap.s7, vertical = Gap.s5)
             .clip(RoundedCornerShape(Corner.pill))
-            .material(Kind.PANE, c, Corner.pill)
+            .then(backdrop)
+            .material(Kind.PANE, c, Corner.pill, ground = c.paper.copy(alpha = 0.30f))
             .padding(Gap.s3),
     ) {
         /* One gesture across the whole bar, with the glass thumb

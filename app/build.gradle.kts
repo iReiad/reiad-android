@@ -195,6 +195,12 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)
+    /* Real backdrop blur for the two floating bars: content
+       scrolls UNDER them and shows through frosted, which is the
+       one thing the site's glass cannot do and a phone's can.
+       Below Android 12, and wherever RenderEffect is not there,
+       it falls back to the translucent tint on its own. */
+    implementation(libs.haze)
     implementation(libs.compose.material3)
     implementation(libs.compose.material3.adaptive)
     implementation(libs.compose.ui.tooling.preview)
