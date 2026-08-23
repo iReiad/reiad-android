@@ -1,4 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Reiad\'s Library</string>
+
+    <!-- The three long-press shortcuts, word for word the ones in
+         `aab/site.webmanifest`. The site is the source: if a name
+         changes there it changes here in the same commit. -->
+    <string name="shortcut_tools_short">Tools</string>
+    <string name="shortcut_tools_long">Calculators</string>
+    <string name="shortcut_learn_short">Learn</string>
+    <string name="shortcut_learn_long">শেখার লাইব্রেরি</string>
+    <string name="shortcut_insights_short">Insights</string>
+    <string name="shortcut_insights_long">Insights</string>
+
+    <!-- Shown in the widget picker, so it says what the widget
+         DOES rather than naming the app a second time. -->
+    <string name="widget_continue_description">The lesson you were last reading, one tap away.</string>
 </resources>

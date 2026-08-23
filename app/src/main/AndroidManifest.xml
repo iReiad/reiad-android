@@ -65,7 +65,34 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="reiad.co.uk" />
+                <data android:scheme="https" android:host="www.reiad.co.uk" />
             </intent-filter>
+
+            <!-- Shared TO the app, which is the other direction
+                 and the one a browser cannot offer at all.
+
+                 A reader reading the site in Chrome, or seeing the
+                 link in a message, can send it here. The text
+                 arrives as EXTRA_TEXT rather than as the intent's
+                 data, so `MainActivity` pulls the first URL out of
+                 it and hands it to the same router: a shared
+                 message with a sentence around the link still
+                 opens the lesson. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
+            <!-- The three the PWA manifest already declares, same
+                 names and same order. Each is a VIEW on a site
+                 address, so `core/nav/Address.kt` routes them
+                 exactly as it routes a link somebody shared:
+                 one function, and a shortcut cannot go stale on
+                 its own. -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <!-- Handing the account export to the share sheet. A
@@ -81,6 +108,26 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/shared_files" />
         </provider>
+
+        <!-- The one thing on this list a website cannot do at
+             all. The site knows the bookmark and draws a resume
+             card on every school hub; a reader still has to open
+             a browser, find the tab and press it. This puts the
+             same sentence where they already are.
+
+             `updatePeriodMillis="0"`: nothing polls. The widget
+             is redrawn when the app writes a bookmark, which is
+             the only moment its answer changes. -->
+        <receiver
+            android:name=".widget.ContinueReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_continue" />
+        </receiver>
 
         <service
             android:name=".read.ReadAloudService"

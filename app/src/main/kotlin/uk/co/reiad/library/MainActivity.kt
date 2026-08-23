@@ -62,6 +62,12 @@ import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.School
 import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.SiteManifest
+import uk.co.reiad.library.core.nav.Destination
+import uk.co.reiad.library.core.nav.LIVE_KEY
+import uk.co.reiad.library.core.nav.ROUTINE_KEY
+import uk.co.reiad.library.core.nav.STOCK_KEY
+import uk.co.reiad.library.core.nav.TOOLS_KEY
+import uk.co.reiad.library.core.nav.destinationOf
 import uk.co.reiad.library.core.Prefs
 import uk.co.reiad.library.core.Stage
 import uk.co.reiad.library.core.Theme
@@ -80,7 +86,9 @@ import uk.co.reiad.library.core.Kept
 import uk.co.reiad.library.core.Reader
 import uk.co.reiad.library.core.Target
 import uk.co.reiad.library.data.Held
+import androidx.glance.appwidget.updateAll
 import uk.co.reiad.library.data.Reiad
+import uk.co.reiad.library.widget.ContinueWidget
 import uk.co.reiad.library.data.SchoolWorker
 import uk.co.reiad.library.data.Shelf
 import uk.co.reiad.library.data.forgetHeld
@@ -158,6 +166,7 @@ import uk.co.reiad.library.ui.StageState
 import uk.co.reiad.library.ui.WorkbookScreen
 import uk.co.reiad.library.ui.SchoolHead
 import uk.co.reiad.library.ui.ReiadTheme
+import uk.co.reiad.library.ui.coloursOf
 import uk.co.reiad.library.ui.Rung
 import uk.co.reiad.library.ui.SearchScreen
 import uk.co.reiad.library.ui.SettingsSheet
@@ -198,17 +207,42 @@ class MainActivity : ComponentActivity() {
         in on a cold start and do nothing on a warm one. */
     private val arrival = MutableStateFlow<String?>(null)
 
+    /**
+     * The address an intent carries, whichever way it came.
+     *
+     * Two shapes reach this activity and they carry the URL in
+     * different places. A VIEW puts it in `data`, which is a
+     * tapped link or a shortcut. A SEND puts it in `EXTRA_TEXT`,
+     * which is a reader sharing the page from a browser, and the
+     * text is usually a sentence with a link somewhere inside it
+     * rather than a bare URL: WhatsApp and Chrome both prepend
+     * the page title.
+     *
+     * So the first `https://` run in the text is what is taken.
+     * Anything else, including a share that carries no link at
+     * all, answers null and the app opens where it was.
+     */
+    private fun addressIn(intent: Intent?): String? {
+        if (intent == null) return null
+        intent.data?.toString()?.let { return it }
+        if (intent.action != Intent.ACTION_SEND) return null
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: return null
+        val at = text.indexOf("https://")
+        if (at < 0) return null
+        return text.substring(at).takeWhile { !it.isWhitespace() }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        arrival.value = intent?.data?.toString()
+        arrival.value = addressIn(intent)
         setContent { App(arrival) }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        arrival.value = intent.data?.toString()
+        arrival.value = addressIn(intent)
     }
 }
 
@@ -219,20 +253,11 @@ class MainActivity : ComponentActivity() {
     nothing insets the content for it and every screen has to
     leave the room itself. */
 
-/** The stock check's key in `shared/nav.ts`, which is the one
-    place that table is said. Named rather than typed at the two
-    call sites, because a nav key that stops matching is a card
-    that silently starts opening the site in a browser instead. */
-private const val STOCK_KEY = "stock"
-
-/** And the other five, which share one nav entry. */
-private const val TOOLS_KEY = "tools"
-
-/** The live portfolio. */
-private const val LIVE_KEY = "live"
-
-/** And the routine. */
-private const val ROUTINE_KEY = "routine"
+/* The four tool keys are `core/nav/Address.kt`'s, imported above.
+   They were four `private const` here, and the address router
+   needed the same four: a second copy of a nav key is a card that
+   silently starts opening the site in a browser instead, and a
+   deep link that silently lands on the front page. */
 
 /* ---------- where the reader is ---------- */
 
@@ -779,11 +804,19 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         site: the money school's tick is a button, and the other
         three mark a lesson as READ on opening, which is a
         different fact from where somebody last was. */
-    fun visited(school: School, mark: Bookmark) {
+    fun visited(context: android.content.Context, school: School, mark: Bookmark) {
         viewModelScope.launch {
             reiad.remember(school, mark)
             _bookmarks.value = _bookmarks.value + (school.id to mark)
             queueSync()
+            /* And the home screen, which is the ONE moment its
+               answer changes.
+
+               `updatePeriodMillis` is 0 in the widget's own XML
+               for exactly this reason: a widget that polled would
+               wake the app on a schedule to redraw a sentence
+               that had not changed since the last time. */
+            runCatching { ContinueWidget().updateAll(context) }
         }
     }
 
@@ -832,7 +865,16 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     }
 
     /** A sign-in came back. */
-    fun arrived(context: android.content.Context, uri: String) {
+    /** Whether this was the sign-in redirect.
+
+        Answered rather than assumed, because the SAME activity
+        receives both this and every https link to the site: a
+        caller that could not tell them apart would either route a
+        sign-in callback to a 404 or swallow every shared link. */
+    fun isArrival(uri: String): Boolean = uri.startsWith("uk.co.reiad.library://auth")
+
+    fun arrived(context: android.content.Context, uri: String): Boolean {
+        if (!isArrival(uri)) return false
         viewModelScope.launch {
             when (val answer = account(context).arrived(uri)) {
                 is Arrival.SignedIn -> {
@@ -852,6 +894,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
                 Arrival.NotAnArrival -> Unit
             }
         }
+        return true
     }
 
     /** What the ACCOUNT holds, as opposed to what the phone
@@ -1064,11 +1107,25 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
 
     fun loadPieces() {
         if (_pieces.value.isNotEmpty()) return
-        viewModelScope.launch {
-            val answer = reiad.pieces()
-            answer.value?.let { _pieces.value = it.articles }
-            if (answer.stale) _stale.value = true
-        }
+        viewModelScope.launch { fetchPieces() }
+    }
+
+    private suspend fun fetchPieces() {
+        val answer = reiad.pieces()
+        answer.value?.let { _pieces.value = it.articles }
+        if (answer.stale) _stale.value = true
+    }
+
+    /** One piece, by the slug a link named.
+
+        Suspending rather than fire and forget, because the caller
+        is a deep link: it has to WAIT for the list before it can
+        say whether the address resolves, and a version that
+        returned immediately would send every shared article to
+        its section hub. */
+    suspend fun pieceBySlug(section: String, slug: String): Piece? {
+        if (_pieces.value.isEmpty()) fetchPieces()
+        return _pieces.value.firstOrNull { it.section == section && it.slug == slug }
     }
 
     /** Opens a piece by slug, with the LIST's copy shown first.
@@ -1175,10 +1232,6 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
 
     /* A sign-in coming back. Keyed on the URI so the same arrival
        is not processed twice on a recomposition. */
-    val arrival by arrivals.collectAsState()
-    LaunchedEffect(arrival) {
-        arrival?.let { model.arrived(context, it) }
-    }
 
     val accent: Accent = when (val here = where) {
         Where.Account -> Accents.GREEN
@@ -1207,6 +1260,92 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         Theme.LIGHT -> false
         Theme.DARK -> true
         Theme.SYSTEM -> isSystemInDarkTheme()
+    }
+
+    val arrival by arrivals.collectAsState()
+    /* A link that arrives goes to the page it NAMES.
+
+       Two things arrive on this activity and only one of them was
+       handled: the sign-in redirect, and every https link to the
+       site, which the manifest registers as an app link. A shared
+       lesson opened the app on the front page for eleven blocks,
+       which is worse than not registering at all: the reader has
+       been taken away from the page they asked for and it is now
+       a back-press and a browser away.
+
+       Keyed on the manifest as well as the URL, because a link
+       tapped from cold arrives before the first fetch has landed
+       and the school keys are what decide where it goes: without
+       that key it would resolve once, against nothing, and stay
+       resolved. */
+    LaunchedEffect(arrival, site) {
+        val url = arrival ?: return@LaunchedEffect
+        if (model.arrived(context, url)) return@LaunchedEffect
+        /* Every branch is braced, because `where` is a soft
+           keyword: `-> where = ...` bare after an arrow parses as
+           a generic constraint and the error names a type
+           parameter that is not in the file. */
+        when (val to = destinationOf(url, site)) {
+            Destination.Home -> { where = Where.Home }
+            Destination.Account -> { where = Where.Account }
+
+            is Destination.School -> {
+                site?.ladders?.firstOrNull { it.key == to.key }?.let { school ->
+                    model.openLadder(school)
+                    where = Where.Ladder(school)
+                }
+            }
+
+            is Destination.Lesson -> {
+                /* The stage and the lesson are carried as slugs
+                   and nothing else, which is all the endpoint
+                   needs: the route reads the row. The titles
+                   arrive with the body, so the screen fills in
+                   rather than waiting for a ladder fetch first. */
+                site?.ladders?.firstOrNull { it.key == to.school }?.let { school ->
+                    val stage = Stage(slug = to.stage)
+                    val lesson = Lesson(slug = to.slug)
+                    model.openLesson(school, stage, lesson)
+                    where = Where.Reading(school, stage, lesson)
+                }
+            }
+
+            is Destination.Hub -> {
+                where = Where.Hub(to.section, sectionTitle(site, to.section))
+            }
+
+            is Destination.Piece -> {
+                /* The hub first and the piece after, so a reader
+                   whose piece has been unpublished lands on the
+                   section rather than on nothing, and so back
+                   from the piece goes somewhere. */
+                where = Where.Hub(to.section, sectionTitle(site, to.section))
+                model.pieceBySlug(to.section, to.slug)?.let { piece ->
+                    model.openPiece(piece)
+                    where = Where.Reading2(to.section, piece)
+                }
+            }
+
+            is Destination.Tool -> {
+                when (to.key) {
+                    STOCK_KEY -> { model.openTools(); where = Where.Stock }
+                    TOOLS_KEY -> { model.openTools(); where = Where.Calculators }
+                    LIVE_KEY -> { model.openLive(context); where = Where.Live }
+                    ROUTINE_KEY -> { model.openRoutine(context); where = Where.Routine }
+                    else -> Unit
+                }
+            }
+
+            /* Not the front page. A link to something this app
+               does not draw opens where it does exist. */
+            is Destination.Elsewhere -> {
+                /* The palette computed here rather than read from
+                   `LocalReiad`, because this effect runs above the
+                   theme: it has to answer a link that arrives before
+                   anything is on screen. */
+                openOnSite(context, to.url, coloursOf(accent, dark))
+            }
+        }
     }
 
     /** Where the reader is, in the site's own vocabulary, so the
@@ -1538,6 +1677,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     LaunchedEffect(id, which) {
                         if (which != null) {
                             model.visited(
+                                context,
                                 which,
                                 Bookmark(
                                     id = id,

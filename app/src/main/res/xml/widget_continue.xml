@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Where you were, on the home screen.
+
+  `minWidth` is two cells and `minHeight` is one, which is the
+  smallest shape that can hold a lesson title on three lines: a
+  Bangla lesson name is long and a one-cell widget would end every
+  one of them in an ellipsis.
+
+  `targetCellWidth` and `targetCellHeight` are the Android 12 way
+  of saying the same thing in cells rather than in dp, and both
+  are here because the dp form is what older launchers read.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="60dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="1"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="60dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_continue_description"
+    android:updatePeriodMillis="0" />

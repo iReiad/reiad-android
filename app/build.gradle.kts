@@ -21,6 +21,44 @@ android {
         versionName = "0.1"
     }
 
+    /* ============================================================
+       ONE debug key, committed, so every build is the same app.
+
+       Android generates a debug keystore per machine on first
+       use. Two builds of this app from two machines are therefore
+       signed by different keys, which Android reads as two
+       different apps: the new APK refuses to install over the old
+       one and the reader has to uninstall first, losing every
+       tick that has not synced.
+
+       It also breaks app links. `/.well-known/assetlinks.json`
+       names ONE fingerprint, so links can only verify against one
+       key, and a per-machine key means the shared lesson opens in
+       a browser however carefully the intent filters were
+       written.
+
+       ---- and this is not a secret ----
+
+       A debug keystore is designed to be shared: the password is
+       `android`, the alias is `androiddebugkey`, and every one
+       Android has ever generated uses both. It cannot sign a Play
+       release and it grants nothing. Committing it is the same
+       decision as committing a fixture.
+
+       A release key, when there is one, does NOT go here: that
+       one is a credential, it lives in CI as a secret, and the
+       day it exists this block gains a `release` signing config
+       that reads the environment.
+       ============================================================ */
+    signingConfigs {
+        getByName("debug") {
+            storeFile = rootProject.file("keystore/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -81,6 +119,8 @@ dependencies {
     implementation(libs.androidx.work)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.browser)
+    implementation(libs.androidx.glance.appwidget)
+    implementation(libs.androidx.glance.material3)
 
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
