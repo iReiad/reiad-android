@@ -181,7 +181,8 @@ class ReachTest {
         Shell(
             state = ShellState(site = site, current = null, audience = null, drawerOpen = false),
             onHome = {}, onGroup = {}, onItem = {}, onDrawer = {},
-            onSearch = {}, onSettings = {}, onAudience = {},
+            onSearch = {}, onSettings = {},
+                onAccount = {}, onAudience = {},
         ) {
             Home(site, stale = false, note = null, ticks = emptyMap(), audience = null, onOpen = {})
         }
@@ -191,7 +192,8 @@ class ReachTest {
         Shell(
             state = ShellState(site = site, current = null, audience = null, drawerOpen = true),
             onHome = {}, onGroup = {}, onItem = {}, onDrawer = {},
-            onSearch = {}, onSettings = {}, onAudience = {},
+            onSearch = {}, onSettings = {},
+                onAccount = {}, onAudience = {},
         ) {
             Home(site, stale = false, note = null, ticks = emptyMap(), audience = null, onOpen = {})
         }
@@ -241,7 +243,8 @@ class ReachTest {
         Shell(
             state = ShellState(site = site, current = null, audience = null, drawerOpen = true),
             onHome = {}, onGroup = {}, onItem = {}, onDrawer = {},
-            onSearch = {}, onSettings = {}, onAudience = {},
+            onSearch = {}, onSettings = {},
+                onAccount = {}, onAudience = {},
         ) {
             Home(site, stale = false, note = null, ticks = emptyMap(), audience = null, onOpen = {})
         }

@@ -107,6 +107,10 @@ data class ShellState(
     val current: String?,
     val audience: String?,
     val drawerOpen: Boolean,
+    /** Only the account control's LABEL depends on this, and it
+        defaults to false so a caller that has not asked yet says
+        "sign in" rather than greeting a stranger. */
+    val signedIn: Boolean = false,
 )
 
 /** The groups this reader should meet, in their order.
@@ -131,6 +135,11 @@ fun Shell(
     onDrawer: (Boolean) -> Unit,
     onSearch: () -> Unit,
     onSettings: () -> Unit,
+    /** The account, from the bar. The site's own top bar carries
+        this control on every page and the app's carried search and
+        the theme toggle and stopped, which left the account behind
+        More and four groups of drawer. */
+    onAccount: () -> Unit,
     onAudience: (String) -> Unit,
     content: @Composable () -> Unit,
 ) {
@@ -142,7 +151,7 @@ fun Shell(
             if (chrome != Chrome.BAR && groups.isNotEmpty()) {
                 Rail(
                     groups, state.current, chrome == Chrome.RAIL_OPEN,
-                    onHome, onGroup, onSearch, onSettings,
+                    onHome, onItem, onSearch, onSettings,
                 )
             }
             Box(Modifier.weight(1f).fillMaxHeight()) {
@@ -158,9 +167,11 @@ fun Shell(
                     TopBar(
                         name = state.site?.site?.name ?: "Reiad's Library",
                         modifier = Modifier.align(Alignment.TopCenter),
+                        signedIn = state.signedIn,
                         onHome = onHome,
                         onSearch = onSearch,
                         onSettings = onSettings,
+                        onAccount = onAccount,
                     )
                 }
                 if (chrome == Chrome.BAR && groups.isNotEmpty()) {
@@ -267,9 +278,16 @@ private fun RoundButton(icon: String, label: String, onClick: () -> Unit) {
 fun TopBar(
     name: String,
     modifier: Modifier = Modifier,
+    /** Which of the two labels the account button wears. The site
+        says "Sign in to Reiad's Library" or "Signed in as <name>.
+        Open your account menu.", and the difference is the whole
+        of what a reader learns from the control before pressing
+        it. */
+    signedIn: Boolean = false,
     onHome: () -> Unit,
     onSearch: () -> Unit,
     onSettings: () -> Unit,
+    onAccount: () -> Unit = {},
 ) {
     val c = LocalReiad.current
     Row(
@@ -304,6 +322,23 @@ fun TopBar(
         RoundButton("search", "Search", onSearch)
         Spacer(Modifier.width(Gap.s4))
         RoundButton("theme", "Settings", onSettings)
+        Spacer(Modifier.width(Gap.s4))
+        /* Third and last, which is where `aab/src/signin.ts`
+           appends it on the site: after the theme toggle, so the
+           order does not change for anybody used to it.
+
+           The word "account" is in both labels on purpose. It is
+           what a reader says when they cannot find it, so it is
+           what `AccountReachTest` looks for. */
+        RoundButton(
+            icon = "user",
+            label = if (signedIn) {
+                "Your account"
+            } else {
+                "Sign in to your account"
+            },
+            onClick = onAccount,
+        )
     }
 }
 
@@ -479,7 +514,7 @@ private fun Rail(
     current: String?,
     open: Boolean,
     onHome: () -> Unit,
-    onGroup: (NavGroup) -> Unit,
+    onItem: (NavItem) -> Unit,
     onSearch: () -> Unit,
     onSettings: () -> Unit,
 ) {
@@ -514,7 +549,18 @@ private fun Rail(
                     selected = item.key != null && item.key == current,
                     accent = accentColour(item.accent ?: group.accent, c),
                     open = open,
-                    onClick = { onGroup(group) },
+                    /* THE ITEM, not the group it is in.
+
+                       Every row here opened its group, which is
+                       the bottom bar's rule applied one level
+                       down where it is wrong: a bar shows five
+                       GROUPS and a rail shows every ITEM, so a
+                       row reading "Account" sent a reader to a
+                       list with Account on it. Seventeen rows,
+                       each landing one tap short of what it
+                       named, and the rail renders identically
+                       either way. */
+                    onClick = { onItem(item) },
                 )
             }
             if (!open) Spacer(Modifier.height(Gap.s5))

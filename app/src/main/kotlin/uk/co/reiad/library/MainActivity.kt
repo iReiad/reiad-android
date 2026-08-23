@@ -1506,7 +1506,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         val colours = LocalReiad.current
         Surface(Modifier.fillMaxSize(), color = colours.paper) {
             Shell(
-                state = ShellState(site, current, audience, drawer),
+                state = ShellState(site, current, audience, drawer, reader != null),
                 /* A tab opens its GROUP, not its first item.
 
                    Sending each tab to the first thing in it looked
@@ -1541,6 +1541,13 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                 onDrawer = { drawer = it },
                 onSearch = { searching = true },
                 onSettings = { settings = true; model.readShelf(context) },
+                /* The account, one tap from every screen, which is
+                   where the site keeps it. It was behind More and
+                   four groups of drawer, and the report that came
+                   back was that pressing account went back to the
+                   front page: it did, because the thing being
+                   pressed was the bar's name. */
+                onAccount = { where = Where.Account },
                 onAudience = { model.chooseAudience(it) },
             ) {
             when (val here = where) {

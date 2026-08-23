@@ -1,6 +1,7 @@
 package uk.co.reiad.library.core
 
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.contentOrNull
@@ -19,8 +20,14 @@ import uk.co.reiad.library.core.diet.Ancestry
 import uk.co.reiad.library.core.diet.BMI_CUTS
 import uk.co.reiad.library.core.diet.Body
 import uk.co.reiad.library.core.diet.GoalKind
+import uk.co.reiad.library.core.diet.Intake
+import uk.co.reiad.library.core.diet.KCAL_PER_KG
+import uk.co.reiad.library.core.diet.LEARN_AFTER_DAYS
+import uk.co.reiad.library.core.diet.Point
 import uk.co.reiad.library.core.diet.Range
 import uk.co.reiad.library.core.diet.Sex
+import uk.co.reiad.library.core.diet.TREND_HALF_LIFE_DAYS
+import uk.co.reiad.library.core.diet.UNLOGGED_SE_SHARE
 import uk.co.reiad.library.core.diet.activityFactor
 import uk.co.reiad.library.core.diet.bmi
 import uk.co.reiad.library.core.diet.bmiBand
@@ -29,15 +36,19 @@ import uk.co.reiad.library.core.diet.estimatedBurn
 import uk.co.reiad.library.core.diet.fatEstimate
 import uk.co.reiad.library.core.diet.ffmi
 import uk.co.reiad.library.core.diet.ffmiNormalised
+import uk.co.reiad.library.core.diet.fit
 import uk.co.reiad.library.core.diet.floorKcal
 import uk.co.reiad.library.core.diet.katch
+import uk.co.reiad.library.core.diet.learnedBurn
 import uk.co.reiad.library.core.diet.mifflin
 import uk.co.reiad.library.core.diet.navyFat
 import uk.co.reiad.library.core.diet.proteinFloor
 import uk.co.reiad.library.core.diet.restingBurn
+import uk.co.reiad.library.core.diet.slopePerWeek
 import uk.co.reiad.library.core.diet.target
 import uk.co.reiad.library.core.diet.toFeetInches
 import uk.co.reiad.library.core.diet.toStone
+import uk.co.reiad.library.core.diet.trend
 import uk.co.reiad.library.core.diet.whtr
 import uk.co.reiad.library.core.diet.whtrBand
 
@@ -288,6 +299,205 @@ class DietTest {
         "waist to height, high" -> 1.0
         "maintenance, which is a phase" -> 0.0
         else -> error("no rate for the case '$name'; add it beside the exporter's")
+    }
+
+    /* --------------------------------------------------------
+       The trend, the fit and the learned maintenance
+       -------------------------------------------------------- */
+
+    private val histories = root.getValue("histories").jsonObject
+
+    private fun pointsOf(a: JsonArray) = a.map {
+        val o = it.jsonObject
+        Point(o.getValue("day").jsonPrimitive.int, o.getValue("kg").jsonPrimitive.double)
+    }
+
+    private fun intakesOf(a: JsonArray) = a.map {
+        val o = it.jsonObject
+        Intake(o.getValue("day").jsonPrimitive.int, o.getValue("kcal").jsonPrimitive.double)
+    }
+
+    /** The four numbers the trend is made of, by name.
+
+        Every one of them is already implied by a history below,
+        and asserting them anyway is what turns "a history
+        disagrees" into "the half-life is wrong": a port that read
+        the fortnight as `<=` and one that seeded the average from
+        the wrong reading both fail the same case otherwise, and
+        whoever reads the failure has to work out which. */
+    @Test fun theTrendConstantsAgree() {
+        val k = root.getValue("constants").jsonObject
+        near(
+            k.getValue("trendHalfLifeDays").jsonPrimitive.double,
+            TREND_HALF_LIFE_DAYS,
+            "trendHalfLifeDays",
+        )
+        near(k.getValue("kcalPerKg").jsonPrimitive.double, KCAL_PER_KG, "kcalPerKg")
+        assertEquals(
+            k.getValue("learnAfterDays").jsonPrimitive.int,
+            LEARN_AFTER_DAYS,
+            "learnAfterDays",
+        )
+        near(
+            k.getValue("unloggedSeShare").jsonPrimitive.double,
+            UNLOGGED_SE_SHARE,
+            "unloggedSeShare",
+        )
+    }
+
+    /** Every reading of every history, point by point.
+
+        The pair that matters is "every morning" against "eight
+        readings in four weeks": the same underlying line, one
+        weighed daily and one on uneven gaps. A trend weighted by
+        ROW rather than by elapsed time agrees with the site on the
+        first and disagrees on the second, which is the only way to
+        catch it, because both lines look right. */
+    @Test fun everyTrendAgrees() {
+        assertTrue(histories.size >= 7, "the fixture should hold every edge, not a happy path")
+        for ((name, raw) in histories) {
+            val h = raw.jsonObject
+            val weights = pointsOf(h.getValue("weights").jsonArray)
+            val want = h.getValue("trend").jsonArray
+            val got = trend(weights)
+            assertEquals(want.size, got.size, "$name.trend has a different number of points")
+            for ((at, row) in want.withIndex()) {
+                val o = row.jsonObject
+                assertEquals(
+                    o.getValue("day").jsonPrimitive.int,
+                    got[at].day,
+                    "$name.trend[$at].day",
+                )
+                near(o.getValue("kg").jsonPrimitive.double, got[at].kg, "$name.trend[$at].kg")
+            }
+        }
+    }
+
+    /** The fit and the weekly slope, including the two the site
+        answers null for.
+
+        Null is an ANSWER here, exactly as it is for the tape
+        method above: two readings have no residual to measure, so
+        a slope from them would be a rate with no error bar, and
+        this file refuses those everywhere. A port that returned
+        one would look better and be worse. */
+    @Test fun everyFitAgrees() {
+        for ((name, raw) in histories) {
+            val h = raw.jsonObject
+            val weights = pointsOf(h.getValue("weights").jsonArray)
+
+            val wantFit = h.getValue("fit")
+            val got = fit(weights)
+            if (wantFit !is JsonObject) {
+                assertTrue(got == null, "$name.fit should be null and is $got")
+            } else {
+                val o = wantFit
+                val f = assertNotNull(got, "$name.fit should not be null")
+                near(o.getValue("slope").jsonPrimitive.double, f.slope, "$name.fit.slope")
+                near(
+                    o.getValue("intercept").jsonPrimitive.double,
+                    f.intercept,
+                    "$name.fit.intercept",
+                )
+                near(o.getValue("se").jsonPrimitive.double, f.se, "$name.fit.se")
+                assertEquals(o.getValue("n").jsonPrimitive.int, f.n, "$name.fit.n")
+            }
+
+            val wantSlope = h.getValue("slopePerWeek")
+            val gotSlope = slopePerWeek(weights)
+            if (wantSlope !is JsonObject) {
+                assertTrue(gotSlope == null, "$name.slopePerWeek should be null")
+            } else {
+                nearRange(wantSlope, assertNotNull(gotSlope), "$name.slopePerWeek")
+            }
+        }
+    }
+
+    /** The learned maintenance, and the band around it.
+
+        Two are null on purpose and they fail differently. "two
+        readings" is under the three a residual needs. "one day
+        short of a fortnight" is thirteen days against a
+        `LEARN_AFTER_DAYS` of fourteen.
+
+        THE THRESHOLD IS PINNED FROM BOTH SIDES, and the first
+        draft of this pinned it from one. A single window thirteen
+        days wide is null under `<` and null under `<=` alike, so
+        it asserted that a threshold exists and nothing about where
+        it is: reversing the comparison here failed nothing. "a
+        fortnight exactly" is the fourteen-day window that ANSWERS,
+        and it is the case that catches it.
+
+        And "three days logged in twenty" is the third error term:
+        its band is forty times wider than the daily case's, on
+        intakes that never vary, because the days that are not
+        there are a gap where the mean might not be rather than
+        noise around one. A port that added two errors in
+        quadrature instead of three produces a number the reader
+        would be right to believe and should not. */
+    @Test fun everyLearnedBurnAgrees() {
+        var nulls = 0
+        for ((name, raw) in histories) {
+            val h = raw.jsonObject
+            val weights = pointsOf(h.getValue("weights").jsonArray)
+            val intakes = intakesOf(h.getValue("intakes").jsonArray)
+            val want = h.getValue("learned")
+            val got = learnedBurn(weights, intakes)
+            if (want !is JsonObject) {
+                nulls += 1
+                assertTrue(got == null, "$name.learned should be null and is $got")
+                continue
+            }
+            val l = assertNotNull(got, "$name.learned should not be null")
+            nearRange(want.getValue("kcal").jsonObject, l.kcal, "$name.learned.kcal")
+            assertEquals(want.getValue("days").jsonPrimitive.int, l.days, "$name.learned.days")
+            assertEquals(want.getValue("logged").jsonPrimitive.int, l.logged, "$name.learned.logged")
+            near(
+                want.getValue("meanIntake").jsonPrimitive.double,
+                l.meanIntake,
+                "$name.learned.meanIntake",
+            )
+            near(
+                want.getValue("trendKgPerWeek").jsonPrimitive.double,
+                l.trendKgPerWeek,
+                "$name.learned.trendKgPerWeek",
+            )
+        }
+        assertEquals(
+            2,
+            nulls,
+            "two of the histories are under a threshold on purpose; if this is not two, " +
+                "the fixture lost an edge case rather than the port passing it",
+        )
+    }
+
+    /** The sparse case widens the band, and by how much.
+
+        Asserted as a RELATION rather than as a number, because the
+        numbers are already checked above and what this is really
+        holding is the reason the third error term exists. If a
+        future change made a reader who logs three days in twenty
+        as confident as one who logs every morning, every figure
+        above would still agree with the site and the tool would
+        still be lying. */
+    @Test fun sparseLoggingIsLessConfident() {
+        fun bandOf(name: String): Double {
+            val h = histories.getValue(name).jsonObject
+            val l = assertNotNull(
+                learnedBurn(
+                    pointsOf(h.getValue("weights").jsonArray),
+                    intakesOf(h.getValue("intakes").jsonArray),
+                ),
+            )
+            return l.kcal.high - l.kcal.low
+        }
+        val dense = bandOf("every morning")
+        val sparse = bandOf("three days logged in twenty")
+        assertTrue(
+            sparse > dense * 10,
+            "logging three days in twenty should be far less certain than logging all " +
+                "of them: the dense band is $dense kcal and the sparse one is $sparse",
+        )
     }
 
     /** The goal each case asked for. Named rather than inferred

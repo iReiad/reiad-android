@@ -271,7 +271,11 @@ fun estimatedBurn(restingKcal: Double, factor: Double): Double = restingKcal * f
 /* the goal engine, and the floors it will not cross          */
 /* ---------------------------------------------------------- */
 
-const val KCAL_PER_KG = 7700.0
+/* `KCAL_PER_KG` is declared in `Trend.kt`, where the site
+   declares it too: it is the constant the learned maintenance is
+   made of and the goal engine is the second reader. One
+   declaration, because 7700 typed twice is 7700 in one place the
+   day somebody changes the other. */
 
 data class Rate(
     val key: String,

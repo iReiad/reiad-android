@@ -105,6 +105,25 @@ kotlin {
     compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
 }
 
+/* Unit tests are the DEBUG variant's, and the release unit-test
+   task is switched off rather than left to fail.
+
+   `createComposeRule()` starts a `ComponentActivity`, registered
+   by `compose.ui.test.manifest`, and that is a
+   `debugImplementation` on purpose: a test activity in the
+   release manifest is a test activity in the shipped APK. So
+   every Robolectric test in this module fails under
+   `testReleaseUnitTest` with "Unable to resolve activity", which
+   is sixteen red tests for a reason that has nothing to do with
+   whatever was being changed.
+
+   CI runs `:app:testDebugUnitTest`. This makes the aggregate
+   `./gradlew test` mean the same thing, rather than being a
+   command nobody can run. */
+androidComponents {
+    beforeVariants(selector().withBuildType("release")) { it.enableUnitTest = false }
+}
+
 /* The fixtures are an INPUT to these tests, and Gradle cannot
    work that out on its own.
 
