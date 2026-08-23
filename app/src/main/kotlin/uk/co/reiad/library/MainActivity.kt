@@ -677,23 +677,34 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
      * reason the routine's own loader gives: a figure and the bar
      * under it must not be able to disagree about what today is.
      */
-    fun openDiet(context: android.content.Context) {
+    /** @param date the day to show. Today by default, and NEVER
+        the future: a log is a record, and a plate that has not
+        been eaten has no business in one. The screen's arrows
+        stop at today for the same reason. */
+    fun openDiet(context: android.content.Context, date: String? = null) {
         val store = dietStore ?: Log(account(context)).also { dietStore = it }
-        _diet.value = DietState(loading = true)
+        val today = java.time.LocalDate.now().toString()
+        val shown = (date ?: _diet.value.shownDate.ifBlank { today })
+            .let { if (it > today) today else it }
+        _diet.value = DietState(loading = true, shownDate = shown)
         viewModelScope.launch {
             if (account(context).token() == null) {
                 _diet.value = DietState(loading = false, signedOut = true)
                 return@launch
             }
-            val today = java.time.LocalDate.now().toString()
             val profile = store.profile()
-            /* A fortnight, which is the shortest window the trend
-               means anything over and the longest one this screen
-               needs: the long view is `/tools/diet/trend`. */
+            /* A fortnight behind TODAY, whichever day is shown:
+               the trend and the body readings describe the
+               person now, not the person on the day being
+               edited. It is the shortest window the trend means
+               anything over; the long view is /tools/diet/trend. */
             val days = store.days(dayBefore(today, 14))
-            val entries = store.entries(today)
+            val entries = store.entries(shown)
             _diet.value = readDiet(profile, days, entries, today)
-                .copy(library = foodLibrary ?: loadFoods())
+                .copy(
+                    library = foodLibrary ?: loadFoods(),
+                    shownDate = shown,
+                )
             keepDietGlance(context)
         }
     }
@@ -704,6 +715,10 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     private fun keepDietGlance(context: android.content.Context) {
         val now = _diet.value
         if (now.today.isBlank() || now.signedOut) return
+        /* Only TODAY reaches the widgets. Editing Tuesday's
+           forgotten dinner must not put Tuesday's total on the
+           home screen with today's date implied. */
+        if (now.shownDate.isNotBlank() && now.shownDate != now.today) return
         val day = uk.co.reiad.library.core.diet.totalFor(
             now.entries,
             now.library?.macros ?: listOf("protein", "carbs", "fat", "fibre"),
@@ -749,18 +764,29 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     fun addEaten(context: android.content.Context, row: Portion, ate: Ate) {
         val store = dietStore ?: return
         val library = foodLibrary ?: return
-        val today = _diet.value.today.ifBlank { java.time.LocalDate.now().toString() }
+        val state = _diet.value
+        val today = state.today.ifBlank { java.time.LocalDate.now().toString() }
+        val shown = state.shownDate.ifBlank { today }
         val now = java.time.LocalTime.now()
         val entry = loggedFrom(
             row = row,
             ate = ate,
-            date = today,
+            /* The SHOWN day, which is the whole point of the date
+               walk: yesterday's forgotten dinner goes on
+               yesterday. */
+            date = shown,
             library = library,
-            /* The local clock, which is a fact about the reader's
-               own day: the by-hour reading on the site is drawn
-               from this column and a row with no time in it
-               cannot appear in it. */
-            atTime = "%02d:%02d".format(now.hour, now.minute),
+            /* The local clock, ONLY on today. The hour a thing
+               was eaten is a fact, and stamping the hour of
+               remembering onto the day of eating would file
+               Tuesday's dinner at Wednesday's clock time in the
+               by-hour reading. Absent is the honest value for a
+               back-filled row. */
+            atTime = if (shown == today) {
+                "%02d:%02d".format(now.hour, now.minute)
+            } else {
+                null
+            },
         ) ?: return
         viewModelScope.launch {
             store.addEntry(entry)?.let { _note.value = it }
@@ -773,14 +799,19 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         measured this morning. */
     fun weighIn(context: android.content.Context, kg: Double) {
         val store = dietStore ?: return
-        val today = _diet.value.today.ifBlank { java.time.LocalDate.now().toString() }
-        _diet.value = _diet.value.copy(saving = true)
+        val state = _diet.value
+        val shown = state.shownDate.ifBlank {
+            state.today.ifBlank { java.time.LocalDate.now().toString() }
+        }
+        _diet.value = state.copy(saving = true)
         viewModelScope.launch {
             /* Said out loud when it fails, for the reason
                 `writeDay` gives: a weight that went to a 400 and
                 said nothing is a reading the reader believes is
-                on their account. */
-            store.saveDay(DietDay(date = today, weightKg = kg))?.let { _note.value = it }
+                on their account. The SHOWN day, so a missed
+                morning can be back-filled and the trend gets its
+                point. */
+            store.saveDay(DietDay(date = shown, weightKg = kg))?.let { _note.value = it }
             openDiet(context)
         }
     }
@@ -2436,6 +2467,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         onWeight = { model.weighIn(context, it) },
                         onRemove = { model.removeEaten(context, it) },
                         onAdd = { row, ate -> model.addEaten(context, row, ate) },
+                        onDay = { model.openDiet(context, it) },
                         /* Eleven of the tool's fourteen pages are
                            still the site's, and so are the barcode
                            scanner and the two public databases.

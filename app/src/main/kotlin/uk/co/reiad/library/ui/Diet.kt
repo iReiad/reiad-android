@@ -26,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -83,6 +84,9 @@ data class DietState(
     val loading: Boolean = true,
     val signedOut: Boolean = false,
     val today: String = "",
+    /** The day on screen. Today unless the reader walked back;
+        never the future. */
+    val shownDate: String = "",
     val profile: DietProfile? = null,
     val day: DietDay? = null,
     val entries: List<DietEntry> = emptyList(),
@@ -109,6 +113,7 @@ fun DietScreen(
     onWeight: (Double) -> Unit,
     onRemove: (String) -> Unit,
     onAdd: (Portion, Ate) -> Unit,
+    onDay: (String) -> Unit = {},
     onOpenSite: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -185,6 +190,44 @@ fun DietScreen(
         if (state.profile?.heightCm == null) {
             item("setup") { NeedsSetup(onOpenSite) }
             return@LazyColumn
+        }
+
+        item("day") {
+            /* The date walk: back a day at a time, forward only
+               as far as today. The label is the whole state, so
+               the walker and the list can never disagree about
+               which day is on screen. */
+            val shown = state.shownDate.ifBlank { state.today }
+            val isToday = shown == state.today
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Tap(
+                    onClick = { onDay(dayShift(shown, -1)) },
+                    label = if (lang == "bn") "আগের দিন" else "The day before",
+                ) { Icon("chevron", size = 15.dp, tint = c.inkSoft, modifier = Modifier.flipX()) }
+                Text(
+                    when {
+                        isToday && lang == "bn" -> "আজ"
+                        isToday -> "Today"
+                        else -> shown
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    color = c.ink,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+                if (!isToday) {
+                    Tap(
+                        onClick = { onDay(dayShift(shown, 1)) },
+                        label = if (lang == "bn") "পরের দিন" else "The day after",
+                    ) { Icon("chevron", size = 15.dp, tint = c.inkSoft) }
+                } else {
+                    /* The same width as the control it replaces,
+                       so today's label does not jump left when
+                       the forward arrow earns its place. */
+                    Spacer(Modifier.width(Gap.tap))
+                }
+            }
+            Spacer(Modifier.height(Gap.s4))
         }
 
         item("pages") {
@@ -522,6 +565,16 @@ private fun floorWords(t: Target): String {
     }
     return "This is not the figure you asked for: " + said.joinToString(", and ") + "."
 }
+
+/** A date one day along, without a calendar library: the walk is
+    small and `LocalDate` is right here. */
+private fun dayShift(date: String, by: Long): String =
+    runCatching { java.time.LocalDate.parse(date).plusDays(by).toString() }.getOrDefault(date)
+
+/** The one chevron, facing the other way. */
+private fun Modifier.flipX(): Modifier = this.then(
+    Modifier.graphicsLayer { scaleX = -1f },
+)
 
 private fun whole(v: Double): String = v.toLong().toString()
 
