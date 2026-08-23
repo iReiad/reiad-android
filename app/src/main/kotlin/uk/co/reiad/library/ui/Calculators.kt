@@ -3,11 +3,13 @@ package uk.co.reiad.library.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,6 +30,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -129,22 +133,48 @@ fun CalculatorsScreen(
             }
         }
 
-        /* Which of the five. A row of chips rather than a tab bar,
+        /* Which of the five. A row of pills rather than a tab bar,
            because on a handset five tabs are five words nobody can
            read; the site's own picker is a tab set for the same
-           reason in reverse. */
+           reason in reverse.
+
+           These are the LATCH the button system already has, not
+           a chip with a coloured word: the open one stands on the
+           accent, the rest are soft, and the row was reported as
+           "buttons aren't even looking as good as the website"
+           when the only signal was ink tone. The fade at the end
+           is what says the row continues: a pill cut clean at
+           the screen edge reads as a mistake, one dissolving
+           into the paper reads as "more this way". */
         item {
-            Row(
-                Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(Gap.s4),
-            ) {
-                for (other in CALCULATORS) {
-                    Tap(onClick = { onState(state.copy(open = other.id)) }) {
-                        Chip(
-                            words.t("calc.${other.id}.short", lang),
-                            tone = if (other.id == calc.id) c.accent else c.inkSoft,
+            val slide = rememberScrollState()
+            Box {
+                Row(
+                    Modifier.horizontalScroll(slide),
+                    horizontalArrangement = Arrangement.spacedBy(Gap.s4),
+                ) {
+                    for (other in CALCULATORS) {
+                        PillButton(
+                            label = words.t("calc.${other.id}.short", lang),
+                            kind = ButtonKind.SOFT,
+                            pressed = other.id == calc.id,
+                            onClick = { onState(state.copy(open = other.id)) },
                         )
                     }
+                }
+                if (slide.canScrollForward) {
+                    Box(
+                        Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight()
+                            .width(Gap.s10)
+                            .background(
+                                Brush.horizontalGradient(
+                                    0f to Color.Transparent,
+                                    1f to c.paper,
+                                ),
+                            ),
+                    )
                 }
             }
         }
