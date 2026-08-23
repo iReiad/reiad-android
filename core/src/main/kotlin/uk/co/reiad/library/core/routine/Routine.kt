@@ -221,6 +221,9 @@ data class Season(
     val bn: String,
     val en: String,
     val colour: String,
+    /** When it starts: month, day. The site carries this on each
+        row, so the six boundaries are data like the names. */
+    val from: Pair<Int, Int> = 0 to 0,
 )
 
 /** ষড়ঋতু. Almost no software knows there are six rather than
@@ -231,34 +234,18 @@ data class Season(
     Gregorian one, which is close enough for a colour and a word
     and is not pretending to be a calendar conversion. */
 val SEASONS: List<Season> = listOf(
-    Season("grishmo", "গ্রীষ্ম", "Summer", "#C4711F"),
-    Season("barsha", "বর্ষা", "Monsoon", "#4C61A8"),
-    Season("sharat", "শরৎ", "Autumn", "#2F8A64"),
-    Season("hemanta", "হেমন্ত", "Late autumn", "#A2790B"),
-    Season("sheet", "শীত", "Winter", "#6E52A8"),
-    Season("bosonto", "বসন্ত", "Spring", "#B45570"),
+    Season("grishmo", "গ্রীষ্ম", "Summer", "#C4711F", 4 to 15),
+    Season("barsha", "বর্ষা", "Monsoon", "#4C61A8", 6 to 15),
+    Season("sharat", "শরৎ", "Autumn", "#2F8A64", 8 to 15),
+    Season("hemanta", "হেমন্ত", "Late autumn", "#A2790B", 10 to 15),
+    Season("sheet", "শীত", "Winter", "#6E52A8", 12 to 15),
+    Season("bosonto", "বসন্ত", "Spring", "#B45570", 2 to 15),
 )
 
 /** Which of the six a date falls in. */
-fun seasonOf(iso: String): Season {
-    val parts = iso.split("-")
-    val m = parts.getOrNull(1)?.toIntOrNull() ?: return SEASONS[4]
-    val d = parts.getOrNull(2)?.take(2)?.toIntOrNull() ?: return SEASONS[4]
-    fun after(month: Int, day: Int): Boolean = m > month || (m == month && d >= day)
-    /* Newest boundary first, and winter WRAPS THE YEAR: mid
-       December to mid February is one season with January inside
-       it, so anything before mid February is winter rather than
-       falling off the end of the list. */
-    return when {
-        after(12, 15) -> SEASONS[4]
-        after(10, 15) -> SEASONS[3]
-        after(8, 15) -> SEASONS[2]
-        after(6, 15) -> SEASONS[1]
-        after(4, 15) -> SEASONS[0]
-        after(2, 15) -> SEASONS[5]
-        else -> SEASONS[4]
-    }
-}
+/** Which of the six a date falls in, against the compiled
+    table. The overload below takes the site's. */
+fun seasonOf(iso: String): Season = seasonOf(iso, SEASONS)
 
 /** সুপ্রভাত, শুভ দুপুর, শুভ সন্ধ্যা, শুভ রাত্রি. */
 fun greeting(hour: Int): Pair<String, String> = when {
@@ -357,7 +344,17 @@ fun moodsFrom(words: uk.co.reiad.library.core.RoutineWords?): List<Mood> =
 
 fun seasonsFrom(words: uk.co.reiad.library.core.RoutineWords?): List<Season> =
     words?.seasons?.takeIf { it.isNotEmpty() }
-        ?.map { Season(it.id, it.bn, it.en, it.colour) }
+        ?.map {
+            Season(
+                it.id, it.bn, it.en, it.colour,
+                from = it.from.takeIf { pair -> pair.size == 2 }
+                    ?.let { pair -> pair[0] to pair[1] }
+                    /* A row with no boundary sorts LAST, so it is
+                       the one the year wraps on to rather than
+                       one that silently claims January. */
+                    ?: (0 to 0),
+            )
+        }
         ?: SEASONS
 
 fun gardenFrom(words: uk.co.reiad.library.core.RoutineWords?): List<Plant> =
@@ -376,9 +373,21 @@ fun gardenFrom(words: uk.co.reiad.library.core.RoutineWords?): List<Plant> =
  * values, and those come down.
  */
 fun seasonOf(iso: String, seasons: List<Season>): Season {
-    val order = seasons.takeIf { it.size == SEASONS.size } ?: SEASONS
-    val index = SEASONS.indexOf(seasonOf(iso))
-    return order.getOrElse(index) { order.first() }
+    val order = seasons.takeIf { it.isNotEmpty() } ?: SEASONS
+    val parts = iso.split("-")
+    val m = parts.getOrNull(1)?.toIntOrNull()
+    val d = parts.getOrNull(2)?.take(2)?.toIntOrNull()
+    /* The latest boundary first, and the LAST of them is what an
+       unmatched date gets: winter runs from mid-December through
+       January to mid-February, so a date in January is before
+       every boundary in the year and belongs to the one that
+       started in the year before. That wrap is the whole reason
+       this is not a plain lookup. */
+    val byBoundary = order.sortedByDescending { it.from.first * 100 + it.from.second }
+    if (m == null || d == null) return byBoundary.first()
+    val on = m * 100 + d
+    return byBoundary.firstOrNull { it.from.first * 100 + it.from.second <= on }
+        ?: byBoundary.first()
 }
 
 /** The garden as it stands, against a list that may have come

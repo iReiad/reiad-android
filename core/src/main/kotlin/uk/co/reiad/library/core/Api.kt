@@ -195,6 +195,16 @@ data class SeasonWord(
     val id: String = "",
     val bn: String = "",
     val en: String = "",
+    /** When it starts: `[month, day]`.
+
+        The boundaries are DATA on the site, carried on each row
+        of `SEASONS`, which was a surprise worth acting on: the
+        first version of this reasoned that mid-December being
+        winter is a fact about Bangladesh's calendar and therefore
+        arithmetic, and the site had already decided otherwise. A
+        seventh season works with no app release because of this
+        field. */
+    val from: List<Int> = emptyList(),
     val colour: String = "",
 )
 
