@@ -24,10 +24,15 @@ import uk.co.reiad.library.ui.ShellState
 import uk.co.reiad.library.ui.Skeleton
 import uk.co.reiad.library.ui.StockScreen
 import uk.co.reiad.library.ui.StockState
+import uk.co.reiad.library.ui.RoutineScreen
+import uk.co.reiad.library.ui.RoutineState
+import uk.co.reiad.library.core.routine.RoutineShape
+import uk.co.reiad.library.core.routine.SEASONS
 import uk.co.reiad.library.ui.AccountScreen
 import uk.co.reiad.library.core.LessonResponse
 import uk.co.reiad.library.core.Lesson
 import uk.co.reiad.library.core.Stage
+import uk.co.reiad.library.core.LadderResponse
 
 /* Every screen, drawn, so a change to the design is something
    somebody can look at rather than something they have to guess
@@ -142,6 +147,37 @@ class ScreensLookTest {
             page = page.lesson,
             ticked = false, isMoney = true,
             onBack = {}, onTick = {}, checks = emptySet(), onCheck = {}, lessonKey = "k",
+        )
+    }
+
+    @Test fun ladder() = page {
+        val ladder = fixture("money.json", LadderResponse.serializer())
+        ReiadTheme(accent = Accents.GREEN, dark = false) {
+            Ladder(
+                school = site.ladders.first { it.key == "money" },
+                stages = ladder.stages,
+                ticks = emptySet(),
+                stale = false,
+                onBack = {}, onOpen = { _, _ -> }, onOpenBook = {},
+            )
+        }
+    }
+
+    @Test fun routine() = page {
+        RoutineScreen(
+            state = RoutineState(
+                loading = false,
+                signedOut = false,
+                routineId = "r",
+                today = "2026-08-23",
+                greeting = "\u09b6\u09c1\u09ad \u09b8\u0995\u09be\u09b2",
+                shape = fixtureField("routine.json", "shape", RoutineShape.serializer()),
+                season = SEASONS[2],
+            ),
+            onMark = { _, _ -> }, onMood = {}, onNote = {}, onOpenSite = {},
+            contentPadding = PaddingValues(
+                start = Gap.s8, end = Gap.s8, top = 84.dp, bottom = 96.dp,
+            ),
         )
     }
 }

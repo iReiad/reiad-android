@@ -137,9 +137,10 @@ fun RoutineScreen(
                         )
                     }
                 }
+                Spacer(Modifier.height(Gap.s5))
                 Text(
                     todayText(state.today),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = headlineStyle(todayText(state.today)),
                     color = c.ink,
                     modifier = Modifier.semantics { heading() },
                 )

@@ -103,29 +103,13 @@ fun PieceScreen(
             contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
         ) {
             item("head") {
-                Text(
-                    "← Back",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = c.accent,
-                    modifier = Modifier.clickable(role = Role.Button, onClick = onBack),
-                )
+                Crumb("Back", onBack)
                 Spacer(Modifier.height(Gap.s7))
-                Text(
-                    piece.title,
-                    style = if (piece.isBangla) BanglaHeading.copy(
-                        fontSize = MaterialTheme.typography.headlineMedium.fontSize,
-                    ) else MaterialTheme.typography.headlineMedium,
-                    color = c.ink,
+                PageHead(
+                    title = piece.title,
+                    eyebrow = piece.section.takeIf { it.isNotBlank() },
+                    lede = piece.dek.takeIf { it.isNotBlank() },
                 )
-                if (piece.dek.isNotBlank()) {
-                    Spacer(Modifier.height(Gap.s5))
-                    Text(
-                        piece.dek,
-                        style = if (piece.isBangla) BanglaBody else MaterialTheme.typography.bodyLarge,
-                        color = c.inkSoft,
-                    )
-                }
-                Spacer(Modifier.height(Gap.s6))
                 Byline(piece)
                 if (stale) {
                     Spacer(Modifier.height(Gap.s5))
@@ -146,7 +130,7 @@ fun PieceScreen(
             if (blocks.isEmpty()) {
                 item("empty") {
                     Text(
-                        if (piece.body.isBlank()) "Opening…" else "This one has no words yet.",
+                        if (piece.body.isBlank()) "Opening" else "This one has no words yet.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = c.inkSoft,
                     )

@@ -2,6 +2,7 @@ package uk.co.reiad.library.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -45,17 +46,24 @@ fun SchoolHead(
     modifier: Modifier = Modifier,
 ) {
     val c = LocalReiad.current
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier.fillMaxWidth().graphPaper(c).padding(bottom = Gap.s6),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Column(Modifier.weight(1f)) {
+            /* The English name as the eyebrow and the Bangla as
+               the headline, which is the site's order on a school
+               hub and the reverse of what this drew: a grey line
+               UNDER a heading reads as a subtitle, and the site's
+               is a mono kicker over it in the school's colour. */
+            Eyebrow(en)
+            Spacer(Modifier.height(Gap.s5))
             Text(
                 bn,
-                style = if (isBangla(bn)) BanglaHeading.copy(
-                    fontSize = MaterialTheme.typography.displaySmall.fontSize,
-                ) else MaterialTheme.typography.displaySmall,
+                style = headlineStyle(bn),
                 color = c.ink,
             )
-            Text(en, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
-            Spacer(Modifier.height(Gap.s4))
+            Spacer(Modifier.height(Gap.s5))
             Text(
                 /* Counted, and written out in full rather than as
                    a percentage: "12 of 60" is a reader's own

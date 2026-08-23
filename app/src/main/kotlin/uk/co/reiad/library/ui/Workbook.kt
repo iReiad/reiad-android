@@ -117,12 +117,7 @@ fun WorkbookScreen(
         contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
     ) {
         item("head") {
-            Text(
-                "← $stageName",
-                style = MaterialTheme.typography.labelLarge,
-                color = c.accent,
-                modifier = Modifier.clickable(role = Role.Button, onClick = onBack),
-            )
+            Crumb(stageName, onBack)
             Spacer(Modifier.height(Gap.s7))
             if (book == null) {
                 if (failed) {
@@ -151,18 +146,16 @@ fun WorkbookScreen(
                         )
                     }
                 } else {
-                    Text("Opening the book…", color = c.inkSoft)
+                    Skeleton(lines = 4, label = "Opening the book")
                 }
                 return@item
             }
-            Text(
-                book.lede.bn,
-                style = BanglaHeading,
-                color = c.ink,
+            PageHead(
+                title = book.lede.bn,
+                eyebrow = stageName,
+                lede = book.lede.target,
             )
-            Spacer(Modifier.height(Gap.s3))
-            Text(book.lede.target, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
-            Spacer(Modifier.height(Gap.s8))
+            Spacer(Modifier.height(Gap.s7))
 
             DayWalker(book, school, stage, days, at) { at = it }
             Spacer(Modifier.height(Gap.s8))

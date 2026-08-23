@@ -1760,12 +1760,7 @@ fun Ladder(
         contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = BAR_CLEARANCE),
     ) {
         item {
-            Text(
-                "← Home",
-                style = MaterialTheme.typography.labelLarge,
-                color = c.accent,
-                modifier = Modifier.clickable { onBack() },
-            )
+            Crumb("Home", onBack)
             Spacer(Modifier.height(Gap.s7))
 
             /* Lessons, and only lessons. A ring that counted
@@ -1799,7 +1794,7 @@ fun Ladder(
         }
 
         if (stages.isEmpty()) {
-            item { Text("Reading the ladder…", color = c.inkSoft) }
+            item { Skeleton(lines = 4, label = "Reading the ladder") }
         }
 
         items(stages) { stage ->

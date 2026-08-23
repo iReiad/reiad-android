@@ -46,7 +46,7 @@ fun paparazzi(device: DeviceConfig = HANDSET): Paparazzi = Paparazzi(
     maxPercentDifference = 0.0,
 )
 
-private val json = Json {
+internal val json = Json {
     ignoreUnknownKeys = true
     isLenient = true
     explicitNulls = false
@@ -60,4 +60,18 @@ private val json = Json {
 fun <T> fixture(name: String, serializer: kotlinx.serialization.DeserializationStrategy<T>): T {
     val file = File("../core/src/test/resources/fixtures/$name")
     return json.decodeFromString(serializer, file.readText())
+}
+
+/** One field of a fixture, for an endpoint that wraps what a
+    screen needs inside a bigger answer. */
+fun <T> fixtureField(
+    name: String,
+    field: String,
+    serializer: kotlinx.serialization.DeserializationStrategy<T>,
+): T {
+    val file = File("../core/src/test/resources/fixtures/$name")
+    val root = json.parseToJsonElement(file.readText())
+    val inner = root.let { it as kotlinx.serialization.json.JsonObject }[field]
+        ?: error("$name has no $field")
+    return json.decodeFromJsonElement(serializer, inner)
 }
