@@ -971,13 +971,13 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         val marks = now.entry?.marks.orEmpty()
         val markedNow = counting.count { (marks[it.id] ?: 0.0) > 0 }
         viewModelScope.launch {
-            reiad.keepRoutineGlance(
-                uk.co.reiad.library.data.RoutineGlance(
-                    date = now.today,
-                    marked = markedNow,
-                    of = counting.size,
-                ),
+            val summary = uk.co.reiad.library.data.RoutineGlance(
+                date = now.today,
+                marked = markedNow,
+                of = counting.size,
             )
+            reiad.keepRoutineGlance(summary)
+            _routineGlance.value = summary
             runCatching { uk.co.reiad.library.widget.RoutineWidget().updateAll(context) }
         }
     }
@@ -1134,7 +1134,16 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         true
     }.getOrDefault(false)
 
-    init { refresh() }
+    init {
+        refresh()
+        viewModelScope.launch {
+            _routineGlance.value = reiad.cachedRoutineGlance()
+            /* The board's streak widget reads the same local set
+               the account page draws, and needs it before the
+               account screen has ever been opened. */
+            _daysActive.value = reiad.daysActive()
+        }
+    }
 
     /** Ask the site what it holds, and say so if it will not.
 
@@ -1406,6 +1415,14 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
 
     private val _daysActive = MutableStateFlow<Set<String>>(emptySet())
     val daysActive: StateFlow<Set<String>> = _daysActive.asStateFlow()
+
+    /** Today's routine summary, mirrored from the cache the
+        launcher widget reads, so the board's routine widget and
+        the home-screen one draw from one record. */
+    private val _routineGlance =
+        MutableStateFlow<uk.co.reiad.library.data.RoutineGlance?>(null)
+    val routineGlance: StateFlow<uk.co.reiad.library.data.RoutineGlance?> =
+        _routineGlance.asStateFlow()
 
     private val _exported = MutableStateFlow<String?>(null)
     val exported: StateFlow<String?> = _exported.asStateFlow()
@@ -1930,6 +1947,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val routineLine by model.routineLine.collectAsState()
     val threadState by model.thread.collectAsState()
     val daysActive by model.daysActive.collectAsState()
+    val routineGlance by model.routineGlance.collectAsState()
     val exported by model.exported.collectAsState()
     val erasing by model.erasing.collectAsState()
     val checks by model.checks.collectAsState()
@@ -2542,6 +2560,8 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     },
                     onRetry = { model.refresh() },
                     board = board,
+                    daysActive = daysActive,
+                    routineGlance = routineGlance,
                     bookmarks = bookmarks,
                     pieces = pieces,
                     lang = prefs.lang,
@@ -2815,6 +2835,8 @@ fun Home(
         the site's own default answers the first and nothing
         answers the second. */
     board: List<String>? = null,
+    daysActive: Set<String> = emptySet(),
+    routineGlance: uk.co.reiad.library.data.RoutineGlance? = null,
     bookmarks: Map<String, Bookmark> = emptyMap(),
     pieces: List<Piece> = emptyList(),
     news: List<Story> = emptyList(),
@@ -2868,6 +2890,8 @@ fun Home(
     val data = BoardData(
         site = site, ticks = ticks, bookmarks = bookmarks, pieces = pieces,
         sway = sway, icons = icons, lang = lang, news = news,
+        daysActive = daysActive, routine = routineGlance,
+        today = remember { java.time.LocalDate.now().toString() },
     )
     val act = BoardActions(
         onSchool = onOpen, onItem = onGo, onPiece = onPiece, onResume = onResume,

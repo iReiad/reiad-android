@@ -66,6 +66,7 @@ import uk.co.reiad.library.accentOf
     contract above working rather than failing. */
 val DRAWABLE: Set<String> = setOf(
     "continue", "progress", "pulse", "market", "schools", "tools", "stock",
+    "streak", "routine",
 )
 
 /** Everything one of these renderers might need.
@@ -83,6 +84,14 @@ data class BoardData(
     val icons: Map<String, String>,
     val lang: String,
     val news: List<Story> = emptyList(),
+    /** The `days-active` set, which is local: the year drawing on
+        the account page reads the same one. */
+    val daysActive: Set<String> = emptySet(),
+    /** Today's routine summary, out of the cache the launcher
+        widget reads, so the two can never disagree. Null until a
+        day has been read once. */
+    val routine: uk.co.reiad.library.data.RoutineGlance? = null,
+    val today: String = "",
 )
 
 /** What a widget can ask the app to do. */
@@ -118,6 +127,8 @@ fun Widget(id: String, size: WidgetSize, data: BoardData, act: BoardActions): Bo
         "schools" -> SchoolsWidget(data, act)
         "tools" -> ToolsWidget(data, act)
         "stock" -> StockWidget(data, act)
+        "streak" -> StreakWidget(data)
+        "routine" -> RoutineBoardWidget(data, act)
         else -> return false
     }
     return true
@@ -452,4 +463,77 @@ private fun StockWidget(data: BoardData, act: BoardActions) {
 @Composable
 fun Halved(content: @Composable () -> Unit) {
     Box(Modifier.fillMaxWidth()) { content() }
+}
+
+
+/* ---------- the days, and today's routine ---------- */
+
+/** A year of days, the account page's own drawing on the board.
+
+    No flame, nothing red, nothing counting down: the site's rule
+    for this reading, kept on the front page too. Signed out the
+    set is simply empty, and an empty year is an honest one. */
+@Composable
+private fun StreakWidget(data: BoardData) {
+    Pane(Modifier.fillMaxWidth()) {
+        WidgetHead(if (data.lang == "bn") "যে দিনগুলো এসেছেন" else "A year of days")
+        YearOfDays(data.daysActive)
+    }
+}
+
+/** Today's routine on the BOARD: the same summary the launcher
+    widget draws, from the same cache, so the three places that
+    say "today" (the day page, the home-screen widget, this)
+    cannot disagree.
+
+    The same two refusals as the launcher's: yesterday's summary
+    is the invitation, and an unmarked day is never a nought. */
+@Composable
+private fun RoutineBoardWidget(data: BoardData, act: BoardActions) {
+    val c = LocalReiad.current
+    val glance = data.routine?.takeIf { it.date == data.today && it.of > 0 }
+    val item = data.site?.nav.orEmpty()
+        .flatMap { it.items }.firstOrNull { it.key == "routine" } ?: return
+
+    Pane(Modifier.fillMaxWidth()) {
+        WidgetHead(if (data.lang == "bn") "আজকের রুটিন" else "Today's routine")
+        Tap(onClick = { act.onItem(item) }, label = item.label) {
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = Gap.s3),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (glance == null || glance.marked == 0) {
+                    Text(
+                        if (data.lang == "bn") {
+                            "আজ এখনো খালি। একটা টিক দিয়ে শুরু করুন।"
+                        } else {
+                            "Today is still empty. Start with one tick."
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.inkSoft,
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    Text(
+                        if (data.lang == "bn") {
+                            "${inScript(glance.marked.toString(), "bn")} / " +
+                                inScript(glance.of.toString(), "bn")
+                        } else {
+                            "${glance.marked} / ${glance.of}"
+                        },
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = c.accent,
+                    )
+                    Spacer(Modifier.width(Gap.s5))
+                    Text(
+                        if (data.lang == "bn") "টিক পড়েছে" else "ticked",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.inkSoft,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Icon("chevron", size = 14.dp, tint = c.inkSoft)
+            }
+        }
+    }
 }

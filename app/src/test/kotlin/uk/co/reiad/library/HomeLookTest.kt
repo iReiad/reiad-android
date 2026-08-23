@@ -52,7 +52,17 @@ class HomeLookTest {
                         onOpen = {},
                         board = listOf(
                             "progress:small", "stock:small",
+                            "routine:wide", "streak:wide",
                             "continue:wide", "pulse:tall",
+                        ),
+                        daysActive = setOf(
+                            "2026-08-20", "2026-08-21", "2026-08-22", "2026-08-23",
+                            "2026-07-01", "2026-06-15", "2026-05-04",
+                        ),
+                        routineGlance = uk.co.reiad.library.data.RoutineGlance(
+                            date = java.time.LocalDate.now().toString(),
+                            marked = 5,
+                            of = 8,
                         ),
                     )
                 }
