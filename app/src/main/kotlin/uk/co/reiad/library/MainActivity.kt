@@ -64,6 +64,7 @@ import uk.co.reiad.library.core.LessonPage
 import uk.co.reiad.library.core.NavGroup
 import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.School
+import uk.co.reiad.library.core.stock.inScript
 import uk.co.reiad.library.core.ProgressKeys
 import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.SiteManifest
@@ -178,6 +179,7 @@ import uk.co.reiad.library.ui.openOnSite
 import uk.co.reiad.library.ui.accentOf as tokenAccent
 import uk.co.reiad.library.ui.InfoCard
 import uk.co.reiad.library.ui.LocalReiad
+import uk.co.reiad.library.ui.LessonHead
 import uk.co.reiad.library.ui.SetupState
 import uk.co.reiad.library.ui.seeded
 import uk.co.reiad.library.ui.Pane
@@ -2527,19 +2529,34 @@ fun Reading(
         Crumb(stage.bn, onBack)
         Spacer(Modifier.height(Gap.s7))
 
-        /* The lesson's own head, at the size the site sets a
-           lesson's head. It was `headlineMedium` with a grey line
-           under it, which is a card's title rather than a page's:
-           a reader who has opened a lesson has arrived somewhere
-           and the top of the page should say so. */
-        PageHead(
+        /* The lesson's own head, and it is FOUR things.
+
+           It was a plain `PageHead`, so the icon, the name in
+           the language the school teaches and the accent rail
+           under the definition were all missing, and the
+           one-liner read as another paragraph of grey text. The
+           site sets all four and every word was already in the
+           row: nothing here needed fetching, only drawing. */
+        LessonHead(
             title = lesson.bn,
-            eyebrow = listOfNotNull(
-                stage.en ?: stage.bn,
-                lesson.minutes.takeIf { it > 0 }?.let { "$it min" },
+            /* Whichever second language this school teaches
+               under. Asked of the LESSON rather than decided
+               from the school's key, because the row is what
+               carries it and a fifth school would arrive
+               drawn. */
+            also = lesson.en ?: lesson.de ?: lesson.ar,
+            icon = lesson.icon,
+            eyebrow = stage.en ?: stage.bn,
+            oneLiner = lesson.blurb,
+            /* Bangla digits inside Bangla words, which is what
+               `bnNum` is for and what the site does through
+               `look.words.minutes`. The risk badge rides here
+               too: the site puts it in the lesson's meta and the
+               card draws it from the same place. */
+            meta = listOfNotNull(
+                lesson.minutes.takeIf { it > 0 }?.let { "${inScript(it.toString(), "bn")} মিনিট পড়া" },
                 lesson.risk,
-            ).joinToString(" · "),
-            lede = lesson.blurb,
+            ).joinToString(" · ").ifBlank { null },
         )
         Spacer(Modifier.height(Gap.s7))
 

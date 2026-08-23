@@ -20,6 +20,7 @@ import uk.co.reiad.library.ui.CalculatorsScreen
 import uk.co.reiad.library.ui.Gap
 import uk.co.reiad.library.ui.LocalReiad
 import uk.co.reiad.library.ui.BodyView
+import uk.co.reiad.library.ui.LessonHead
 import uk.co.reiad.library.ui.PageHead
 import uk.co.reiad.library.ui.Problem
 import uk.co.reiad.library.ui.ReiadTheme
@@ -212,10 +213,18 @@ class ScreensLookTest {
         ) { "the lesson fixture has no page in it" }
         val blocks = BodyParser.parse(page.body).blocks
         Column(Modifier.padding(horizontal = Gap.s8)) {
-            PageHead(
-                title = "\u09ac\u09bf\u0993 \u0985\u09cd\u09af\u09be\u0995\u09be\u0989\u09a8\u09cd\u099f",
+            /* The head the route draws, with the same four parts:
+               the trail, the icon and both names, the definition
+               against its accent rail, and the minutes. Written
+               out here rather than calling `Reading()` for the
+               reason in the doc above. */
+            LessonHead(
+                title = "\u09b6\u09c7\u09df\u09be\u09b0",
+                also = "Share / Stock",
+                icon = "book",
                 eyebrow = "BASICS",
-                lede = page.blurb,
+                oneLiner = page.blurb,
+                meta = "\u09e9 \u09ae\u09bf\u09a8\u09bf\u099f \u09aa\u09dc\u09be",
             )
             Spacer(Modifier.height(Gap.s7))
             BodyView(blocks)
