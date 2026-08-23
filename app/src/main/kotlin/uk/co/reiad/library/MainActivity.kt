@@ -64,6 +64,8 @@ import uk.co.reiad.library.core.LessonPage
 import uk.co.reiad.library.core.NavGroup
 import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.School
+import uk.co.reiad.library.core.rungsOf
+import uk.co.reiad.library.core.standingOf
 import uk.co.reiad.library.core.stock.inScript
 import uk.co.reiad.library.core.ProgressKeys
 import uk.co.reiad.library.core.NavItem
@@ -179,6 +181,9 @@ import uk.co.reiad.library.ui.openOnSite
 import uk.co.reiad.library.ui.accentOf as tokenAccent
 import uk.co.reiad.library.ui.InfoCard
 import uk.co.reiad.library.ui.LocalReiad
+import uk.co.reiad.library.ui.Path
+import uk.co.reiad.library.ui.Paths
+import uk.co.reiad.library.ui.accentOfSchool
 import uk.co.reiad.library.ui.LessonHead
 import uk.co.reiad.library.ui.SetupState
 import uk.co.reiad.library.ui.seeded
@@ -989,6 +994,14 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     private val _setup = MutableStateFlow(SetupState())
     val setup: StateFlow<SetupState> = _setup.asStateFlow()
 
+    /** Where the reader stands in each school whose ladder has
+        arrived. A school absent from this list is a school this
+        phone has not read yet, and the account draws nothing for
+        it: "you have finished nothing" and "this has not loaded"
+        must not look the same. */
+    private val _paths = MutableStateFlow<List<Path>>(emptyList())
+    val paths: StateFlow<List<Path>> = _paths.asStateFlow()
+
     private val _daysActive = MutableStateFlow<Set<String>>(emptySet())
     val daysActive: StateFlow<Set<String>> = _daysActive.asStateFlow()
 
@@ -1064,6 +1077,43 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
                 fallbackName = account?.reader?.first()?.name.orEmpty(),
                 started = startedIn(_ticks.value),
             )
+        }
+        readPaths()
+    }
+
+    /** Where the reader stands in each school.
+
+        The ladders come from the CACHE first and the network
+        second, which `Reiad.fetch` already does, so this is four
+        reads off disk for somebody who has opened the schools and
+        four small requests for somebody who has not. It runs on
+        the account screen only, which is a screen a reader opened
+        deliberately.
+
+        The ticks, the bookmark and the checkpoints are all this
+        phone's. That split is the rule: the ladder is the
+        server's and the ticks are ours. */
+    fun readPaths() {
+        val manifest = _site.value ?: return
+        viewModelScope.launch {
+            val found = mutableListOf<Path>()
+            for (school in manifest.ladders) {
+                val which = School.of(school.key) ?: continue
+                val answer = reiad.ladder(school.key)
+                val stages = answer.value?.stages ?: continue
+                found.add(
+                    Path(
+                        school = school,
+                        at = standingOf(
+                            ladder = rungsOf(stages),
+                            read = reiad.ticksNow(which),
+                            last = reiad.bookmark(which).first()?.id,
+                            checks = reiad.checkpoints(which).first(),
+                        ),
+                    ),
+                )
+            }
+            _paths.value = found
         }
     }
 
@@ -1437,6 +1487,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val kept by model.kept.collectAsState()
     val targets by model.targets.collectAsState()
     val setupState by model.setup.collectAsState()
+    val paths by model.paths.collectAsState()
     val daysActive by model.daysActive.collectAsState()
     val exported by model.exported.collectAsState()
     val erasing by model.erasing.collectAsState()
@@ -1683,6 +1734,11 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         onSaveProfile = { model.saveProfile() },
                         onNotNow = { model.saveProfile(stampOnly = true) },
                         onAddTarget = { model.addTarget(it) },
+                        paths = paths,
+                        onOpenSchool = { school ->
+                            model.openLadder(school)
+                            where = Where.Ladder(school)
+                        },
                     )
                 }
 
@@ -2092,8 +2148,13 @@ internal fun startedIn(ticks: Map<String, Set<String>>): Set<String> =
         .map { it.id }
         .toSet()
 
-internal fun accentOf(school: LadderSchool): Accent =
-    Accents.byToken(school.accent) ?: Accents.BY_KEY[school.key] ?: Accents.GREEN
+/** A school's colour, which the rail taught the reader.
+
+    `accentOfSchool` in `ui/Paths.kt` is the same function where
+    the drawing is; this is the one name the rest of this file
+    already uses. One implementation, two names, and the alias is
+    what stops a third appearing. */
+internal fun accentOf(school: LadderSchool): Accent = accentOfSchool(school)
 
 internal fun accentOfGroup(group: NavGroup): Accent = tokenAccent(group.accent)
 

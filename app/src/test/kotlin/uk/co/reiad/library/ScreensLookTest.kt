@@ -21,6 +21,8 @@ import uk.co.reiad.library.ui.Gap
 import uk.co.reiad.library.ui.LocalReiad
 import uk.co.reiad.library.ui.BodyView
 import uk.co.reiad.library.ui.LessonHead
+import uk.co.reiad.library.ui.Path
+import uk.co.reiad.library.ui.Paths
 import uk.co.reiad.library.ui.PageHead
 import uk.co.reiad.library.ui.Problem
 import uk.co.reiad.library.ui.ReiadTheme
@@ -61,6 +63,8 @@ import uk.co.reiad.library.core.LessonResponse
 import uk.co.reiad.library.core.Lesson
 import uk.co.reiad.library.core.Stage
 import uk.co.reiad.library.core.LadderResponse
+import uk.co.reiad.library.core.rungsOf
+import uk.co.reiad.library.core.standingOf
 import uk.co.reiad.library.core.BodyParser
 import uk.co.reiad.library.core.Reader
 
@@ -190,6 +194,26 @@ class ScreensLookTest {
             paces = site.profile.paces,
             targetKinds = site.profile.targetKinds,
             started = setOf("money"),
+            /* One school's real ladder, with a real reading
+               position in it. The bar's denominator is what the
+               rows say, not a number typed here. */
+            paths = run {
+                val money = site.ladders.first { it.key == "money" }
+                val rungs = rungsOf(
+                    fixture("money.json", LadderResponse.serializer()).stages,
+                )
+                listOf(
+                    Path(
+                        school = money,
+                        at = standingOf(
+                            ladder = rungs,
+                            read = rungs.take(5).map { it.id }.toSet(),
+                            last = rungs[4].id,
+                            checks = setOf("${rungs[1].id}#0", "${rungs[1].id}#1"),
+                        ),
+                    ),
+                )
+            },
         )
     }
 
@@ -207,6 +231,42 @@ class ScreensLookTest {
         The picture is of the PROSE, so the parse belongs in the
         test. `ReadingSettlesTest` is what asserts that the screen
         gets from one to the other. */
+    /** "Where you are", on its own.
+
+        A screen this long is taller than the frame, so the
+        account snapshot only ever shows its head. A section
+        nobody can see in a picture is a section that can rot
+        quietly, which is what the first version of `ReachTest`
+        was written about. */
+    @Test fun accountPaths() = page {
+        val rungs = rungsOf(fixture("money.json", LadderResponse.serializer()).stages)
+        val deutsch = fixture("deutsch.json", LadderResponse.serializer())
+        Column(Modifier.padding(Gap.s8)) {
+            Paths(
+                listOf(
+                    Path(
+                        school = site.ladders.first { it.key == "money" },
+                        at = standingOf(
+                            ladder = rungs,
+                            read = rungs.take(7).map { it.id }.toSet(),
+                            last = rungs[6].id,
+                            checks = setOf("${rungs[1].id}#0", "${rungs[1].id}#1"),
+                        ),
+                    ),
+                    /* And one nobody has opened, which is the
+                       state most schools are in for most readers
+                       and the one that has to read as an
+                       invitation rather than as a failure. */
+                    Path(
+                        school = site.ladders.first { it.key == "deutsch" },
+                        at = standingOf(rungsOf(deutsch.stages), emptySet()),
+                    ),
+                ),
+                onOpen = {},
+            )
+        }
+    }
+
     @Test fun lessonBody() = page {
         val page = requireNotNull(
             fixture("lesson-papers.json", LessonResponse.serializer()).lesson,

@@ -107,6 +107,11 @@ fun AccountScreen(
     onSaveProfile: () -> Unit = {},
     onNotNow: () -> Unit = {},
     onAddTarget: (Target) -> Unit = {},
+    /** Where the reader stands in each school whose ladder has
+        arrived. Empty draws the section away entirely rather than
+        four bars at nought. */
+    paths: List<Path> = emptyList(),
+    onOpenSchool: (LadderSchool) -> Unit = {},
 ) {
     val c = LocalReiad.current
     LazyColumn(
@@ -187,6 +192,24 @@ fun AccountScreen(
                     )
                 }
                 Spacer(Modifier.height(Gap.s9))
+            }
+
+            /* ---- where you are ----
+
+               Above the year, because "how far through am I" is
+               the question this screen exists for and a calendar
+               is the answer to a different one. */
+            if (paths.isNotEmpty()) {
+                item("paths") {
+                    Text(
+                        "WHERE YOU ARE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = c.inkSoft,
+                    )
+                    Spacer(Modifier.height(Gap.s5))
+                    Paths(paths, onOpenSchool)
+                    Spacer(Modifier.height(Gap.s9))
+                }
             }
 
             /* ---- a year of days ---- */
@@ -437,10 +460,12 @@ private fun EmailBox(sent: Boolean, onLink: (String) -> Unit) {
         }
         Control(
             modifier = Modifier
-                /* Four letters and the site's own padding come to
-                   34dp wide, which is a target too narrow in one
-                   direction: the height was right and nothing
-                   said so. */
+                /* The same minimum `PillButton` carries: a short
+                   label is a target too narrow in one direction.
+                   This is a bare `Control` rather than a
+                   `PillButton` because it sits inside the email
+                   row and shares its height, so it needs saying
+                   here too. */
                 .widthIn(min = Gap.tap)
                 .clickable(
                     role = Role.Button,

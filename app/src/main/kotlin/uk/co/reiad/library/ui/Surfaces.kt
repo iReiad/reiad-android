@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -148,6 +149,18 @@ fun PillButton(
     val ink = if (filled) c.paper else c.accent
     Control(
         modifier
+            /* A MINIMUM WIDTH, not only a height.
+
+               `Control` gives this its 44dp height and nothing
+               gave it a width, so a short label is a target too
+               narrow in one direction: SAVE came to 34dp and NOT
+               NOW to 36. Both are the right size in a screenshot
+               and the wrong size under a thumb, which is why
+               `ReachTest` walks the semantics tree rather than
+               looking. It was fixed once on ONE button, in the
+               account's own file, with a comment saying exactly
+               this; here is where it belongs. */
+            .widthIn(min = Gap.tap)
             .clip(RoundedCornerShape(Corner.pill))
             .then(
                 if (filled) Modifier

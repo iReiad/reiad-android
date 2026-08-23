@@ -30,9 +30,14 @@ import uk.co.reiad.library.ui.StockScreen
 import uk.co.reiad.library.ui.StockState
 import uk.co.reiad.library.ui.AccountScreen
 import uk.co.reiad.library.ui.Problem
+import uk.co.reiad.library.ui.Path
+import uk.co.reiad.library.ui.SetupState
 import uk.co.reiad.library.ui.Shell
 import uk.co.reiad.library.ui.ShellState
 import uk.co.reiad.library.core.LadderResponse
+import uk.co.reiad.library.core.Reader
+import uk.co.reiad.library.core.rungsOf
+import uk.co.reiad.library.core.standingOf
 import kotlin.test.assertTrue
 
 /* ============================================================
@@ -163,6 +168,40 @@ class ReachTest {
             exported = null, onErase = {}, erasing = null,
             problem = null, linkSent = false, bottomPadding = 96.dp,
             onGoogle = {}, onLink = {}, onSignOut = {},
+        )
+    }
+
+    /** Signed in, with the setup form, the target form and the
+        school bars all on screen.
+
+        The signed-OUT audit above reaches two buttons and a text
+        field. Everything this account can actually DO is behind
+        being signed in, so auditing only the signed-out state is
+        auditing the smallest version of the screen. Every choice
+        row here is a `RadioButton` or a `Checkbox` rather than a
+        Button, deliberately: a screen reader announces "selected"
+        for those and nothing at all for a button, and this row is
+        the only thing saying which answer is on. */
+    @Test fun theAccountSignedIn() = audit("account-in") {
+        val rungs = rungsOf(fixture("money.json", LadderResponse.serializer()).stages)
+        AccountScreen(
+            reader = Reader(id = "r1", email = "you@example.com", name = "Rony Reiad"),
+            kept = emptyList(), targets = emptyList(),
+            daysActive = setOf("2026-08-22"), ticksOf = { 0 },
+            onOpenKept = {}, onRemoveTarget = {}, onExport = {},
+            exported = null, onErase = {}, erasing = null,
+            problem = null, linkSent = false, bottomPadding = 96.dp,
+            onGoogle = {}, onLink = {}, onSignOut = {},
+            setup = SetupState(name = "Rony Reiad"),
+            schools = site.ladders,
+            paces = site.profile.paces,
+            targetKinds = site.profile.targetKinds,
+            paths = listOf(
+                Path(
+                    school = site.ladders.first { it.key == "money" },
+                    at = standingOf(rungs, rungs.take(3).map { it.id }.toSet()),
+                ),
+            ),
         )
     }
 
