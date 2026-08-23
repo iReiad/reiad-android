@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
@@ -491,6 +492,10 @@ fun Crumb(label: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val c = LocalReiad.current
     Row(
         modifier
+            /* It is the way back, which makes it the one target
+               on a lesson page a reader reaches for without
+               looking. At chip padding it was 33dp. */
+            .heightIn(min = Gap.tap)
             .clip(RoundedCornerShape(Corner.pill))
             .material(Kind.CHIP, c, Corner.pill, ground = c.accent.copy(alpha = 0.10f))
             .clickable(role = Role.Button, onClick = onBack)

@@ -12,6 +12,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -171,6 +173,42 @@ fun PillButton(
     }
 }
 
+/**
+ * A tap target, never smaller than the site's own `--tap`.
+ *
+ * A chip is 29dp tall, which is right: it is a small mark that
+ * says what something is. When one is also PRESSABLE the mark and
+ * the target stop being the same thing, and the target is the one
+ * with a minimum. The language switch on the stock check and the
+ * seven calculator chips were all 28 by 29, well under both the
+ * site's 44 and Android's 48, and nothing could see it: they are
+ * the right size in a screenshot and the wrong size under a
+ * thumb.
+ *
+ * The child keeps its own size and is centred, so this changes
+ * what a finger can hit and not what a reader sees.
+ */
+@Composable
+fun Tap(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    role: Role = Role.Button,
+    label: String? = null,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier
+            .sizeIn(minWidth = Gap.tap, minHeight = Gap.tap)
+            .clip(RoundedCornerShape(Corner.pill))
+            .clickable(role = role, onClick = onClick)
+            .then(
+                if (label == null) Modifier
+                else Modifier.semantics { contentDescription = label },
+            ),
+        contentAlignment = Alignment.Center,
+    ) { content() }
+}
+
 /** A row in a column of rows.
 
     The same glass a card is, standing on nothing, which is what
@@ -188,6 +226,12 @@ fun Rung(
     Row(
         modifier
             .fillMaxWidth()
+            /* A rung is usually the target itself: the menu's
+               rows, a ladder's lessons. At `Gap.s5` of padding
+               around one line it came to 40dp, which is under
+               both the site's 44 and Android's 48 and is
+               invisible in a screenshot. */
+            .heightIn(min = Gap.tap)
             .clip(RoundedCornerShape(Corner.field))
             .material(
                 kind = Kind.CARD,

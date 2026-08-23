@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -284,6 +285,7 @@ fun TopBar(
         Row(
             Modifier
                 .weight(1f)
+                .heightIn(min = Gap.tap)
                 .clip(RoundedCornerShape(Corner.pill))
                 .clickable(role = Role.Button, onClick = onHome)
                 .padding(horizontal = Gap.s4, vertical = Gap.s3),
@@ -705,7 +707,11 @@ fun AudienceSwitch(
         Row(
             Modifier
                 .fillMaxWidth()
-                .height(Gap.tap)
+                /* The GROOVE is a tap taller than a tap, because
+                   what rides in it is the target: at `Gap.tap`
+                   with the channel's own padding the two thumbs
+                   came to 36dp each. */
+                .height(Gap.tap + Gap.s4)
                 .clip(RoundedCornerShape(Corner.pill))
                 .material(Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
                 .padding(Gap.s2),

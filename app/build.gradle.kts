@@ -73,6 +73,14 @@ android {
 
     buildFeatures { compose = true }
 
+    /* Robolectric needs the app's real resources: the faces, the
+       colours and the strings are all resources, and a semantics
+       tree built without them is a tree of blanks. */
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.isReturnDefaultValues = true
+    }
+
     sourceSets["main"].kotlin.srcDir("src/main/kotlin")
 }
 
@@ -134,4 +142,12 @@ dependencies {
        not a golden-image gate: see `app/src/test/.../Looks.kt`. */
     testImplementation(libs.kotlin.test)
     testImplementation(libs.junit)
+
+    /* Robolectric runs the real Compose runtime on the JVM, which
+       is what makes an accessibility check a CHECK: the semantics
+       tree it walks is the one TalkBack would read, rather than a
+       guess made from the source. */
+    testImplementation(libs.robolectric)
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

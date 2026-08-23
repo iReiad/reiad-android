@@ -191,7 +191,7 @@ fun StockScreen(
                 Spacer(Modifier.height(Gap.s5))
                 Row(horizontalArrangement = Arrangement.spacedBy(Gap.s3)) {
                     for ((id, label) in listOf("en" to "English", "bn" to "বাংলা")) {
-                        Box(Modifier.clickable { onLang(id) }) {
+                        Tap(onClick = { onLang(id) }) {
                             Chip(label, tone = if (lang == id) c.accent else c.inkSoft)
                         }
                     }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,6 +26,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
@@ -264,7 +267,12 @@ fun AccountScreen(
 
             Control(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    /* The whole groove, not just its width. The
+                       field's own node is what carries the click,
+                       so a text field drawn one line tall inside
+                       a 44dp box is a 17dp target however tall
+                       the box is. */
+                    .fillMaxSize()
                     .clickable(role = Role.Button, onClick = onGoogle),
                 ground = c.accent,
             ) {
@@ -343,14 +351,33 @@ private fun EmailBox(sent: Boolean, onLink: (String) -> Unit) {
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Send,
                 ),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    /* The whole groove, not just its width. The
+                       field's own node is what carries the click,
+                       so a text field drawn one line tall inside
+                       a 44dp box is a 17dp target however tall
+                       the box is. */
+                    .fillMaxSize()
+                    /* The placeholder is drawn as a sibling Text
+                       so the field itself carries no label at
+                       all, and a screen reader reaches an empty
+                       edit box: "edit box", and nothing about
+                       what goes in it. The placeholder is a
+                       drawing; this is the name. */
+                    .semantics { contentDescription = "Your email address" },
             )
         }
         Control(
-            modifier = Modifier.clickable(
-                role = Role.Button,
-                enabled = '@' in email,
-            ) { onLink(email.trim()) },
+            modifier = Modifier
+                /* Four letters and the site's own padding come to
+                   34dp wide, which is a target too narrow in one
+                   direction: the height was right and nothing
+                   said so. */
+                .widthIn(min = Gap.tap)
+                .clickable(
+                    role = Role.Button,
+                    enabled = '@' in email,
+                ) { onLink(email.trim()) },
             ground = if ('@' in email) c.accent else c.paperSunk,
         ) {
             Text(

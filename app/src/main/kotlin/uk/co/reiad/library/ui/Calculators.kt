@@ -125,7 +125,7 @@ fun CalculatorsScreen(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(Gap.s3)) {
                     for ((id, label) in listOf("en" to "English", "bn" to "বাংলা")) {
-                        Box(Modifier.clickable { onLang(id) }) {
+                        Tap(onClick = { onLang(id) }) {
                             Chip(label, tone = if (lang == id) c.accent else c.inkSoft)
                         }
                     }
@@ -143,7 +143,7 @@ fun CalculatorsScreen(
                 horizontalArrangement = Arrangement.spacedBy(Gap.s4),
             ) {
                 for (other in CALCULATORS) {
-                    Box(Modifier.clickable { onState(state.copy(open = other.id)) }) {
+                    Tap(onClick = { onState(state.copy(open = other.id)) }) {
                         Chip(
                             words.t("calc.${other.id}.short", lang),
                             tone = if (other.id == calc.id) c.accent else c.inkSoft,

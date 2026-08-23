@@ -51,7 +51,23 @@ jobs:
       - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
 
-      # The app's own tests as well as the build. `NavReachTest`
+      # The app's own tests as well as the build. Three of them
+      # are the kind that cannot be written any other way:
+      #
+      #   NavReachTest walks the menu in a real manifest and fails
+      #   on a row that goes nowhere, which is what shipped when
+      #   the drawer's handler read schools and ignored the
+      #   account, both tool screens and every hub.
+      #
+      #   ReachTest runs the real Compose runtime under
+      #   Robolectric and walks the SEMANTICS TREE: a target a
+      #   screen reader cannot name, or one under the site's 44dp
+      #   tap size, on every screen and again at 200% type. It
+      #   found sixteen the first time it ran.
+      #
+      #   ShelfKeysTest is the prefix that decides which keys
+      #   "forget the cache" takes, against the real names.
+      #
       # is the one that matters most here: it walks the menu in a
       # real manifest and fails on a row that goes nowhere, which
       # is what shipped when the drawer's handler read schools and
