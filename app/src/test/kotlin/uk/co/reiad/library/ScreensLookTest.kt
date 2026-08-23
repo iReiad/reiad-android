@@ -253,6 +253,11 @@ class ScreensLookTest {
             onClose = {},
             held = Held(89, 1_430_000),
             onForget = {},
+            /* Pinned, because the real one is the commit and this
+               snapshot would then differ on every commit, which
+               is a diff that means nothing and hides the ones
+               that do. */
+            builtFrom = "0000000  1970-01-01 00:00",
         )
     }
 

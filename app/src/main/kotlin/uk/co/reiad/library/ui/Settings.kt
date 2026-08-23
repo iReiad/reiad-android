@@ -75,6 +75,10 @@ fun SettingsSheet(
         drawn on its own, which is what the render test does. */
     held: Held? = null,
     onForget: () -> Unit = {},
+    /** Which build this is. Passed in rather than read from
+        `BuildConfig` here, so the render test can pin a fixed
+        string and the snapshot does not change on every commit. */
+    builtFrom: String = uk.co.reiad.library.BuildConfig.BUILT_FROM,
 ) {
     val c = LocalReiad.current
     val reduced = rememberReducedMotion()
@@ -177,6 +181,38 @@ fun SettingsSheet(
                 Spacer(Modifier.height(Gap.s7))
                 HeldPanel(held, onForget)
             }
+
+            /* WHICH BUILD THIS IS, at the foot of the one sheet
+               every reader opens.
+
+               Not decoration and not a version number nobody
+               maintains: it is the commit, so a report about
+               something not working can be matched to the code
+               that was actually running. The failure it answers
+               is worse than a wrong download. Android refuses to
+               install an APK signed by a different key over one
+               already installed, so a reader who taps install,
+               sees "App not installed" and carries on is using
+               the build from three releases ago while everybody
+               believes the fix is being tested. */
+            Spacer(Modifier.height(Gap.s10))
+            Text("This build", style = MaterialTheme.typography.headlineSmall, color = c.ink)
+            Spacer(Modifier.height(Gap.s3))
+            Text(
+                builtFrom,
+                style = MaterialTheme.typography.bodySmall,
+                color = c.inkSoft,
+                fontFamily = Faces.mono,
+            )
+            Spacer(Modifier.height(Gap.s3))
+            Text(
+                "If this does not match the build you were sent, the install did not "
+                    + "replace the old app. Uninstall it and install again: Android "
+                    + "refuses a new APK over one signed by a different key, and says "
+                    + "so only in a notice that is easy to miss.",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.inkSoft,
+            )
             Spacer(Modifier.height(Gap.s10))
         }
     }

@@ -1146,9 +1146,25 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
 
     fun sendLink(context: android.content.Context, email: String) {
         viewModelScope.launch {
-            _linkSent.value = account(context).sendLink(email)
-            if (!_linkSent.value) _authProblem.value = "That email would not send."
+            _authProblem.value = null
+            /* The server's own words when it refuses. "That email
+               would not send" was the whole of what a reader saw
+               for a rate limit, a malformed address and a project
+               with email sign-in switched off alike, which is
+               three different fixes reported as one mystery. */
+            val wrong = account(context).sendLink(email)
+            _linkSent.value = wrong == null
+            _authProblem.value = wrong
         }
+    }
+
+    /** Google, and what happens when there is no browser.
+
+        `signIn` returned Unit and swallowed the exception, so on
+        a phone with no Custom Tabs provider the button did
+        nothing and said nothing. */
+    fun signInWith(context: android.content.Context, provider: String) {
+        _authProblem.value = account(context).signIn(provider)
     }
 
     fun signOut(context: android.content.Context) {
@@ -1568,7 +1584,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         problem = authProblem,
                         linkSent = linkSent,
                         bottomPadding = BAR_CLEARANCE,
-                        onGoogle = { model.account(context).signIn("google") },
+                        onGoogle = { model.signInWith(context, "google") },
                         onLink = { model.sendLink(context, it) },
                         onSignOut = { model.signOut(context) },
                     )
