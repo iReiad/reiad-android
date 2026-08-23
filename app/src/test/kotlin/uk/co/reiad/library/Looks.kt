@@ -49,6 +49,26 @@ val DARK: DeviceConfig = HANDSET.copy(nightMode = NightMode.NIGHT)
     where it breaks on a real phone. Only the frame is longer. */
 val TALL: DeviceConfig = HANDSET.copy(screenHeight = 915 * 3 * 3)
 
+/* ---------- the phones this has to work on ----------
+
+   "It should work perfectly throughout all phones" is the ask,
+   and the checkable half of it is that a screen laid out for one
+   width is not laid out for another. Three real shapes:
+
+     SMALL   a 360dp phone, which is still the commonest width in
+             Bangladesh and the one every truncation shows up on
+             first. A Bangla lesson title is long.
+     HANDSET the 412dp the site's own screenshots are taken at.
+     TABLET  wide enough that the shell swaps its bottom bar for a
+             rail, which is a different layout rather than the
+             same one stretched.
+
+   A screen that reads at all three is a screen whose problems
+   are content rather than geometry. */
+val SMALL: DeviceConfig = HANDSET.copy(screenWidth = 360 * 3, screenHeight = 780 * 3)
+
+val TABLET: DeviceConfig = HANDSET.copy(screenWidth = 840 * 3, screenHeight = 1100 * 3)
+
 fun paparazzi(device: DeviceConfig = HANDSET): Paparazzi = Paparazzi(
     deviceConfig = device,
     /* The real faces are in `app/src/main/res/font`, so the render
