@@ -108,6 +108,9 @@ import uk.co.reiad.library.core.routine.dayBefore
 import uk.co.reiad.library.core.routine.echo
 import uk.co.reiad.library.core.routine.greeting
 import uk.co.reiad.library.core.routine.heat
+import uk.co.reiad.library.core.routine.everMarked
+import uk.co.reiad.library.core.routine.flock
+import uk.co.reiad.library.core.routine.garden
 import uk.co.reiad.library.core.routine.momentum
 import uk.co.reiad.library.core.routine.neverMarked
 import uk.co.reiad.library.core.routine.runs
@@ -453,11 +456,38 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             echo = echo(entries, today),
             season = seasonOf(today),
             greeting = hello(),
+            /* The birds and the garden, off the task the routine
+               names for them. Both are counted over the WHOLE
+               history rather than a window, which is the one
+               thing that makes them different from a streak: a
+               fortnight off does not take a bird away.
+
+               Keyed by task id rather than by position, so a
+               reader who reorders their list keeps their flock.
+               A routine with no such task simply has none, which
+               is why this is a lookup and not an assumption. */
+            flock = flock(everMarked(entries, BIRD_TASK)),
+            garden = garden(everMarked(entries, GARDEN_TASK)),
             loading = false,
         )
     }
 
     private fun hello(): String = greeting(java.time.LocalTime.now().hour).first
+
+    private companion object {
+        /* The two tasks the drawings hang on, by the ids the
+           site's shipped template gives them: `GROWN` in
+           `shared/routine.ts`.
+
+           They are three letters rather than words on purpose,
+           and the first draft of this line guessed `birds` and
+           `plants`, which would have drawn an empty sky and a
+           bare garden on every phone with every check passing.
+           `RoutineIdsTest` asks a real routine whether they
+           exist. */
+        const val BIRD_TASK = "brd"
+        const val GARDEN_TASK = "pln"
+    }
 
     /** One mark, saved.
 

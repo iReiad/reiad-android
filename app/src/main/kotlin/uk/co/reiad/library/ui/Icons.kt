@@ -64,6 +64,9 @@ private val SHAPES: Map<String, String> = mapOf(
     "close" to "M6 6l12 12M18 6L6 18",
     "check" to "M5 13l4 4L19 7",
     "spark" to "M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z",
+    /* A bird, for the flock: `ROUTINE.md` counts how many
+       times the birds have been fed and never how recently. */
+    "bird" to "M4 14c3-6 8-8 12-8 0 5-2 8-5 9l-2 5M9 15l-3 4M8 6h.01",
     "seed" to "M12 21c0-6 3-10 8-11-1 6-4 9-8 11zM12 21C8 19 5 16 4 10c5 1 8 5 8 11z",
     "cap" to "M12 3l9 5-9 5-9-5 9-5zM7 11v4c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4",
     "microscope" to "M9 4h4l1 8H8zM6 20h13M8 16h6a4 4 0 000-8M11 12v4",

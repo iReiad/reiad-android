@@ -4,6 +4,10 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import uk.co.reiad.library.core.Kind
+import uk.co.reiad.library.core.routine.Plant
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -92,6 +96,9 @@ data class RoutineState(
     val season: Season? = null,
     val greeting: String = "",
     val flock: Int = 0,
+    /** What has been planted, ever. Never shrinks, for the
+        same reason the flock does not. */
+    val garden: List<Plant> = emptyList(),
     val loading: Boolean = true,
     /** Signed out, which is not an error: a routine belongs to an
         account and there is nothing here without one. */
@@ -205,9 +212,154 @@ fun RoutineScreen(
         /* ---------- the year ---------- */
         if (state.heat.isNotEmpty()) item { Year(state.heat) }
 
+        /* ---------- the things that only ever grow ---------- */
+        if (state.flock > 0 || state.garden.isNotEmpty()) {
+            item { Grown(state.flock, state.garden) }
+        }
+        if (state.momentum != null || state.runs != null) {
+            item { Carrying(state.momentum, state.runs) }
+        }
+
         /* ---------- what is real, and what was aspirational ---------- */
         if (state.consistency.isNotEmpty()) item { Consistency(state.consistency) }
         if (state.neverMarked.isNotEmpty()) item { NeverMarked(state.neverMarked, onOpenSite) }
+    }
+}
+
+/* ---------- the birds and the garden ---------- */
+
+/**
+ * What a routine has grown, and NOTHING HERE CAN SHRINK.
+ *
+ * `ROUTINE.md` §0 and the whole argument for this tool existing
+ * rather than another habit tracker: the flock is how many times
+ * the birds have been fed, ever, and the garden is what has been
+ * planted, ever. A person who stops for a fortnight and comes
+ * back finds both exactly as they left them.
+ *
+ * That is why there is no percentage on this card and no "this
+ * week". A streak that can break is a thing that punishes an
+ * illness, and this tool refuses to.
+ */
+@Composable
+private fun Grown(flock: Int, garden: List<Plant>) {
+    val c = LocalReiad.current
+    Pane {
+        Text(
+            "এতদিনে যা জমেছে",
+            style = BanglaTitle,
+            color = c.ink,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            "What has grown. None of this can go down.",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.inkSoft,
+        )
+
+        if (flock > 0) {
+            Spacer(Modifier.height(Gap.s6))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                /* One bird per threshold reached, not one per
+                   feeding: the flock grows in visible steps and
+                   then stops, rather than becoming a crowd. */
+                repeat(flock) { i ->
+                    Icon(
+                        "bird",
+                        Modifier.padding(end = Gap.s3),
+                        size = (17 + (i % 3) * 2).dp,
+                        tint = c.accent,
+                    )
+                }
+            }
+        }
+
+        if (garden.isNotEmpty()) {
+            Spacer(Modifier.height(Gap.s6))
+            Row(
+                Modifier.horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(Gap.s5),
+            ) {
+                for (plant in garden) {
+                    Row(
+                        Modifier
+                            .clip(RoundedCornerShape(Corner.pill))
+                            .material(Kind.CHIP, c, Corner.pill, ground = c.accent.copy(alpha = 0.10f))
+                            .padding(horizontal = Gap.s6, vertical = Gap.s4),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon("seed", size = 14.dp, tint = c.accent)
+                        Spacer(Modifier.width(Gap.s4))
+                        Text(
+                            plant.bn,
+                            style = BanglaBody.copy(
+                                fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                            ),
+                            color = c.accent,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ---------- what is being carried ---------- */
+
+/**
+ * The mean over the days that were MARKED, and the longest run.
+ *
+ * Marked days rather than calendar days, which is the one line
+ * that separates this from a chart of a life, scored: a quiet
+ * fortnight makes a smaller sample rather than a falling line.
+ * Said out loud on the card, because a mean that silently
+ * excluded days would be worse than one that fell.
+ *
+ * `best` is shown beside `now` and never as a target: the site's
+ * rule is that nothing here names a next threshold.
+ */
+@Composable
+private fun Carrying(momentum: Momentum?, runs: Runs?) {
+    val c = LocalReiad.current
+    Pane {
+        Text(
+            "কেমন চলছে",
+            style = BanglaTitle,
+            color = c.ink,
+            modifier = Modifier.semantics { heading() },
+        )
+        Spacer(Modifier.height(Gap.s5))
+        Row(horizontalArrangement = Arrangement.spacedBy(Gap.s7)) {
+            if (momentum != null && momentum.marked > 0) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "${(momentum.now * 100).roundToInt()}%",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = c.accent,
+                    )
+                    Text(
+                        "over ${momentum.marked} day${if (momentum.marked == 1) "" else "s"} you marked",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.inkSoft,
+                    )
+                }
+            }
+            if (runs != null && runs.best > 0) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "${runs.now} / ${runs.best}",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = c.accent,
+                    )
+                    Text(
+                        "days running, and the longest",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.inkSoft,
+                    )
+                }
+            }
+        }
     }
 }
 
