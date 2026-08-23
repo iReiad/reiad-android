@@ -189,6 +189,7 @@ import uk.co.reiad.library.ui.InfoCard
 import uk.co.reiad.library.ui.LocalReiad
 import uk.co.reiad.library.ui.Path
 import uk.co.reiad.library.ui.Paths
+import uk.co.reiad.library.ui.RoutineLine
 import uk.co.reiad.library.ui.accentOfSchool
 import uk.co.reiad.library.ui.LessonHead
 import uk.co.reiad.library.ui.SetupState
@@ -404,6 +405,17 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     val routine: StateFlow<RoutineState> = _routine.asStateFlow()
 
     private var routineStore: Days? = null
+
+    /** The routine, in one line, for the account screen.
+
+        The routine tool's own state is a year of entries, six
+        charts and a season; the account wants what the site's
+        account wants, which is its NAME, how many things are in
+        it, and how many days have been written. Read separately
+        rather than by opening the tool, because the account
+        should not pull a year of rows to print a sentence. */
+    private val _routineLine = MutableStateFlow<RoutineLine?>(null)
+    val routineLine: StateFlow<RoutineLine?> = _routineLine.asStateFlow()
 
     private val _diet = MutableStateFlow(DietState())
     val diet: StateFlow<DietState> = _diet.asStateFlow()
@@ -1163,6 +1175,38 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         }
         readPaths()
         readScenarios()
+        readRoutineLine()
+    }
+
+    /** The routine's name, its size, and how many days have been
+        written, without opening the tool.
+
+        The store is BUILT here where it is missing, rather than
+        returning early. It used to be created only by
+        `openRoutine`, so on the account screen it was always
+        null and this section never appeared for anybody who had
+        not already opened the routine tool this session: a panel
+        that works after you visit the thing it is a summary of. */
+    fun readRoutineLine() {
+        val where = host ?: return
+        val store = routineStore ?: Days(account(where)).also { routineStore = it }
+        viewModelScope.launch {
+            val row = store.routine()
+            _routineLine.value = if (row == null) {
+                RoutineLine(built = false)
+            } else {
+                /* A year, which is what "days written" means on
+                   the site's own account panel. The tool asks for
+                   the same window. */
+                val today = java.time.LocalDate.now().toString()
+                RoutineLine(
+                    built = true,
+                    name = row.name,
+                    tasks = row.tasks.size,
+                    written = store.entries(dayBefore(today, 365)).size,
+                )
+            }
+        }
     }
 
     /** Where the reader stands in each school.
@@ -1574,6 +1618,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val paths by model.paths.collectAsState()
     val scenarios by model.scenarios.collectAsState()
     val saveNote by model.saveNote.collectAsState()
+    val routineLine by model.routineLine.collectAsState()
     val daysActive by model.daysActive.collectAsState()
     val exported by model.exported.collectAsState()
     val erasing by model.erasing.collectAsState()
@@ -1839,6 +1884,11 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             where = Where.Stock
                         },
                         onRemoveScenario = { model.removeScenario(it) },
+                        routine = routineLine,
+                        onOpenRoutine = {
+                            model.openRoutine(context)
+                            where = Where.Routine
+                        },
                     )
                 }
 

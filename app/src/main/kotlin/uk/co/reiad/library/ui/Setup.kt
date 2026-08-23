@@ -33,6 +33,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import uk.co.reiad.library.core.Choice
+import uk.co.reiad.library.core.stock.inScript
 import uk.co.reiad.library.core.Kind
 import uk.co.reiad.library.core.LadderSchool
 import uk.co.reiad.library.core.Profile
@@ -527,5 +528,67 @@ fun AddTarget(
             )
             PillButton(label = "Cancel", onClick = { open = false; draft = TargetDraft() })
         }
+    }
+}
+
+/* ============================================================
+   The routine, in one line.
+   ============================================================ */
+
+/** What the account says about a reader's routine.
+
+    Its NAME, how many things are in it, and how many days have
+    been written: the site's own three, and none of them needs
+    the tool's year of entries or six charts. */
+data class RoutineLine(
+    val built: Boolean = false,
+    val name: String = "",
+    val tasks: Int = 0,
+    val written: Int = 0,
+)
+
+@Composable
+fun RoutinePanel(line: RoutineLine, onOpen: () -> Unit) {
+    val c = LocalReiad.current
+    Pane {
+        if (!line.built) {
+            Text(
+                "You have not built one yet.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.ink,
+            )
+            Spacer(Modifier.height(Gap.s3))
+            Text(
+                /* Sent to the SITE for this, and the sentence says
+                   so rather than offering a button that opens a
+                   browser without warning. The app can read a
+                   routine and cannot build one: `TEMPLATES` is
+                   held back from the manifest for exactly that
+                   reason, and a screen that pretended otherwise
+                   would be the promise this app cannot keep. */
+                "Building one is on the site for now: start from a template or " +
+                    "from nothing, and it will be here next time you open this.",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.inkSoft,
+            )
+            return@Pane
+        }
+        Text(line.name, style = MaterialTheme.typography.titleSmall, color = c.ink)
+        Spacer(Modifier.height(Gap.s3))
+        Text(
+            "${inScript(line.tasks.toString(), "bn")} things a day, " +
+                "${inScript(line.written.toString(), "bn")} days written.",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.inkSoft,
+        )
+        Spacer(Modifier.height(Gap.s6))
+        PillButton(label = "Open today", filled = true, onClick = onOpen)
+        Spacer(Modifier.height(Gap.s5))
+        Text(
+            "Your routine is on your account, so it is the same on every device " +
+                "you sign in on.",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.inkSoft,
+        )
     }
 }

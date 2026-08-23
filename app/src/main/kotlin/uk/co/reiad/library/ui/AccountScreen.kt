@@ -117,6 +117,11 @@ fun AccountScreen(
     scenarios: List<Scenario> = emptyList(),
     onOpenScenario: (Scenario) -> Unit = {},
     onRemoveScenario: (String) -> Unit = {},
+    /** The routine in one line, or null before it has answered.
+        Null draws nothing: an empty panel and "you have not built
+        one" must not look the same. */
+    routine: RoutineLine? = null,
+    onOpenRoutine: () -> Unit = {},
 ) {
     val c = LocalReiad.current
     LazyColumn(
@@ -260,6 +265,20 @@ fun AccountScreen(
                     onAdd = onAddTarget,
                 )
                 Spacer(Modifier.height(Gap.s9))
+            }
+
+            /* ---- the routine ---- */
+            routine?.let { line ->
+                item("routine") {
+                    Text(
+                        "YOUR ROUTINE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = c.inkSoft,
+                    )
+                    Spacer(Modifier.height(Gap.s5))
+                    RoutinePanel(line, onOpenRoutine)
+                    Spacer(Modifier.height(Gap.s9))
+                }
             }
 
             /* ---- saved checks ---- */

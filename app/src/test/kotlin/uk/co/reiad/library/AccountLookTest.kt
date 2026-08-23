@@ -69,6 +69,7 @@ import uk.co.reiad.library.core.BodyParser
 import uk.co.reiad.library.core.Reader
 import uk.co.reiad.library.core.Scenario
 import uk.co.reiad.library.core.Scale
+import uk.co.reiad.library.ui.RoutineLine
 
 /* ============================================================
    The account, THREE SCREENS TALL.
@@ -154,6 +155,12 @@ class AccountLookTest {
                 problem = null, linkSent = false, bottomPadding = 0.dp,
                 onGoogle = {}, onLink = {}, onSignOut = {},
                 setup = SetupState(asked = true, name = "Rony Reiad"),
+                routine = RoutineLine(
+                    built = true,
+                    name = "\u0986\u09ae\u09be\u09b0 \u09a6\u09bf\u09a8",
+                    tasks = 11,
+                    written = 96,
+                ),
                 scenarios = listOf(
                     Scenario(
                         id = "1", name = "Beximco, August",
