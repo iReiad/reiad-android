@@ -1,6 +1,7 @@
 package uk.co.reiad.library.ui
 
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
@@ -11,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.withTimeoutOrNull
 
 /* ============================================================
    Pick a widget up and put it somewhere else.
@@ -149,20 +151,51 @@ fun rememberBoardDrag(
     return drag
 }
 
-/** Long-press here to pick the widget up.
+/** Touch a loose widget and it is yours after a short rest.
 
-    On the STRIP rather than on the widget, and only while the
-    board is being arranged. A long press on a card a reader is
-    reading belongs to the card: a board that pounced on it would
-    make selecting a headline impossible. */
+    Only while the board is being arranged, which is what makes a
+    SHORT hold safe: entering the mode already took a real long
+    press, so a finger on a widget here almost always means to
+    move it. It was a second full long-press, and that was
+    reported as "cards rearranging are NOT working": everyone
+    drags immediately in a jiggle mode, the way their phone's own
+    home screen taught them, and a drag that ignores the first
+    four hundred milliseconds reads as a drag that ignores them.
+
+    160ms is the discriminator, not a politeness delay: a flick
+    that means to SCROLL leaves within it and is not claimed
+    (nothing is consumed before the claim, so the list takes it),
+    while a finger that means to carry a widget naturally rests
+    at least that long before moving. */
 fun Modifier.dragHandle(drag: BoardDrag, key: Any): Modifier = this.pointerInput(key) {
-    detectDragGesturesAfterLongPress(
-        onDragStart = { drag.pick(key) },
-        onDrag = { change, amount ->
-            change.consume()
-            drag.drag(amount.y)
-        },
-        onDragEnd = { drag.drop() },
-        onDragCancel = { drag.drop() },
-    )
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false)
+        val slop = viewConfiguration.touchSlop
+        var meant = true
+        withTimeoutOrNull(160L) {
+            while (true) {
+                val event = awaitPointerEvent()
+                val touch = event.changes.firstOrNull { it.id == down.id }
+                if (touch == null || !touch.pressed) {
+                    meant = false
+                    break
+                }
+                if ((touch.position - down.position).getDistance() > slop) {
+                    meant = false
+                    break
+                }
+            }
+        }
+        if (!meant) return@awaitEachGesture
+
+        drag.pick(key)
+        while (true) {
+            val event = awaitPointerEvent()
+            val touch = event.changes.firstOrNull { it.id == down.id } ?: break
+            if (!touch.pressed) break
+            touch.consume()
+            drag.drag(touch.position.y - touch.previousPosition.y)
+        }
+        drag.drop()
+    }
 }

@@ -283,7 +283,11 @@ private fun Leave(placeholder: String, busy: Boolean, onSend: (String) -> Unit) 
         )
         Spacer(Modifier.height(Gap.s5))
         PillButton(
-            label = if (busy) "Sending…" else "Leave it",
+            /* The site's own word. "Leave it" was meant as "leave
+               a comment" and reads as "abandon it", which on the
+               one button that PUBLISHES is the worst possible
+               ambiguity. */
+            label = if (busy) "Sending…" else "Post",
             kind = ButtonKind.SOLID,
             onClick = {
                 val said = text.trim()

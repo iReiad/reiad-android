@@ -56,13 +56,29 @@ import uk.co.reiad.library.core.SyncRules
    already on it would upload a stranger's reading into somebody's
    account, and there is no undo for that.
 
-   ---- base lives in memory, deliberately ----
+   ---- base lives on disk, and the memory-only draft was a bug ----
 
-   `base` is the account as this app last saw it. Keeping it on
-   disk would mean a fresh launch has an opinion about a
-   conversation it has not had. A launch starts with nothing and
-   adopts, which is the safe answer, and every failed exchange
-   drops it rather than trusting half a conversation.
+   `base` is the account as this app last saw it. It lived only
+   in memory first, on the argument that a fresh launch should
+   start with nothing and adopt, and that argument confused two
+   different days. On the day an ACCOUNT arrives, adopting is
+   right: the handset may be anybody's, and nothing local may go
+   up. On every ordinary morning after, "adopt" meant this: the
+   reader changed a setting or arranged the board, the write
+   queued an exchange, the exchange found no base because the
+   process was new, and the account's OLD copy of every mark was
+   written over the change they had just made. "settings and
+   cards rearranging are NOT working" was this, reported twice,
+   because the snap-back arrived within a second of the tap and
+   looked exactly like a dead control.
+
+   So the base is stored, keyed to the account's own id: a
+   relaunch reconciles, and only a genuinely new account adopts.
+   A failed exchange now KEEPS the last good base rather than
+   dropping it, for the same reason: the un-pushed local changes
+   are still "what this reader did since the account last spoke",
+   and turning a flaky network into an adopt was the same eater
+   by another door.
 
    ---- what never goes up ----
 
@@ -76,44 +92,76 @@ class Sync(
     private val context: Context,
     private val account: Account,
     private val store: androidx.datastore.core.DataStore<Preferences>,
-) {
-    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
-
-    private val http = HttpClient(OkHttp) {
+    /** The wire, injectable so `SyncBaseTest` can hold a whole
+        conversation without a network. Production never passes
+        it. */
+    private val http: HttpClient = HttpClient(OkHttp) {
         install(HttpTimeout) {
             requestTimeoutMillis = 20_000
             connectTimeoutMillis = 10_000
         }
+    },
+) {
+    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+
+    /** What the account said at the last exchange. The in-memory
+        copy is a cache; the stored one is the record, keyed to
+        the account id so another person's sign-in can never
+        inherit it. */
+    private var base: Base? = null
+
+    private val baseKey = stringPreferencesKey("sync:base")
+    private val baseUserKey = stringPreferencesKey("sync:base-user")
+
+    private suspend fun loadBase(user: String): Base? {
+        base?.let { return it }
+        val stored = store.data.first()
+        if (stored[baseUserKey] != user) return null
+        val raw = stored[baseKey] ?: return null
+        val obj = runCatching { json.parseToJsonElement(raw) as? JsonObject }
+            .getOrNull() ?: return null
+        val out = mutableMapOf<String, StoredValue>()
+        for ((key, element) in obj) {
+            val rule = SyncKeys.ruleOf(key) ?: continue
+            valueOf(rule, element)?.let { out[key] = it }
+        }
+        return out.also { base = it }
     }
 
-    /** What the account said at the last exchange. In memory. */
-    private var base: Base? = null
+    private suspend fun keepBase(user: String, value: Base) {
+        base = value
+        store.edit { stored ->
+            stored[baseKey] = buildJsonObject {
+                for ((key, held) in value) put(key, wireOf(held))
+            }.toString()
+            stored[baseUserKey] = user
+        }
+    }
 
     private val rest = "${Supabase.REST}/progress"
 
     /** One exchange. Returns whether it got all the way through.
 
-        A failure drops `base`, so the next attempt adopts rather
-        than reconciling against a half-finished conversation. */
+        A failure KEEPS `base`: the last completed exchange is
+        still the truth about what this reader did since, and the
+        next attempt reconciles from it. */
     suspend fun exchange(): Boolean {
         val token = account.token() ?: return false
-        val remote = runCatching { pull(token) }.getOrNull()
-        if (remote == null) {
-            base = null
-            return false
-        }
+        val who = account.reader.first()?.id ?: return false
+        val remote = runCatching { pull(token) }.getOrNull() ?: return false
 
-        val was = base
+        val was = loadBase(who)
         val mine = readLocal()
 
-        /* The first exchange of a session ADOPTS. There is no
-           `was`, so there is no way to tell a tick this device
-           added from one the account never had, and the account
-           is the record. */
+        /* The first exchange of an ACCOUNT adopts: no base under
+           this id has ever been stored, so there is no way to
+           tell a tick this device added from one the account
+           never had, and the account is the record. A relaunch
+           is not that day: its base is on disk. */
         if (was == null) {
             val adopted = SyncRules.adopt(remote)
             writeLocal(adopted.write, adopted.forget)
-            base = remote
+            keepBase(who, remote)
             return true
         }
 
@@ -130,10 +178,12 @@ class Sync(
 
         writeLocal(settled, forget = emptySet())
         if (send.isNotEmpty() && runCatching { push(token, send) }.getOrDefault(false) != true) {
-            base = null
+            /* The pull happened and the push did not. The base
+               stays where it was: what failed to go up is still
+               local-since-base and goes up next time. */
             return false
         }
-        base = remote + send
+        keepBase(who, remote + send)
         return true
     }
 
@@ -147,6 +197,8 @@ class Sync(
         base = null
         store.edit { prefs ->
             for (key in SyncKeys.ALL.keys) prefs.remove(stringPreferencesKey(key))
+            prefs.remove(baseKey)
+            prefs.remove(baseUserKey)
         }
     }
 

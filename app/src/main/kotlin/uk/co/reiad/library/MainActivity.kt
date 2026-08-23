@@ -2572,6 +2572,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                            thing worth making somebody enter where
                            they can see the address bar. */
                         onConnect = { openOnSite(context, "/tools/live", colours) },
+                        onRetry = { model.openLive(context) },
                         contentPadding = PaddingValues(
                             start = Gap.s8, end = Gap.s8,
                             top = topClearance(), bottom = barClearance(),
