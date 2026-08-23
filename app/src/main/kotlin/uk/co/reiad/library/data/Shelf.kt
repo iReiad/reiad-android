@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.map
 
 /* ============================================================
@@ -79,21 +81,21 @@ class Shelf(private val context: Context) {
     Android's settings. */
 data class Held(val lessons: Int, val bytes: Long)
 
-suspend fun heldFor(context: Context, school: String): Held {
-    val prefix = "cache:lesson:$school/"
-    var lessons = 0
-    var bytes = 0L
-    val all = context.store.data.first().asMap()
-    for ((key, value) in all) {
-        if (!key.name.startsWith(prefix)) continue
-        lessons += 1
-        bytes += (value as? String)?.length?.toLong() ?: 0L
+suspend fun heldFor(context: Context, school: String): Held =
+    withContext(Dispatchers.IO) {
+        val prefix = "cache:lesson:$school/"
+        var lessons = 0
+        var bytes = 0L
+        for ((key, value) in context.store.data.first().asMap()) {
+            if (!key.name.startsWith(prefix)) continue
+            lessons += 1
+            bytes += (value as? String)?.length?.toLong() ?: 0L
+        }
+        Held(lessons, bytes)
     }
-    return Held(lessons, bytes)
-}
 
 /** Everything this app is holding, over every school. */
-suspend fun heldAll(context: Context): Held {
+suspend fun heldAll(context: Context): Held = withContext(Dispatchers.IO) {
     var lessons = 0
     var bytes = 0L
     for ((key, value) in context.store.data.first().asMap()) {
@@ -101,7 +103,11 @@ suspend fun heldAll(context: Context): Held {
         if (key.name.startsWith("cache:lesson:")) lessons += 1
         bytes += (value as? String)?.length?.toLong() ?: 0L
     }
-    return Held(lessons, bytes)
+    /* A whole-store walk summing string lengths, on IO for the
+       same reason the fetch is: it is called when a ladder opens
+       and when the settings sheet does, and both are moments a
+       frame is already due. */
+    Held(lessons, bytes)
 }
 
 /**

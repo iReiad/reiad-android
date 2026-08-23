@@ -62,7 +62,24 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
+            /* And the resources, which is the other half: R8
+               shrinks code and leaves every drawable, string and
+               layout the code no longer reaches. It is off by
+               default because it is unsafe with reflection, and
+               nothing here reaches a resource by name. */
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+
+        debug {
+            /* The debug build is what is INSTALLED, since there
+               is no store listing yet, so it is worth it not
+               being needlessly slower than the release one. What
+               it keeps is the debuggable flag and the faster
+               build; what it does not need is a second package
+               name, which would make the two builds two apps and
+               undo the whole point of the shared key. */
+            isMinifyEnabled = false
         }
     }
 
@@ -126,6 +143,11 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.work)
     implementation(libs.androidx.core.ktx)
+
+    /* Applies `baseline-prof.txt` at install rather than
+       leaving the first run to the interpreter. Without it
+       the file in `src/main/` is packaged and ignored. */
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.browser)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)

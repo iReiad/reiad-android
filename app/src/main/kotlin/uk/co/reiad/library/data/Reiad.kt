@@ -12,7 +12,9 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.builtins.ListSerializer
@@ -176,24 +178,40 @@ class Reiad(private val context: Context) {
         edited in the Studio and a reader with a connection should
         get the current words. The stored copy is the answer to no
         network, not a way to avoid asking. */
+    /**
+     * Network first, and the last good answer when that fails.
+     *
+     * **On IO, and that is not a formality.** Every caller is a
+     * `viewModelScope.launch`, which is the MAIN dispatcher: the
+     * `http.get` suspends and costs nothing there, but the JSON
+     * decode does not suspend and neither does the DataStore
+     * write. The site manifest is a hundred kilobytes of pages,
+     * terms, nav and sections, and decoding it on the main thread
+     * is a hitch at exactly the moment the first screen is trying
+     * to draw.
+     *
+     * Nothing about the shape of the code said so, which is why
+     * it was written this way: `suspend` reads as "this is off
+     * the main thread" and means no such thing.
+     */
     private suspend fun <T> fetch(
         url: String,
         cacheKey: String,
         serializer: DeserializationStrategy<T>,
-    ): Cached<T> {
+    ): Cached<T> = withContext(Dispatchers.IO) {
         val live = runCatching { http.get(url).bodyAsText() }
         if (live.isSuccess) {
             val text = live.getOrThrow()
             val parsed = runCatching { json.decodeFromString(serializer, text) }
             if (parsed.isSuccess) {
                 context.store.edit { it[stringPreferencesKey(cacheKey)] = text }
-                return Cached(parsed.getOrThrow(), stale = false)
+                return@withContext Cached(parsed.getOrThrow(), stale = false)
             }
         }
         val saved = context.store.data.first()[stringPreferencesKey(cacheKey)]
-            ?: return Cached(null, stale = false, failed = live.exceptionOrNull())
+            ?: return@withContext Cached(null, stale = false, failed = live.exceptionOrNull())
         val fromCache = runCatching { json.decodeFromString(serializer, saved) }
-        return Cached(fromCache.getOrNull(), stale = true, failed = live.exceptionOrNull())
+        Cached(fromCache.getOrNull(), stale = true, failed = live.exceptionOrNull())
     }
 
     /* ---------- what the reader did ----------

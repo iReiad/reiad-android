@@ -32,6 +32,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -46,13 +47,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.StateFlow as KStateFlow
 import kotlinx.coroutines.launch
 import uk.co.reiad.library.core.Accent
 import uk.co.reiad.library.core.Accents
 import uk.co.reiad.library.core.BodyParser
+import uk.co.reiad.library.core.Block
 import uk.co.reiad.library.core.Bookmark
 import uk.co.reiad.library.core.LadderSchool
 import uk.co.reiad.library.core.Lesson
@@ -2255,7 +2259,20 @@ fun Reading(
                 color = c.inkSoft,
             )
             else -> {
-                val blocks = remember(page.body) { BodyParser.parse(page.body).blocks }
+                /* Parsed off the main thread, for the reason
+                   `PieceScreen` says at length: `remember { }`
+                   runs inside composition, and a long lesson is a
+                   hitch on exactly the frame a reader is
+                   watching. */
+                val blocks by produceState(emptyList<Block>(), page.body) {
+                    value = withContext(Dispatchers.Default) {
+                        BodyParser.parse(page.body).blocks
+                    }
+                }
+                if (blocks.isEmpty()) {
+                    Skeleton(lines = 6, label = "Opening the lesson")
+                    return@Column
+                }
                 /* Every checklist in a school lesson IS a set of
                    checkpoints. The numbering is computed once,
                    across the whole lesson, because that is how
