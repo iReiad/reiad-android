@@ -23,8 +23,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -2847,8 +2849,18 @@ fun Home(
         onMove = { from, to -> onBoard(storedOf(moved(placed, from, to))) },
     )
 
+    /* CAPPED AND CENTRED, not reflowed, at tablet width. A wide
+       widget across 840dp is a reading whose number sits a
+       hand-span from its label, and the site answers the same
+       way: the page column has a maximum and the board lives
+       inside it. Reflowing wides into columns would resize what
+       the reader sized. */
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
     LazyColumn(
-        Modifier.fillMaxSize().padding(horizontal = Gap.s8),
+        Modifier
+            .fillMaxHeight()
+            .widthIn(max = 660.dp)
+            .padding(horizontal = Gap.s8),
         state = listState,
         /* The bar FLOATS over the page rather than pushing it, so
            the page has to end above it or the last card sits under
@@ -3019,6 +3031,7 @@ fun Home(
                 Spacer(Modifier.height(Gap.s8))
             }
         }
+    }
     }
 }
 
