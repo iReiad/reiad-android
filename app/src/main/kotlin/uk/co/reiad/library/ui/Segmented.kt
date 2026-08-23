@@ -24,6 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -132,6 +133,28 @@ fun <T> Segmented(
     val n = options.size
     if (n == 0) return
 
+    /* THE GESTURE READS THE PRESENT, NOT ITS FIRST COMPOSITION.
+
+       `pointerInput(n, enabled)` restarts only when the count or
+       the enablement changes, so its closure kept the FIRST
+       composition's `options` and `onChoose`. For a settings row
+       that is invisible: the handlers do not read captured
+       state. For the navigation bar it was the whole fault a
+       reader phrased as "pressing menu button opens that, but
+       never closes": the More stop's handler closed over
+       drawerOpen as it stood at first composition, false, so
+       every press for ever said "open". The accessibility path
+       rebuilds per composition, which is why a screen reader
+       could close the menu and a thumb could not, and why the
+       first test of this passed against the broken build.
+
+       `rememberUpdatedState` is one answer and this is the same
+       answer BoardDrag needed on the same day for the same
+       disease: a long-lived lambda holding a composition-time
+       value. */
+    val liveOptions by rememberUpdatedState(options)
+    val liveChoose by rememberUpdatedState(onChoose)
+
     val found = options.indexOf(chosen)
     val at = if (found < 0) 0 else found
     /* Nothing is chosen where nothing matches, and the thumb is
@@ -226,7 +249,9 @@ fun <T> Segmented(
                        same sentence and so is the same line. */
                     val landed = held
                     held = NO_HOLD
-                    if (landed >= 0f) options.getOrNull(landed.roundToInt())?.let(onChoose)
+                    if (landed >= 0f) {
+                        liveOptions.getOrNull(landed.roundToInt())?.let { liveChoose(it) }
+                    }
                 }
             },
     ) {

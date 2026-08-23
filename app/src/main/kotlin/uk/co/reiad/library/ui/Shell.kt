@@ -245,12 +245,12 @@ fun Shell(
                     /* Under the bar and over the page, so prose
                        leaves before it reaches the clock. */
                     BarScrim(
-                        /* Down to the bar's own top edge, so the
+                        /* Down past the bar's own top edge, so the
                            strip between the system's bar and this
-                           one is covered too: at `Gap.s7` there
-                           were ten unfaded dp in between and a
-                           sentence could sit in them. */
-                        height = statusBar + Gap.s5 + Gap.s6,
+                           one is covered too, and the SOLID run
+                           (seven tenths of this) clears the whole
+                           status inset on its own. */
+                        height = statusBar + Gap.s5 + Gap.s6 + Gap.s7,
                         fromTop = true,
                         modifier = Modifier.align(Alignment.TopCenter),
                     )
@@ -447,16 +447,30 @@ private fun BarScrim(height: Dp, fromTop: Boolean, modifier: Modifier = Modifier
        the top leaves prose legible right up to the bar's edge,
        which is what a photograph of a real phone showed: a line
        of Bangla ending under the clock. */
-    val stops = listOf(c.paper, c.paper, c.paper.copy(alpha = 0.72f), Color.Transparent)
+    /* Solid for seven tenths, then out. It faded from a third,
+       and a third of this strip is less than the status inset:
+       a scrolled headline sat legible under the clock, which a
+       report called the upper margin problem and was right to.
+       The clock's row is the system's; nothing of the page may
+       read there. */
+    val stops = arrayOf(
+        0.0f to c.paper,
+        0.7f to c.paper,
+        0.87f to c.paper.copy(alpha = 0.6f),
+        1.0f to Color.Transparent,
+    )
     Box(
         modifier
             .fillMaxWidth()
             .height(height)
             .background(
                 if (fromTop) {
-                    Brush.verticalGradient(stops)
+                    Brush.verticalGradient(*stops)
                 } else {
-                    Brush.verticalGradient(stops.reversed())
+                    Brush.verticalGradient(
+                        *stops.map { (at, colour) -> 1f - at to colour }
+                            .reversed().toTypedArray(),
+                    )
                 },
             ),
     )
@@ -1000,6 +1014,16 @@ private fun Drawer(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(horizontal = Gap.s5)
+                /* THE SHEET HAS A CEILING. Its natural height is
+                   its content, and a long menu's content is the
+                   whole screen: it rose until the audience switch
+                   sat under the clock, which was the red strike
+                   across the report's screenshot. A sheet stops
+                   below the status area the same way it stops
+                   above the bar, and what does not fit scrolls,
+                   which is what the scroll was for. */
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(top = Gap.s7)
                 .padding(bottom = if (clearBelow > 0.dp) clearBelow else 0.dp)
                 .let {
                     if (clearBelow > 0.dp) it
