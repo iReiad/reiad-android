@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -232,6 +234,36 @@ fun <T> Segmented(
                     contentAlignment = Alignment.Center,
                 ) { content(option, on) }
             }
+        }
+    }
+}
+
+/** Which language a calculator opens in.
+
+    The stock check and the calculators each drew this as two
+    loose chips, which is two separate hit targets and the shape
+    that stopped six settings working. One control, one gesture,
+    and the same one the settings sheet uses.
+
+    Narrow, because two words do not need the width of the screen
+    and a switch that spans it reads as a pair of tabs. */
+@Composable
+fun LangSwitch(lang: String, onLang: (String) -> Unit, modifier: Modifier = Modifier) {
+    val c = LocalReiad.current
+    val options = listOf("bn" to "বাংলা", "en" to "English")
+    Box(modifier.width(210.dp)) {
+        Segmented(
+            options = options,
+            chosen = options.firstOrNull { it.first == lang },
+            onChoose = { onLang(it.first) },
+            height = Gap.tap,
+            label = { it.second },
+        ) { option, on ->
+            Text(
+                option.second,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (on) c.paper else c.inkSoft,
+            )
         }
     }
 }

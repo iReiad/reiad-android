@@ -199,13 +199,11 @@ fun StockScreen(
                    same choice as choosing it on the site and it
                    travels between devices like any other. */
                 Spacer(Modifier.height(Gap.s5))
-                Row(horizontalArrangement = Arrangement.spacedBy(Gap.s3)) {
-                    for ((id, label) in listOf("en" to "English", "bn" to "বাংলা")) {
-                        Tap(onClick = { onLang(id) }) {
-                            Chip(label, tone = if (lang == id) c.accent else c.inkSoft)
-                        }
-                    }
-                }
+                /* The same switch as everywhere else: hold and
+                   slide. Two loose chips were two separate hit
+                   targets, which is the shape that stopped six
+                   preferences working; see `Segmented.kt`. */
+                LangSwitch(lang, onLang)
             }
         }
 

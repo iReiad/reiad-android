@@ -123,13 +123,11 @@ fun CalculatorsScreen(
                     eyebrow = words.t("calc.eyebrow", lang),
                     modifier = Modifier.semantics { heading() },
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(Gap.s3)) {
-                    for ((id, label) in listOf("en" to "English", "bn" to "বাংলা")) {
-                        Tap(onClick = { onLang(id) }) {
-                            Chip(label, tone = if (lang == id) c.accent else c.inkSoft)
-                        }
-                    }
-                }
+                /* The same switch as everywhere else: hold and
+                   slide. Two loose chips were two separate hit
+                   targets, which is the shape that stopped six
+                   preferences working; see `Segmented.kt`. */
+                LangSwitch(lang, onLang)
             }
         }
 
