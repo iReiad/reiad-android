@@ -2256,9 +2256,16 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         measure = measureOf(prefs.measure),
     ) {
         val colours = LocalReiad.current
+        /* ONE sway for the whole app: the shell's ambient field
+           and the cards' glint read the same sensor, so the
+           light behind the page and the light on it lean
+           together. Two instances would be two listeners at
+           50Hz for the same three numbers. */
+        val sway = rememberSway()
         Surface(Modifier.fillMaxSize(), color = colours.paper) {
             Shell(
                 state = ShellState(site, current, audience, drawer, reader != null),
+                sway = sway,
                 /* A tab opens its GROUP, not its first item.
 
                    Sending each tab to the first thing in it looked
@@ -2682,6 +2689,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     daysActive = daysActive,
                     routineGlance = routineGlance,
                     dietGlance = dietGlance,
+                    sway = sway,
                     bookmarks = bookmarks,
                     pieces = pieces,
                     lang = prefs.lang,
@@ -2969,13 +2977,14 @@ fun Home(
     onPiece: (Piece) -> Unit = {},
     onResume: (String, Bookmark) -> Unit = { _, _ -> },
     onStory: (Story) -> Unit = {},
+    /* One sway for the whole app, not one per screen or per
+       card: every surface leans by the same amount because they
+       are all on the same handset. `App` passes the instance the
+       shell's ambient field reads, so the light behind the page
+       and the light on the cards lean together. */
+    sway: Sway = rememberSway(),
 ) {
     val c = LocalReiad.current
-    /* One sway for the whole screen, not one per card. Every card
-       on a page leans by the same amount, because they are all on
-       the same handset: a lean per card would be twelve sensor
-       listeners answering one movement. */
-    val sway = rememberSway()
     /* The site's own door, chosen by the audience switch exactly
        as `data-hl` chooses it there, and `open` for a reader who
        has not answered it. */

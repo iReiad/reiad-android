@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -27,9 +28,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -124,6 +128,29 @@ fun Control(
     )
 }
 
+/** The press ANSWERED in the glass itself: the surface gives a
+    little under the finger and springs back when it lifts, the
+    way the bar's thumb swells. Feedback rather than decoration,
+    so it stays under reduced motion; what reduced motion turns
+    off is the sway and the jiggle, things that move by
+    themselves. */
+@Composable
+fun Modifier.pressGives(interaction: androidx.compose.foundation.interaction.InteractionSource): Modifier {
+    val held by interaction.collectIsPressedAsState()
+    val give by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (held) 0.965f else 1f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = 0.55f,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow,
+        ),
+        label = "give",
+    )
+    return this.graphicsLayer {
+        scaleX = give
+        scaleY = give
+    }
+}
+
 /** The site's own four kinds, named for what a button IS rather
     than for how it looks. The ladder between them is LOUDNESS
     rather than importance: a solid is the one action a screen is
@@ -201,9 +228,11 @@ fun PillButton(
         else -> Color.Transparent
     }
     val bangla = label.any { it in 'ঀ'..'৿' }
+    val touch = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
 
     Control(
         modifier
+            .pressGives(touch)
             /* A MINIMUM WIDTH, not only a height: a short label
                is a target too narrow in one direction. SAVE came
                to 34dp and NOT NOW to 36, both right in a
@@ -226,6 +255,8 @@ fun PillButton(
                 ),
             )
             .clickable(
+                interactionSource = touch,
+                indication = androidx.compose.foundation.LocalIndication.current,
                 role = if (pressed != null) Role.Checkbox else Role.Button,
                 enabled = enabled,
                 onClick = onClick,

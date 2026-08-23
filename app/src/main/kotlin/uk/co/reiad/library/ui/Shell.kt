@@ -165,6 +165,11 @@ fun Shell(
         More and four groups of drawer. */
     onAccount: () -> Unit,
     onAudience: (String) -> Unit,
+    /** The handset's own lean, for the ambient field's parallax.
+        Passed in where the caller already holds one so the
+        sensor is registered once, defaulted for every mount that
+        does not care. */
+    sway: Sway = rememberSway(),
     content: @Composable () -> Unit,
 ) {
     val chrome = rememberChrome()
@@ -221,7 +226,14 @@ fun Shell(
                 )
             }
             Box(Modifier.weight(1f).fillMaxHeight()) {
-                Box(Modifier.fillMaxSize().hazeSource(glass)) { content() }
+                Box(Modifier.fillMaxSize().hazeSource(glass)) {
+                    /* Under everything and inside the haze
+                       source, so the bars and the menu frost it:
+                       the field is most of what they differ from.
+                       See `Ambient.kt`. */
+                    AmbientGround(sway, Modifier.matchParentSize())
+                    content()
+                }
                 if (chrome == Chrome.BAR) {
                     /* The site's own top bar, and it is the app's
                        identity as much as the colours are: every

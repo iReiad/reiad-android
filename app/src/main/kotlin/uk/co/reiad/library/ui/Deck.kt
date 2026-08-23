@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -157,9 +158,11 @@ fun GoCard(
 ) {
     val c = LocalReiad.current
     val glow = rememberGlow()
+    val touch = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Box(
         modifier
             .fillMaxWidth()
+            .pressGives(touch)
             .then(if (sway != null) Modifier.leaning(sway) else Modifier)
             .clip(RoundedCornerShape(Corner.card))
             .material(
@@ -197,7 +200,12 @@ fun GoCard(
                 lit = { glow.lit },
             )
             .follows(glow)
-            .clickable(role = Role.Button, onClick = onOpen),
+            .clickable(
+                interactionSource = touch,
+                indication = androidx.compose.foundation.LocalIndication.current,
+                role = Role.Button,
+                onClick = onOpen,
+            ),
     ) {
         /* The rail: three pixels of the card's own accent down the
            left edge, and the one mark every interactive card here
@@ -375,9 +383,11 @@ fun RowCard(
 ) {
     val c = LocalReiad.current
     val glow = rememberGlow()
+    val touch = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Box(
         modifier
             .fillMaxWidth()
+            .pressGives(touch)
             .clip(RoundedCornerShape(Corner.pill))
             .material(
                 kind = Kind.CARD,
@@ -399,7 +409,12 @@ fun RowCard(
                 lit = { glow.lit },
             )
             .follows(glow)
-            .clickable(role = Role.Button, onClick = onOpen),
+            .clickable(
+                interactionSource = touch,
+                indication = androidx.compose.foundation.LocalIndication.current,
+                role = Role.Button,
+                onClick = onOpen,
+            ),
     ) {
         Box(Modifier.matchParentSize()) {
             Box(Modifier.width(3.dp).fillMaxHeight().background(c.accent))
