@@ -11,6 +11,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.heightIn
@@ -123,66 +124,134 @@ fun Control(
     )
 }
 
+/** The site's own four kinds, named for what a button IS rather
+    than for how it looks. The ladder between them is LOUDNESS
+    rather than importance: a solid is the one action a screen is
+    for, a soft sits on a panel, a ghost acts without claiming
+    ground, and a quiet is a word that happens to be pressable. */
+enum class ButtonKind { SOLID, SOFT, GHOST, QUIET }
+
 /**
  * A control with a label on it, which is what a button is.
+ *
+ * ONE BUTTON, the way `ui/button.tsx` is one on the site and
+ * `ui/Field.kt` is one box here. There were three: this, with
+ * two states; nineteen bare `Control(Modifier.clickable(...))`
+ * sites, each a hand-made soft button with no rim, no minimum
+ * width and its own idea of case and colour; and three latches
+ * built the same way again. The clickable on those sat OUTSIDE
+ * the pill clip, so the press ripple bled square corners on
+ * every one.
  *
  * `Control` is the surface and this is the thing you press. The
  * difference matters because the material's lit edge is not
  * enough on its own at this size: a control on a pane of the same
  * glass reads as a label until it has a rim, and the site draws
- * one. It shipped without, five times over, and every one of them
- * looked like text somebody had coloured green.
+ * one.
  *
- * `filled` is a latch rather than an emphasis: a thing that is ON
- * is the accent, a thing that ACTS is the rim.
+ * `pressed` is the latch, and it is a third axis on purpose: a
+ * thing that is ON is the accent whatever its kind, which is the
+ * site's `aria-pressed` rule, and the semantics say selected so a
+ * screen reader hears the state the eye sees.
+ *
+ * A Bangla label is detected rather than declared: it takes the
+ * Bangla face and skips the uppercase, which is a no-op on Bangla
+ * anyway. A flag would be forgotten on exactly the labels that
+ * need it.
  */
 @Composable
 fun PillButton(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    kind: ButtonKind = ButtonKind.GHOST,
     icon: String? = null,
-    filled: Boolean = false,
+    /** The whole row, for the account-page shape: one action on
+        its own line. */
+    wide: Boolean = false,
+    /** Non-null makes this a latch: on is the accent, off is the
+        kind, and the semantics carry the state. */
+    pressed: Boolean? = null,
+    /** The ink, where it is not the accent: a danger action. The
+        KIND stays the loudness; this is only the colour. */
+    tint: Color? = null,
+    /** A control that cannot act YET, beside the box that will
+        make it able: a Send next to an empty email. Anything
+        else that cannot act should be absent rather than
+        disabled, which is the board strip's own rule. */
+    enabled: Boolean = true,
     description: String? = null,
 ) {
     val c = LocalReiad.current
-    val ink = if (filled) c.paper else c.accent
+    val on = enabled && (pressed == true || (pressed == null && kind == ButtonKind.SOLID))
+    val ink = when {
+        !enabled -> c.inkSoft
+        on -> c.paper
+        else -> tint ?: c.accent
+    }
+    /* TRANSPARENT is said out loud for the two quiet kinds,
+       because `null` means "the material's own glass": left null,
+       ghost and quiet drew the same ground as soft and the three
+       were one kind in four names. The button sheet is what
+       showed it, on its first render. */
+    val ground = when {
+        !enabled -> c.paperSunk
+        on -> tint ?: c.accent
+        kind == ButtonKind.SOFT -> c.panel
+        else -> Color.Transparent
+    }
+    val bangla = label.any { it in 'ঀ'..'৿' }
+
     Control(
         modifier
-            /* A MINIMUM WIDTH, not only a height.
-
-               `Control` gives this its 44dp height and nothing
-               gave it a width, so a short label is a target too
-               narrow in one direction: SAVE came to 34dp and NOT
-               NOW to 36. Both are the right size in a screenshot
-               and the wrong size under a thumb, which is why
+            /* A MINIMUM WIDTH, not only a height: a short label
+               is a target too narrow in one direction. SAVE came
+               to 34dp and NOT NOW to 36, both right in a
+               screenshot and wrong under a thumb, which is why
                `ReachTest` walks the semantics tree rather than
-               looking. It was fixed once on ONE button, in the
-               account's own file, with a comment saying exactly
-               this; here is where it belongs. */
+               looking. */
             .widthIn(min = Gap.tap)
+            .then(if (wide) Modifier.fillMaxWidth() else Modifier)
             .clip(RoundedCornerShape(Corner.pill))
             .then(
-                if (filled) Modifier
-                else Modifier.border(1.dp, c.hairline, RoundedCornerShape(Corner.pill)),
+                if (on || !enabled || kind != ButtonKind.GHOST) Modifier
+                else Modifier.border(
+                    /* The accent at half strength rather than the
+                       hairline: a ghost's whole claim to being a
+                       button is its rim, and the hairline
+                       disappears into a dark ground. */
+                    1.dp,
+                    (tint ?: c.accent).copy(alpha = 0.45f),
+                    RoundedCornerShape(Corner.pill),
+                ),
             )
-            .clickable(role = Role.Button, onClick = onClick)
-            .then(
-                if (description == null) Modifier
-                else Modifier.semantics { contentDescription = description },
-            ),
-        ground = if (filled) c.accent else null,
+            .clickable(
+                role = if (pressed != null) Role.Checkbox else Role.Button,
+                enabled = enabled,
+                onClick = onClick,
+            )
+            .semantics {
+                if (description != null) contentDescription = description
+                if (pressed != null) selected = pressed
+            },
+        ground = ground,
     ) {
+        if (wide) Spacer(Modifier.weight(1f))
         if (icon != null) {
             Icon(icon, size = 15.dp, tint = ink)
             Spacer(Modifier.width(Gap.s4))
         }
         Text(
-            label.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
+            if (bangla) label else label.uppercase(),
+            style = if (bangla) {
+                MaterialTheme.typography.labelLarge.copy(fontFamily = Faces.bengali)
+            } else {
+                MaterialTheme.typography.labelMedium
+            },
             color = ink,
             maxLines = 1,
         )
+        if (wide) Spacer(Modifier.weight(1f))
     }
 }
 

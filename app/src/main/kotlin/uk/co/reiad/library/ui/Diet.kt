@@ -247,7 +247,7 @@ fun DietScreen(
                     label = if (lang == "bn") "যোগ করুন" else "Add food",
                     onClick = { picking = true },
                     icon = "plus",
-                    filled = state.entries.isEmpty(),
+                    kind = if (state.entries.isEmpty()) ButtonKind.SOLID else ButtonKind.GHOST,
                 )
             }
         }
@@ -427,7 +427,7 @@ private fun Weighing(weightKg: Double?, onWeight: (Double) -> Unit) {
             Spacer(Modifier.width(Gap.s6))
             PillButton(
                 label = "Save",
-                filled = typed.toDoubleOrNull() != null,
+                kind = if (typed.toDoubleOrNull() != null) ButtonKind.SOLID else ButtonKind.GHOST,
                 onClick = { typed.toDoubleOrNull()?.let(onWeight) },
             )
         }

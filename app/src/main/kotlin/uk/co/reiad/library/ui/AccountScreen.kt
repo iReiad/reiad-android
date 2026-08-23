@@ -639,25 +639,19 @@ private fun Erase(onErase: () -> Unit, erasing: String?) {
         )
         Spacer(Modifier.height(Gap.s6))
         Row(horizontalArrangement = Arrangement.spacedBy(Gap.s5)) {
-            Control(
-                modifier = Modifier.clickable(role = Role.Button) { asking = false },
-                ground = c.panel,
-            ) {
-                Text("Keep it", style = MaterialTheme.typography.labelLarge, color = c.accent)
-            }
-            Control(
-                modifier = Modifier.clickable(role = Role.Button) {
+            PillButton("Keep it", { asking = false }, kind = ButtonKind.SOFT)
+            /* SOLID in the danger colour: the confirmed erase is
+               the one action this pane exists for, and the colour
+               is the warning where the loudness is the shape. */
+            PillButton(
+                "Erase everything",
+                {
                     asking = false
                     onErase()
                 },
-                ground = c.danger,
-            ) {
-                Text(
-                    "Erase everything",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = c.paper,
-                )
-            }
+                kind = ButtonKind.SOLID,
+                tint = c.danger,
+            )
         }
     }
 }

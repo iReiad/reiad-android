@@ -284,7 +284,7 @@ private fun Leave(placeholder: String, busy: Boolean, onSend: (String) -> Unit) 
         Spacer(Modifier.height(Gap.s5))
         PillButton(
             label = if (busy) "Sending…" else "Leave it",
-            filled = true,
+            kind = ButtonKind.SOLID,
             onClick = {
                 val said = text.trim()
                 if (!busy && said.isNotEmpty()) {

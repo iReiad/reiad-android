@@ -77,26 +77,17 @@ fun Keep(
 
     Column(modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.spacedBy(Gap.s5)) {
-            Control(
-                modifier = Modifier.clickable(role = Role.Checkbox) { onSave(!state.saved) },
-                ground = if (state.saved) c.accent else c.panel,
-            ) {
-                Text(
-                    if (state.saved) "Saved ✓" else "Save",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (state.saved) c.paper else c.accent,
-                )
-            }
-            Control(
-                modifier = Modifier.clickable(role = Role.Button) { writing = !writing },
-                ground = c.panel,
-            ) {
-                Text(
-                    if (state.note.isNotBlank()) "Note" else "Add a note",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = c.accent,
-                )
-            }
+            PillButton(
+                if (state.saved) "Saved ✓" else "Save",
+                { onSave(!state.saved) },
+                kind = ButtonKind.SOFT,
+                pressed = state.saved,
+            )
+            PillButton(
+                if (state.note.isNotBlank()) "Note" else "Add a note",
+                { writing = !writing },
+                kind = ButtonKind.SOFT,
+            )
         }
 
         if (writing) {

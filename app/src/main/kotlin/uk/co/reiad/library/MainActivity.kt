@@ -195,6 +195,7 @@ import uk.co.reiad.library.core.storedOf
 import uk.co.reiad.library.ui.BoardActions
 import uk.co.reiad.library.ui.BoardData
 import uk.co.reiad.library.ui.DRAWABLE
+import uk.co.reiad.library.ui.ButtonKind
 import uk.co.reiad.library.ui.PillButton
 import uk.co.reiad.library.ui.Widget
 import uk.co.reiad.library.ui.WidgetFrame
@@ -2870,7 +2871,7 @@ fun Home(
                     },
                     onClick = { arranging = !arranging },
                     icon = if (arranging) "check" else "sliders",
-                    filled = arranging,
+                    pressed = arranging,
                 )
             }
             Spacer(Modifier.height(Gap.s6))
@@ -3332,20 +3333,13 @@ fun Reading(
            marked this lesson when it opened, so what they get is
            a statement rather than a control. */
         if (isMoney) {
-            Control(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(role = Role.Button, onClick = onTick),
-                ground = if (ticked) c.accent else c.panel,
-            ) {
-                Text(
-                    if (ticked) "পড়া হয়েছে ✓" else "পড়া হয়েছে",
-                    style = MaterialTheme.typography.labelLarge.copy(fontFamily = Faces.bengali),
-                    color = if (ticked) c.paper else c.accent,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                )
-            }
+            PillButton(
+                if (ticked) "পড়া হয়েছে ✓" else "পড়া হয়েছে",
+                onTick,
+                kind = ButtonKind.SOFT,
+                wide = true,
+                pressed = ticked,
+            )
         } else if (ticked) {
             Plate(Modifier.fillMaxWidth()) {
                 Text("পড়া হয়েছে ✓", style = MaterialTheme.typography.labelLarge, color = c.accent)

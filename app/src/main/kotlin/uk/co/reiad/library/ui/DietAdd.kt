@@ -364,7 +364,7 @@ private fun Amount(
 
         PillButton(
             label = if (lang == "bn") "যোগ করুন" else "Add it",
-            filled = scaled != null,
+            kind = if (scaled != null) ButtonKind.SOLID else ButtonKind.GHOST,
             onClick = { ate?.let(onAdd) },
             icon = "check",
         )

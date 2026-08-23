@@ -292,7 +292,7 @@ fun SetupPanel(
         ) {
             PillButton(
                 label = if (state.busy) "Saving…" else "Save",
-                filled = true,
+                kind = ButtonKind.SOLID,
                 onClick = { if (!state.busy) onSave() },
             )
             if (setup) {
@@ -471,7 +471,7 @@ fun AddTarget(
         Row(horizontalArrangement = Arrangement.spacedBy(Gap.s5)) {
             PillButton(
                 label = "Add it",
-                filled = true,
+                kind = ButtonKind.SOLID,
                 onClick = {
                     if (draft.ready()) {
                         onAdd(draft.asTarget())
@@ -536,7 +536,7 @@ fun RoutinePanel(line: RoutineLine, onOpen: () -> Unit) {
             color = c.inkSoft,
         )
         Spacer(Modifier.height(Gap.s6))
-        PillButton(label = "Open today", filled = true, onClick = onOpen)
+        PillButton(label = "Open today", kind = ButtonKind.SOLID, onClick = onOpen)
         Spacer(Modifier.height(Gap.s5))
         Text(
             "Your routine is on your account, so it is the same on every device " +

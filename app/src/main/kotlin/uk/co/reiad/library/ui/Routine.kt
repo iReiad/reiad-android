@@ -710,13 +710,7 @@ private fun NeverMarked(tasks: List<Task>, onOpenSite: () -> Unit) {
             )
         }
         Spacer(Modifier.height(Gap.s4))
-        Control(Modifier.clickable(onClick = onOpenSite)) {
-            Text(
-                "Edit the routine on the site",
-                style = MaterialTheme.typography.labelLarge,
-                color = c.ink,
-            )
-        }
+        PillButton("Edit the routine on the site", onOpenSite, kind = ButtonKind.SOFT)
     }
 }
 
@@ -758,13 +752,7 @@ private fun NoRoutine(onOpenSite: () -> Unit) {
             color = c.inkSoft,
         )
         Spacer(Modifier.height(Gap.s5))
-        Control(Modifier.clickable(onClick = onOpenSite)) {
-            Text(
-                "Open on the site",
-                style = MaterialTheme.typography.labelLarge,
-                color = c.ink,
-            )
-        }
+        PillButton("Open on the site", onOpenSite, kind = ButtonKind.SOFT)
     }
 }
 

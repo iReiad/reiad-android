@@ -244,27 +244,15 @@ fun StockScreen(
         item {
             Column {
                 Row(horizontalArrangement = Arrangement.spacedBy(Gap.s5)) {
-                    Control(Modifier.clickable { onCopyLink() }) {
-                        Text(
-                            t(Keys.COPY_LINK),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = c.ink,
-                            maxLines = 1,
-                        )
-                    }
-                    Control(Modifier.clickable { onExport() }) {
-                        Text(
-                            t(Keys.DOWNLOAD),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = c.ink,
-                            maxLines = 1,
-                        )
-                    }
+                    PillButton(t(Keys.COPY_LINK), onCopyLink, kind = ButtonKind.SOFT)
+                    PillButton(t(Keys.DOWNLOAD), onExport, kind = ButtonKind.SOFT)
                 }
                 Spacer(Modifier.height(Gap.s4))
-                Control(Modifier.clickable { onState(StockState(lang = state.lang)) }) {
-                    Text(t(Keys.RESET), style = MaterialTheme.typography.labelLarge, color = c.ink)
-                }
+                PillButton(
+                    t(Keys.RESET),
+                    { onState(StockState(lang = state.lang)) },
+                    kind = ButtonKind.SOFT,
+                )
                 if (onSave != null) {
                     Spacer(Modifier.height(Gap.s7))
                     SaveCheck(

@@ -65,7 +65,7 @@ fun KeepSchool(
             PillButton(
                 label = if (following) "Kept on this phone" else "Keep for offline",
                 icon = if (following) "check" else "seed",
-                filled = following,
+                pressed = following,
                 description = if (following) {
                     "Stop keeping this school on the phone"
                 } else {

@@ -17,6 +17,7 @@ import org.junit.Test
 import uk.co.reiad.library.core.Accents
 import uk.co.reiad.library.ui.Field
 import uk.co.reiad.library.ui.FieldSize
+import uk.co.reiad.library.ui.ButtonKind
 import uk.co.reiad.library.ui.Gap
 import uk.co.reiad.library.ui.LocalReiad
 import uk.co.reiad.library.ui.Pane
@@ -94,7 +95,7 @@ class FieldSheetTest {
             Box(Modifier.width(140.dp())) {
                 Field(value = "", onValue = {}, description = "d", hint = "kg")
             }
-            PillButton("Save", {}, filled = true)
+            PillButton("Save", {}, kind = ButtonKind.SOLID)
         }
 
         /* THE ONE THE COMPLAINT WAS ABOUT. The label, the note and

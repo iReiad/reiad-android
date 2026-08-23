@@ -134,16 +134,7 @@ fun WorkbookScreen(
                             "site either way.",
                     )
                     Spacer(Modifier.height(Gap.s7))
-                    Control(
-                        modifier = Modifier.clickable(role = Role.Button, onClick = onOpenOnSite),
-                        ground = c.panel,
-                    ) {
-                        Text(
-                            "Open on the site",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = c.accent,
-                        )
-                    }
+                    PillButton("Open on the site", onOpenOnSite, kind = ButtonKind.SOFT)
                 } else {
                     Skeleton(lines = 4, label = "Opening the book")
                 }
@@ -319,14 +310,7 @@ private fun DayPage(
         }
 
         if (answers == null) {
-            Control(
-                modifier = Modifier.clickable(role = Role.Button, onClick = onReveal),
-                ground = c.panel,
-            ) {
-                Text("উত্তর দেখুন", style = MaterialTheme.typography.labelLarge.copy(
-                    fontFamily = Faces.bengali,
-                ), color = c.accent)
-            }
+            PillButton("উত্তর দেখুন", onReveal, kind = ButtonKind.SOFT)
         }
         Spacer(Modifier.height(Gap.s8))
 
@@ -346,16 +330,13 @@ private fun DayPage(
         /* The day's tick, and the sentence under it that grows
            with the level: Stufe 1 asks whether yesterday's page
            was read first, Stufe 3 asks for a whole story. */
-        Control(
-            modifier = Modifier.fillMaxWidth().clickable(role = Role.Checkbox, onClick = onTick),
-            ground = if (ticked) c.accent else c.panel,
-        ) {
-            Text(
-                if (ticked) "আজকের পাতা হয়েছে ✓" else "আজকের পাতা হয়েছে",
-                style = MaterialTheme.typography.labelLarge.copy(fontFamily = Faces.bengali),
-                color = if (ticked) c.paper else c.accent,
-            )
-        }
+        PillButton(
+            if (ticked) "আজকের পাতা হয়েছে ✓" else "আজকের পাতা হয়েছে",
+            onTick,
+            kind = ButtonKind.SOFT,
+            wide = true,
+            pressed = ticked,
+        )
         Spacer(Modifier.height(Gap.s4))
         Text(foot, style = BanglaBody.copy(
             fontSize = MaterialTheme.typography.bodySmall.fontSize,
