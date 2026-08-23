@@ -92,6 +92,8 @@ import uk.co.reiad.library.core.checkpointCount
 import uk.co.reiad.library.core.lessonId
 import uk.co.reiad.library.core.lessonUrl
 import uk.co.reiad.library.account.Account
+import uk.co.reiad.library.account.Said
+import uk.co.reiad.library.account.Say
 import uk.co.reiad.library.account.Library
 import uk.co.reiad.library.account.Sync
 import uk.co.reiad.library.account.SyncWorker
@@ -190,6 +192,7 @@ import uk.co.reiad.library.ui.LocalReiad
 import uk.co.reiad.library.ui.Path
 import uk.co.reiad.library.ui.Paths
 import uk.co.reiad.library.ui.RoutineLine
+import uk.co.reiad.library.ui.ThreadState
 import uk.co.reiad.library.ui.accentOfSchool
 import uk.co.reiad.library.ui.LessonHead
 import uk.co.reiad.library.ui.SetupState
@@ -416,6 +419,81 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         should not pull a year of rows to print a sentence. */
     private val _routineLine = MutableStateFlow<RoutineLine?>(null)
     val routineLine: StateFlow<RoutineLine?> = _routineLine.asStateFlow()
+
+    /* ---------- the thread under a piece or a lesson ---------- */
+
+    private val _thread = MutableStateFlow(ThreadState())
+    val thread: StateFlow<ThreadState> = _thread.asStateFlow()
+
+    private var sayer: Say? = null
+
+    fun openThread(slug: String, section: String) {
+        _thread.value = ThreadState(slug = slug, section = section, loading = true)
+        viewModelScope.launch {
+            val answer = reiad.thread(slug)
+            val body = answer.value
+            _thread.value = ThreadState(
+                slug = slug,
+                section = section,
+                comments = body?.comments.orEmpty(),
+                count = body?.count ?: 0,
+                loading = false,
+                stale = answer.stale,
+                problem = if (body == null) {
+                    answer.problem ?: "This phone has not read this thread before."
+                } else {
+                    null
+                },
+            )
+        }
+    }
+
+    /**
+     * Leaves a comment, and DOES NOT put it in the thread.
+     *
+     * The endpoint deliberately answers with no row, precisely so
+     * a page cannot render what it just sent. Showing your own
+     * pending words back to you is the one thing moderation
+     * exists to prevent, and "shown immediately and confirmed
+     * after" is exactly what `keep()` does one file away: right
+     * for a bookmark, wrong here.
+     *
+     * An admin is the exception and it is the SERVER'S: their own
+     * comment is filed live, the answer says so, and the thread is
+     * re-read rather than having a row invented for it.
+     */
+    fun leaveComment(context: android.content.Context, body: String, parentId: Int?) {
+        val now = _thread.value
+        if (now.slug.isBlank()) return
+        val voice = sayer ?: Say(account(context)).also { sayer = it }
+        _thread.value = now.copy(posting = true, said = null, wrong = false)
+        viewModelScope.launch {
+            when (val said = voice.leave(now.slug, now.section, body, parentId)) {
+                is Said.Live -> {
+                    _thread.value = _thread.value.copy(
+                        posting = false,
+                        said = "Up now.",
+                        wrong = false,
+                    )
+                    /* Re-read, rather than adding the row here:
+                       the server decides what a thread contains
+                       and this app has just been told its comment
+                       is part of it. */
+                    openThread(now.slug, now.section)
+                }
+                is Said.Queued -> _thread.value = _thread.value.copy(
+                    posting = false,
+                    said = "Sent. It will appear once it has been read.",
+                    wrong = false,
+                )
+                is Said.Wrong -> _thread.value = _thread.value.copy(
+                    posting = false,
+                    said = said.why,
+                    wrong = true,
+                )
+            }
+        }
+    }
 
     private val _diet = MutableStateFlow(DietState())
     val diet: StateFlow<DietState> = _diet.asStateFlow()
@@ -1619,6 +1697,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val scenarios by model.scenarios.collectAsState()
     val saveNote by model.saveNote.collectAsState()
     val routineLine by model.routineLine.collectAsState()
+    val threadState by model.thread.collectAsState()
     val daysActive by model.daysActive.collectAsState()
     val exported by model.exported.collectAsState()
     val erasing by model.erasing.collectAsState()
@@ -1939,7 +2018,17 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             model.closePiece()
                             where = Where.Hub(here.section, sectionTitle(site, here.section))
                         },
+                        thread = threadState,
+                        onLeaveComment = { body, parent ->
+                            model.leaveComment(context, body, parent)
+                        },
+                        onRetryThread = { model.openThread(shown.slug, here.section) },
                     )
+                    /* Keyed on the SLUG, so walking from one piece
+                       to the next in the same section re-reads the
+                       thread rather than leaving the last one's
+                       comments under the new piece. */
+                    LaunchedEffect(shown.slug) { model.openThread(shown.slug, here.section) }
                 }
 
                 is Where.Book -> {

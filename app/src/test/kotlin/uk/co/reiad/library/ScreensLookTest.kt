@@ -68,6 +68,9 @@ import uk.co.reiad.library.core.standingOf
 import uk.co.reiad.library.core.BodyParser
 import uk.co.reiad.library.core.Reader
 import uk.co.reiad.library.core.Scenario
+import uk.co.reiad.library.core.Comment
+import uk.co.reiad.library.ui.Thread
+import uk.co.reiad.library.ui.ThreadState
 
 /* Every screen, drawn, so a change to the design is something
    somebody can look at rather than something they have to guess
@@ -191,6 +194,42 @@ class ScreensLookTest {
         test. `ReadingSettlesTest` is what asserts that the screen
         gets from one to the other. */
 
+
+    /** A thread with a comment, a reply and a body that looks
+        like markup, so a picture shows all three rules at once. */
+    @Test fun thread() = page {
+        Column(Modifier.padding(Gap.s8)) {
+            Thread(
+                state = ThreadState(
+                    slug = "a-piece", section = "insights", count = 3, loading = false,
+                    comments = listOf(
+                        Comment(
+                            id = 1, authorName = "Rony Reiad",
+                            body = "The bit about the buy-below price is the part " +
+                                "I keep coming back to.",
+                            createdAt = "2026-08-20T10:00:00Z",
+                            replies = listOf(
+                                Comment(
+                                    id = 2, parentId = 1, authorName = "Nadia",
+                                    body = "Same. It is the only number that changes " +
+                                        "what I actually do.",
+                                    createdAt = "2026-08-20T11:00:00Z",
+                                ),
+                            ),
+                        ),
+                        Comment(
+                            id = 3, authorName = "Someone",
+                            body = "<b>not markup</b>, on purpose: a body is text.",
+                            createdAt = "2026-08-21T09:00:00Z",
+                        ),
+                    ),
+                ),
+                signedIn = true,
+                onLeave = { _, _ -> },
+                onRetry = {},
+            )
+        }
+    }
 
     @Test fun lessonBody() = page {
         val page = requireNotNull(

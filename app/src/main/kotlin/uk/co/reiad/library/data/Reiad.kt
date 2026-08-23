@@ -38,6 +38,8 @@ import uk.co.reiad.library.core.TOOL_LANG_KEY
 import uk.co.reiad.library.core.TRACK_KEY
 import uk.co.reiad.library.core.Theme
 import uk.co.reiad.library.core.School
+import uk.co.reiad.library.core.CommentsResponse
+import uk.co.reiad.library.core.encodeComponent
 import uk.co.reiad.library.core.SITE_ORIGIN
 import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.SyncKeys
@@ -144,6 +146,26 @@ class Reiad(private val context: Context) {
         piece read once is readable on a train. */
     suspend fun piece(slug: String): Cached<PieceResponse> =
         fetch("$SITE_ORIGIN/api/articles/$slug", "cache:piece:$slug", PieceResponse.serializer())
+
+    /** The thread under a piece or a lesson.
+
+        Cached like everything else, so a thread read once is
+        readable on a train, and NOT because a thread is stable:
+        it is the least stable thing this app fetches. What the
+        cache buys is that the comments do not vanish when the
+        signal does, which is the same argument as every other
+        `fetch` here, and `Cached.stale` is how the screen says
+        so out loud.
+
+        No token. This is the PUBLIC read: the endpoint returns
+        `status = 'live'` rows and nothing else, to anybody. A
+        reader's own pending comment is not in it and must not
+        be: see rule 3 in `core/Comments.kt`. */
+    suspend fun thread(slug: String): Cached<CommentsResponse> = fetch(
+        "$SITE_ORIGIN/api/comments?slug=${encodeComponent(slug)}",
+        "cache:thread:$slug",
+        CommentsResponse.serializer(),
+    )
 
     /** A practice book, with every answer already taken out by
         the endpoint. */
