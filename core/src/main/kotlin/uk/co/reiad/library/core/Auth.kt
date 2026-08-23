@@ -306,6 +306,40 @@ data class Target(
     @SerialName("done_at") val doneAt: String? = null,
 )
 
+/* ---------- a filled-in calculator, under a name ---------- */
+
+/**
+ * `public.scenarios`. One saved check.
+ *
+ * `inputs` is whatever shape the calculator already had for its
+ * own state, and the stock check's shape is its QUERY STRING:
+ * the format it has shared analyses in since it was written. A
+ * second serialisation of the same fifty-six fields would be a
+ * second thing to keep in step with the model, and this one is
+ * already proved correct by every link anybody has ever copied
+ * off that page.
+ *
+ * `summary` is one line of the ANSWER, stored so a list can be
+ * drawn without loading the model that produced it.
+ */
+@Serializable
+data class Scenario(
+    val id: String = "",
+    /** Which calculator. `stock` today. */
+    val tool: String = "stock",
+    val name: String = "",
+    val inputs: ScenarioInputs = ScenarioInputs(),
+    val summary: String = "",
+    @SerialName("updated_at") val updatedAt: String? = null,
+)
+
+/** The stock check's own shape for `inputs`: its query string,
+    with no leading `?`. Named rather than a free map, because the
+    site writes exactly this key and a typo here is a saved check
+    that opens empty. */
+@Serializable
+data class ScenarioInputs(val query: String = "")
+
 /* ---------- what an account says about its reader ---------- */
 
 /**

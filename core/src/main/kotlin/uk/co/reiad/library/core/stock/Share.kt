@@ -337,3 +337,33 @@ internal fun decodeQuery(text: String): String {
     }
     return out.toByteArray().decodeToString()
 }
+
+/**
+ * One line of the answer, for a saved check's list row.
+ *
+ * `"68.0 · Worth accumulating"`, and it is stored so the account
+ * can list a check without loading the model that produced it.
+ *
+ * ALWAYS IN ENGLISH, which is the site's choice and is the right
+ * one: this string is written once and read for ever, and a
+ * summary that remembers which language somebody happened to be
+ * reading in on the day is a list that is half in each.
+ */
+fun summarise(a: Analysis, words: ToolWords?): String {
+    val band = if (a.vetoed) "verdict.vetoed" else "verdict.${a.verdict.id}"
+    val said = words?.t(band, "en").orEmpty().ifBlank { a.verdict.id }
+    val score = a.score?.let { oneDecimal(it) } ?: "no score"
+    return "$score · $said"
+}
+
+/** `toFixed(1)`, which is not `"%.1f"`: the platform default
+    rounds half to even and JavaScript rounds half away from zero
+    on a positive number. A score of 68.25 is `68.3` on the site
+    and would be `68.2` here. */
+private fun oneDecimal(v: Double): String {
+    val scaled = kotlin.math.floor(kotlin.math.abs(v) * 10 + 0.5) / 10
+    val sign = if (v < 0) "-" else ""
+    val whole = scaled.toLong()
+    val tenth = kotlin.math.round((scaled - whole) * 10).toLong()
+    return "$sign$whole.$tenth"
+}

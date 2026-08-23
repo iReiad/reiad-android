@@ -24,6 +24,7 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import uk.co.reiad.library.core.Kept
 import uk.co.reiad.library.core.Profile
+import uk.co.reiad.library.core.Scenario
 import uk.co.reiad.library.core.Supabase
 import uk.co.reiad.library.core.Target
 import uk.co.reiad.library.core.encodeComponent
@@ -128,6 +129,61 @@ class Library(private val account: Account) {
             header("Prefer", "resolution=merge-duplicates,return=minimal")
             contentType(ContentType.Application.Json)
             setBody(buildJsonArray { add(row) }.toString())
+        }
+        true
+    } ?: false
+
+    /* ---------- saved scenarios ---------- */
+
+    /** Every saved check, newest first.
+
+        No filter, because `scenarios` is `auth.uid() = user_id`
+        like everything else here except `profiles`: a read with
+        no filter returns your own rows and nothing else. */
+    suspend fun scenarios(tool: String = "stock"): List<Scenario> = withToken { token ->
+        val text = http.get(
+            "${Supabase.REST}/scenarios" +
+                "?select=id,tool,name,inputs,summary,updated_at" +
+                "&tool=eq.${encodeComponent(tool)}&order=updated_at.desc",
+        ) {
+            header("apikey", Supabase.KEY)
+            header("Authorization", "Bearer $token")
+        }.bodyAsText()
+        json.decodeFromString(ListSerializer(Scenario.serializer()), text)
+    }.orEmpty()
+
+    /** Saves one.
+
+        `name` and `summary` are cut to the constraint's lengths
+        HERE as well as there, because a 400 arriving after the
+        button is pressed is a form that looked finished. */
+    suspend fun saveScenario(
+        tool: String,
+        name: String,
+        query: String,
+        summary: String,
+    ): Boolean = withToken { token ->
+        val row = buildJsonObject {
+            put("tool", tool)
+            put("name", name.trim().take(80))
+            putJsonObject("inputs") { put("query", query) }
+            put("summary", summary.take(200))
+        }
+        val answer = http.post("${Supabase.REST}/scenarios") {
+            header("apikey", Supabase.KEY)
+            header("Authorization", "Bearer $token")
+            header("Prefer", "return=minimal")
+            contentType(ContentType.Application.Json)
+            setBody(buildJsonArray { add(row) }.toString())
+        }
+        answer.status.isSuccess()
+    } ?: false
+
+    suspend fun removeScenario(id: String): Boolean = withToken { token ->
+        http.delete("${Supabase.REST}/scenarios?id=eq.${encodeComponent(id)}") {
+            header("apikey", Supabase.KEY)
+            header("Authorization", "Bearer $token")
+            header("Prefer", "return=minimal")
         }
         true
     } ?: false

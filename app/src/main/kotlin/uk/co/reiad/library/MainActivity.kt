@@ -64,9 +64,13 @@ import uk.co.reiad.library.core.LessonPage
 import uk.co.reiad.library.core.NavGroup
 import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.School
+import uk.co.reiad.library.core.Scenario
 import uk.co.reiad.library.core.rungsOf
 import uk.co.reiad.library.core.standingOf
 import uk.co.reiad.library.core.stock.inScript
+import uk.co.reiad.library.core.stock.readShare
+import uk.co.reiad.library.core.stock.shareQuery
+import uk.co.reiad.library.core.stock.summarise
 import uk.co.reiad.library.core.ProgressKeys
 import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.SiteManifest
@@ -762,6 +766,83 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         _toolNote.value = _words.value?.t(Keys.COPIED, _stock.value.lang) ?: link
     }
 
+    /* ---------- saved checks ---------- */
+
+    private val _scenarios = MutableStateFlow<List<Scenario>>(emptyList())
+    val scenarios: StateFlow<List<Scenario>> = _scenarios.asStateFlow()
+
+    private val _saveNote = MutableStateFlow<String?>(null)
+    val saveNote: StateFlow<String?> = _saveNote.asStateFlow()
+
+    /** This check, under a name, on the account.
+
+        What is stored is the QUERY STRING rather than a blob of
+        the fifty-six fields: it is the format the stock check has
+        shared analyses in since it was written, `ShareTest`
+        asserts it byte-for-byte against the site's, and a second
+        serialisation would be a second thing to keep in step with
+        the model.
+
+        The summary is one line of the ANSWER, so the account can
+        list a check without loading the model that produced it. */
+    fun saveCheck(name: String) {
+        val shelf = library ?: run {
+            _saveNote.value = "Sign in to keep a check."
+            return
+        }
+        val state = _stock.value
+        val words = _words.value
+        viewModelScope.launch {
+            val query = shareQuery(
+                state.inputs,
+                state.weights,
+                style = state.style.takeIf { it != "custom" },
+                lang = state.lang.takeIf { it != "en" },
+            )
+            val a = analyse(state.inputs, state.weights)
+            val ok = shelf.saveScenario(
+                tool = "stock",
+                name = name,
+                query = query,
+                summary = summarise(a, words),
+            )
+            _saveNote.value = words?.t(
+                if (ok) Keys.SAVED else Keys.SAVE_FAILED,
+                state.lang,
+            ) ?: if (ok) "Saved." else "That did not save."
+            if (ok) _scenarios.value = shelf.scenarios()
+        }
+    }
+
+    fun readScenarios() {
+        val shelf = library ?: return
+        viewModelScope.launch { _scenarios.value = shelf.scenarios() }
+    }
+
+    fun removeScenario(id: String) {
+        val shelf = library ?: return
+        viewModelScope.launch {
+            shelf.removeScenario(id)
+            _scenarios.value = shelf.scenarios()
+        }
+    }
+
+    /** Opens a saved check with its numbers back in the fields.
+
+        Through `readShare`, which is the same decoder every link
+        anybody has pasted goes through, so a check saved on a
+        laptop opens here with the same figures. */
+    fun openScenario(scenario: Scenario) {
+        val shared = readShare(scenario.inputs.query)
+        _stock.value = StockState(
+            inputs = shared.inputs,
+            weights = shared.weights,
+            style = shared.style,
+            lang = shared.lang ?: _stock.value.lang,
+        )
+        openTools()
+    }
+
     /** The whole analysis as a spreadsheet, shared the way the
         account export is: the app's own cache and a content URI,
         never a file path. */
@@ -1079,6 +1160,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             )
         }
         readPaths()
+        readScenarios()
     }
 
     /** Where the reader stands in each school.
@@ -1488,6 +1570,8 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val targets by model.targets.collectAsState()
     val setupState by model.setup.collectAsState()
     val paths by model.paths.collectAsState()
+    val scenarios by model.scenarios.collectAsState()
+    val saveNote by model.saveNote.collectAsState()
     val daysActive by model.daysActive.collectAsState()
     val exported by model.exported.collectAsState()
     val erasing by model.erasing.collectAsState()
@@ -1739,6 +1823,12 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             model.openLadder(school)
                             where = Where.Ladder(school)
                         },
+                        scenarios = scenarios,
+                        onOpenScenario = { row ->
+                            model.openScenario(row)
+                            where = Where.Stock
+                        },
+                        onRemoveScenario = { model.removeScenario(it) },
                     )
                 }
 
@@ -1917,6 +2007,16 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             state = stockState.copy(lang = prefs.lang),
                             onState = { model.setStock(it) },
                             onCopyLink = { model.copyCheck(context) },
+                            /* Null signed out, which is what the
+                               site does too: a control that
+                               cannot do anything is a promise
+                               this screen cannot keep. */
+                            onSave = if (reader != null) {
+                                { name -> model.saveCheck(name) }
+                            } else {
+                                null
+                            },
+                            saveNote = saveNote,
                             onExport = { model.exportCheck(context) },
                             onLang = { model.chooseToolLang(it) },
                             note = toolNote,

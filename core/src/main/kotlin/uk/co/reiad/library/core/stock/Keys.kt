@@ -116,6 +116,19 @@ object Keys {
     const val DOWNLOAD = "a.download"
     const val RESET = "a.reset"
 
+    /* ---------- and saving one under a name ----------
+
+       Six phrases the site has had since accounts arrived, in
+       `shared/tool-strings.ts` like every other one here, so
+       nothing new is written in Kotlin and both languages come
+       down the wire. */
+    const val SAVE_LABEL = "a.saveLabel"
+    const val SAVE = "a.save"
+    const val SAVED = "a.saved"
+    const val SAVE_NAMED = "a.saveNamed"
+    const val SAVE_FAILED = "a.saveFailed"
+    const val SAVED_ONES = "a.savedOnes"
+
     /* ---------- and what this page cannot see ---------- */
     const val DISC_TITLE = "disc.title"
     const val DISC_BODY = "disc.body"
@@ -137,6 +150,7 @@ object Keys {
         SH_PASS, SH_FAIL, SH_CAVEAT,
         NA_REASON,
         COPY_LINK, COPIED, DOWNLOAD, RESET,
+        SAVE_LABEL, SAVE, SAVED, SAVE_NAMED, SAVE_FAILED, SAVED_ONES,
         DISC_TITLE, DISC_BODY, DISC_UNITS,
     )
 }

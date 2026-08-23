@@ -158,6 +158,16 @@ fun StockScreen(
     onCopyLink: () -> Unit,
     onExport: () -> Unit,
     onLang: (String) -> Unit,
+    /** Save this check under a name, or null when nobody is
+        signed in.
+
+        Null rather than a disabled button: a control that cannot
+        do anything is a promise the screen cannot keep, and the
+        site does not draw this signed out either. */
+    onSave: ((String) -> Unit)? = null,
+    /** What the last save said. The site prints the server's own
+        words here and so does this. */
+    saveNote: String? = null,
     note: String? = null,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -258,6 +268,16 @@ fun StockScreen(
                 Spacer(Modifier.height(Gap.s4))
                 Control(Modifier.clickable { onState(StockState(lang = state.lang)) }) {
                     Text(t(Keys.RESET), style = MaterialTheme.typography.labelLarge, color = c.ink)
+                }
+                if (onSave != null) {
+                    Spacer(Modifier.height(Gap.s7))
+                    SaveCheck(
+                        label = t(Keys.SAVE_LABEL),
+                        button = t(Keys.SAVE),
+                        needsName = t(Keys.SAVE_NAMED),
+                        note = saveNote,
+                        onSave = onSave,
+                    )
                 }
                 if (note != null) {
                     Spacer(Modifier.height(Gap.s4))
@@ -1041,6 +1061,59 @@ private fun SectionHeading(title: String, why: String) {
         if (why.isNotBlank() && why != title) {
             Spacer(Modifier.height(Gap.s2))
             Text(why, style = bodyStyle(why), color = c.inkSoft)
+        }
+    }
+}
+
+/**
+ * Save this check under a name.
+ *
+ * What is stored is the QUERY STRING, which the caller builds
+ * from the same encoder every shared link has been proving
+ * correct for a year. This composable never sees the numbers: it
+ * takes a name and hands it back.
+ */
+@Composable
+private fun SaveCheck(
+    label: String,
+    button: String,
+    needsName: String,
+    note: String?,
+    onSave: (String) -> Unit,
+) {
+    val c = LocalReiad.current
+    var name by remember { mutableStateOf("") }
+    var complaint by remember { mutableStateOf<String?>(null) }
+    Column {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = c.inkSoft)
+        Spacer(Modifier.height(Gap.s4))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(Gap.s5),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(Modifier.weight(1f)) {
+                Field(
+                    value = name,
+                    onValueChange = { name = it.take(80); complaint = null },
+                    label = label,
+                    placeholder = "Beximco, August",
+                )
+            }
+            PillButton(
+                label = button,
+                onClick = {
+                    /* Named before sent. The column is
+                        `char_length(name) <= 80` and a blank one
+                        is a row nobody can tell apart from the
+                        next blank one. */
+                    if (name.isBlank()) complaint = needsName else onSave(name.trim())
+                },
+            )
+        }
+        val said = complaint ?: note
+        if (said != null) {
+            Spacer(Modifier.height(Gap.s4))
+            Text(said, style = MaterialTheme.typography.bodySmall, color = c.inkSoft)
         }
     }
 }

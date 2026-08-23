@@ -42,6 +42,7 @@ import uk.co.reiad.library.core.Choice
 import uk.co.reiad.library.core.LadderSchool
 import uk.co.reiad.library.core.Kept
 import uk.co.reiad.library.core.Reader
+import uk.co.reiad.library.core.Scenario
 import uk.co.reiad.library.core.Target
 import uk.co.reiad.library.core.isDone
 import uk.co.reiad.library.core.reachedFor
@@ -112,6 +113,10 @@ fun AccountScreen(
         four bars at nought. */
     paths: List<Path> = emptyList(),
     onOpenSchool: (LadderSchool) -> Unit = {},
+    /** Checks saved under a name, newest first. */
+    scenarios: List<Scenario> = emptyList(),
+    onOpenScenario: (Scenario) -> Unit = {},
+    onRemoveScenario: (String) -> Unit = {},
 ) {
     val c = LocalReiad.current
     LazyColumn(
@@ -255,6 +260,27 @@ fun AccountScreen(
                     onAdd = onAddTarget,
                 )
                 Spacer(Modifier.height(Gap.s9))
+            }
+
+            /* ---- saved checks ---- */
+            if (scenarios.isNotEmpty()) {
+                item("saved-head") {
+                    Text(
+                        "SAVED CHECKS",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = c.inkSoft,
+                    )
+                    Spacer(Modifier.height(Gap.s5))
+                }
+                items(scenarios, key = { "s-" + it.id }) { row ->
+                    ScenarioRow(
+                        row,
+                        onOpen = { onOpenScenario(row) },
+                        onRemove = { onRemoveScenario(row.id) },
+                    )
+                    Spacer(Modifier.height(Gap.s4))
+                }
+                item("saved-foot") { Spacer(Modifier.height(Gap.s9)) }
             }
 
             /* ---- the reading list ---- */
@@ -648,6 +674,56 @@ private fun Erase(onErase: () -> Unit, erasing: String?) {
                     color = c.paper,
                 )
             }
+        }
+    }
+}
+
+/**
+ * One saved check.
+ *
+ * The summary is READ rather than recomputed, which is what the
+ * column is for: a list of twenty checks should not load the
+ * model twenty times to print twenty lines it already has.
+ */
+@Composable
+private fun ScenarioRow(
+    row: Scenario,
+    onOpen: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val c = LocalReiad.current
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Rung(
+            Modifier
+                .weight(1f)
+                .clickable(role = Role.Button, onClick = onOpen),
+        ) {
+            Icon("gauge", size = 18.dp, tint = c.accent)
+            Spacer(Modifier.width(Gap.s6))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    row.name.ifBlank { "Untitled" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.ink,
+                    maxLines = 1,
+                )
+                if (row.summary.isNotBlank()) {
+                    Text(
+                        row.summary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.inkSoft,
+                        fontFamily = Faces.mono,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.width(Gap.s4))
+        /* A full tap target, not a glyph. The site's own list has
+           a remove on each row and this is the same control at a
+           size a thumb can find. */
+        Tap(onClick = onRemove, label = "Remove ${row.name.ifBlank { "this check" }}") {
+            Icon("close", size = 16.dp, tint = c.inkSoft)
         }
     }
 }
