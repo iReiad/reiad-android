@@ -46,6 +46,18 @@ const val TOOL_LANG_KEY = "tool-lang"
 
 /** Which groups lead. A preference, never a gate. */
 const val AUDIENCE_KEY = "audience"
+
+/** When one reminder a day arrives, as `"21:00"`, or absent for
+    off.
+
+    **Deliberately NOT in `SyncKeys`.** A reminder is a fact about
+    one handset: the site cannot post one, a second phone should
+    not inherit one, and a field the browser carries and can never
+    act on is exactly the "carried and never drawn" failure the
+    manifest tests exist for, pointed the other way. The settings
+    sheet says which of its rows travel and which do not, and this
+    one is under the heading that does not. */
+const val REMIND_KEY = "remind-at"
 const val TRACK_KEY = "track"
 
 /** One option a reader can pick, with the site's own label and
@@ -140,6 +152,24 @@ val MEASURES = listOf(
 )
 
 fun measureOf(id: String?): Measure = Measure.entries.firstOrNull { it.id == id } ?: Measure.NORMAL
+
+/** Which language the calculators open in.
+
+    Named for exactly what it does rather than for what it sounds
+    like it might do: this site is Bangla-first everywhere and a
+    preference that turned that off would be a preference against
+    the point of it. The tools are the one place with a real
+    switch, and this writes the same `tool-lang` they have read
+    since long before there were accounts, so choosing here and
+    choosing on the stock screen are one choice. */
+enum class ToolLang(val id: String) { BN("bn"), EN("en") }
+
+val LANGS = listOf(
+    PrefOption(ToolLang.BN, "বাংলা", "the calculators open in Bangla"),
+    PrefOption(ToolLang.EN, "English", "the calculators open in English"),
+)
+
+fun langOf(id: String?): ToolLang = ToolLang.entries.firstOrNull { it.id == id } ?: ToolLang.BN
 
 enum class Finish(val id: String) { FROST("frost"), PAPER("paper"), PLAIN("plain") }
 

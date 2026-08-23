@@ -30,7 +30,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.Arrangement
+import uk.co.reiad.library.read.REMIND_TIMES
 import uk.co.reiad.library.core.BLURS
+import uk.co.reiad.library.core.LANGS
+import uk.co.reiad.library.core.langOf
 import uk.co.reiad.library.core.Blur
 import uk.co.reiad.library.core.Finish
 import uk.co.reiad.library.core.GLASSES
@@ -81,6 +85,11 @@ fun SettingsSheet(
         drawn on its own, which is what the render test does. */
     held: Held? = null,
     onForget: () -> Unit = {},
+    /** When one reminder a day arrives, as `"21:00"`, and null
+        for off. This handset's rather than the account's, which
+        is why it sits under the heading that says so. */
+    remindAt: String? = null,
+    onRemind: (String?) -> Unit = {},
     /** Which build this is. Passed in rather than read from
         `BuildConfig` here, so the render test can pin a fixed
         string and the snapshot does not change on every commit. */
@@ -187,6 +196,22 @@ fun SettingsSheet(
                 note = { it.note },
             )
 
+            /* The seventh preference the site stores, and the
+               one this sheet did not have. It writes `tool-lang`,
+               which the calculators have read since long before
+               there were accounts, so choosing here and choosing
+               on the stock screen are ONE choice rather than two
+               that can disagree. */
+            Spacer(Modifier.height(Gap.s7))
+            Choice(
+                heading = "Calculators open in",
+                options = LANGS,
+                chosen = langOf(prefs.lang),
+                onChoose = { lang -> onChange { it.copy(lang = lang.id) } },
+                label = { it.label },
+                note = { it.note },
+            )
+
             if (!glassy) {
                 Spacer(Modifier.height(Gap.s5))
                 Text(
@@ -196,20 +221,48 @@ fun SettingsSheet(
                 )
             }
 
-            /* Offline, and it is BELOW the reading preferences on
-               purpose: those travel with the account and this one
-               is about this handset only. Two different kinds of
-               setting, and the sheet says so. */
+            /* This phone's own, and it is BELOW the reading
+               preferences on purpose: those travel with the
+               account and these do not. Two different kinds of
+               setting, and the sheet says so once for both. */
+            Spacer(Modifier.height(Gap.s10))
+            Text("This phone", style = MaterialTheme.typography.headlineSmall, color = c.ink)
+            Spacer(Modifier.height(Gap.s3))
+            Text(
+                "These are about this handset and do not travel with your account.",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.inkSoft,
+            )
+            Spacer(Modifier.height(Gap.s7))
+
+            /* One a day, naming the lesson you were in the middle
+               of, and NOTHING when there is no such lesson. It
+               never mentions a day that was missed: a notification
+               saying "you haven't read today" is a streak in a
+               sentence, and ROUTINE.md's rule is that nothing here
+               may go down. */
+            Text("A reminder", style = MaterialTheme.typography.titleSmall, color = c.ink)
+            Spacer(Modifier.height(Gap.s2))
+            Text(
+                "Once a day, naming the lesson you were in the middle of. Nothing at "
+                    + "all if there isn't one.",
+                style = MaterialTheme.typography.bodySmall,
+                color = c.inkSoft,
+            )
+            Spacer(Modifier.height(Gap.s5))
+            Row(horizontalArrangement = Arrangement.spacedBy(Gap.s3)) {
+                for ((label, time) in REMIND_TIMES) {
+                    val id = time?.toString()
+                    Tap(onClick = { onRemind(id) }) {
+                        Chip(label, tone = if (remindAt == id) c.accent else c.inkSoft)
+                    }
+                }
+            }
+
             if (held != null) {
-                Spacer(Modifier.height(Gap.s10))
-                Text("Offline", style = MaterialTheme.typography.headlineSmall, color = c.ink)
-                Spacer(Modifier.height(Gap.s3))
-                Text(
-                    "This one is about this phone and does not travel.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.inkSoft,
-                )
-                Spacer(Modifier.height(Gap.s7))
+                Spacer(Modifier.height(Gap.s9))
+                Text("Offline", style = MaterialTheme.typography.titleSmall, color = c.ink)
+                Spacer(Modifier.height(Gap.s5))
                 HeldPanel(held, onForget)
             }
 

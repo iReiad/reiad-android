@@ -108,6 +108,7 @@ import uk.co.reiad.library.core.Target
 import uk.co.reiad.library.data.Held
 import androidx.glance.appwidget.updateAll
 import uk.co.reiad.library.data.Reiad
+import uk.co.reiad.library.read.RemindWorker
 import uk.co.reiad.library.widget.ContinueWidget
 import uk.co.reiad.library.widget.NewsWidget
 import uk.co.reiad.library.widget.ProgressWidget
@@ -1143,6 +1144,20 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         }
     }
 
+    /* ---------- the daily reminder ----------
+
+       This handset's, not the account's: see `REMIND_KEY`. */
+
+    val remindAt: StateFlow<String?> = reiad.remindAt
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun remindAt(context: android.content.Context, at: String?) {
+        viewModelScope.launch {
+            reiad.setRemindAt(at)
+            RemindWorker.at(context, RemindWorker.parse(at))
+        }
+    }
+
     /* ---------- the board the reader arranged ----------
 
        Straight off the store, because it is one small list read
@@ -1789,6 +1804,17 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val bookmarks by model.bookmarks.collectAsState()
     val board by model.board.collectAsState()
     val news by model.news.collectAsState()
+    val remindAt by model.remindAt.collectAsState()
+
+    /* The reminder's permission, asked for at the moment somebody
+       turns it on rather than at launch: a prompt on first run is
+       a question about a feature nobody has met yet, and the
+       usual answer to that is no. Refusal is not an error, it is
+       an answer, and `RemindWorker` posts silently where it was
+       given. */
+    val askToNotify = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) { }
     val book by model.book.collectAsState()
     val bookFailed by model.bookFailed.collectAsState()
     val bookDays by model.days.collectAsState()
@@ -2502,6 +2528,20 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     onClose = { settings = false },
                     held = held,
                     onForget = { model.forgetHeldNow(context) },
+                    remindAt = remindAt,
+                    onRemind = { at ->
+                        model.remindAt(context, at)
+                        /* Only when they are turning it ON, and
+                           only on the versions that ask. A
+                           permission prompt for a setting somebody
+                           just switched off is a prompt with no
+                           question in it. */
+                        if (at != null &&
+                            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU
+                        ) {
+                            askToNotify.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    },
                 )
             }
         }

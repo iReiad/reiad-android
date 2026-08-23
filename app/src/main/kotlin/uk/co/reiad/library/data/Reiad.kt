@@ -27,6 +27,7 @@ import uk.co.reiad.library.core.AUDIENCE_KEY
 import uk.co.reiad.library.core.BOARD_KEY
 import uk.co.reiad.library.core.BoardRecord
 import uk.co.reiad.library.core.PREFS_KEY
+import uk.co.reiad.library.core.REMIND_KEY
 import uk.co.reiad.library.core.Prefs
 import uk.co.reiad.library.core.Bookmark
 import uk.co.reiad.library.core.BookKeyResponse
@@ -425,6 +426,19 @@ class Reiad(private val context: Context) {
         read says "never arranged" and the default answers. */
     suspend fun resetBoard() {
         context.store.edit { it.remove(key(BOARD_KEY)) }
+    }
+
+    /* ---------- the daily reminder ----------
+
+       This handset's, and not the account's. See `REMIND_KEY`. */
+
+    val remindAt: Flow<String?> = context.store.data.map { it[key(REMIND_KEY)] }
+
+    suspend fun setRemindAt(value: String?) {
+        context.store.edit { stored ->
+            if (value == null) stored.remove(key(REMIND_KEY))
+            else stored[key(REMIND_KEY)] = value
+        }
     }
 
     /** Which groups lead. Null is a real answer and means the
