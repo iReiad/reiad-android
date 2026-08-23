@@ -76,6 +76,7 @@ import uk.co.reiad.library.core.stock.summarise
 import uk.co.reiad.library.core.ProgressKeys
 import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.SiteManifest
+import uk.co.reiad.library.core.Story
 import uk.co.reiad.library.core.nav.Destination
 import uk.co.reiad.library.core.nav.LIVE_KEY
 import uk.co.reiad.library.core.nav.SKILLS_KEY
@@ -1111,6 +1112,23 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
 
     fun ticksOf(key: String): Set<String> = _ticks.value[key].orEmpty()
 
+    /* ---------- the market board ----------
+
+       Fetched once per launch, like the pieces, and only when
+       the board actually holds the widget: three RSS feeds read
+       on a Worker is not a request to make for a reader who has
+       taken it off. */
+
+    private val _news = MutableStateFlow<List<Story>>(emptyList())
+    val news: StateFlow<List<Story>> = _news.asStateFlow()
+
+    fun fetchNews() {
+        if (_news.value.isNotEmpty()) return
+        viewModelScope.launch {
+            reiad.news().value?.let { _news.value = it.items }
+        }
+    }
+
     /* ---------- the board the reader arranged ----------
 
        Straight off the store, because it is one small list read
@@ -1756,6 +1774,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val checks by model.checks.collectAsState()
     val bookmarks by model.bookmarks.collectAsState()
     val board by model.board.collectAsState()
+    val news by model.news.collectAsState()
     val book by model.book.collectAsState()
     val bookFailed by model.bookFailed.collectAsState()
     val bookDays by model.days.collectAsState()
@@ -2339,6 +2358,13 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             where = Where.Ladder(school)
                         }
                     },
+                    news = news,
+                    onNeedNews = { model.fetchNews() },
+                    /* Somebody else's page, in the reader's own
+                       browser, with the address bar visible: this
+                       app does not host The Business Standard and
+                       should not look as though it does. */
+                    onStory = { story -> openOnSite(context, story.url, colours) },
                 )
 
                 is Where.Ladder -> {
@@ -2569,12 +2595,15 @@ fun Home(
     board: List<String>? = null,
     bookmarks: Map<String, Bookmark> = emptyMap(),
     pieces: List<Piece> = emptyList(),
+    news: List<Story> = emptyList(),
+    onNeedNews: () -> Unit = {},
     lang: String = "bn",
     signedIn: Boolean = false,
     onBoard: (List<String>) -> Unit = {},
     onResetBoard: () -> Unit = {},
     onPiece: (Piece) -> Unit = {},
     onResume: (String, Bookmark) -> Unit = { _, _ -> },
+    onStory: (Story) -> Unit = {},
 ) {
     val c = LocalReiad.current
     /* One sway for the whole screen, not one per card. Every card
@@ -2616,11 +2645,18 @@ fun Home(
     }
     val data = BoardData(
         site = site, ticks = ticks, bookmarks = bookmarks, pieces = pieces,
-        sway = sway, icons = icons, lang = lang,
+        sway = sway, icons = icons, lang = lang, news = news,
     )
     val act = BoardActions(
         onSchool = onOpen, onItem = onGo, onPiece = onPiece, onResume = onResume,
+        onStory = onStory,
     )
+
+    /* Three RSS feeds read on a Worker is not a request to make
+       for a reader who has taken the widget off their board. */
+    LaunchedEffect(placed) {
+        if (placed.any { it.id == "market" }) onNeedNews()
+    }
 
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),

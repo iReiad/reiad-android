@@ -24,6 +24,7 @@ import uk.co.reiad.library.core.NavGroup
 import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.SiteManifest
+import uk.co.reiad.library.core.Story
 import uk.co.reiad.library.core.rowsOf
 import uk.co.reiad.library.SchoolCard
 import uk.co.reiad.library.accentOf
@@ -62,7 +63,7 @@ import uk.co.reiad.library.accentOf
     the picker on the site and simply absent here, which is the
     contract above working rather than failing. */
 val DRAWABLE: Set<String> = setOf(
-    "continue", "progress", "pulse", "schools", "tools", "stock",
+    "continue", "progress", "pulse", "market", "schools", "tools", "stock",
 )
 
 /** Everything one of these renderers might need.
@@ -79,6 +80,7 @@ data class BoardData(
     val sway: Sway,
     val icons: Map<String, String>,
     val lang: String,
+    val news: List<Story> = emptyList(),
 )
 
 /** What a widget can ask the app to do. */
@@ -87,6 +89,7 @@ data class BoardActions(
     val onItem: (NavItem) -> Unit,
     val onPiece: (Piece) -> Unit,
     val onResume: (String, Bookmark) -> Unit,
+    val onStory: (Story) -> Unit = {},
 )
 
 /** One widget, drawn.
@@ -102,6 +105,7 @@ fun Widget(id: String, data: BoardData, act: BoardActions): Boolean {
         "continue" -> ContinueWidget(data, act)
         "progress" -> ProgressWidget(data, act)
         "pulse" -> PulseWidget(data, act)
+        "market" -> MarketWidget(data, act)
         "schools" -> SchoolsWidget(data, act)
         "tools" -> ToolsWidget(data, act)
         "stock" -> StockWidget(data, act)
@@ -282,6 +286,66 @@ private fun MinutesTag(minutes: Int, lang: String) {
         if (lang == "bn") "$minutes মিনিট" else "$minutes min",
         style = MaterialTheme.typography.labelSmall,
         color = c.inkSoft,
+    )
+}
+
+/* ---------- the market board ---------- */
+
+/** Today's headlines, as the site picked them.
+
+    **The ranking is the server's and this draws it in order.**
+    `/api/news` reads three feeds, scores each story against a
+    keyword table and dedupes, so what arrives is already the
+    shortlist; a client that re-sorted would be a second
+    editorial judgement nobody asked for, and one that would
+    disagree with the same board on the site.
+
+    Bangla where the translation succeeded and English where it
+    did not, per story rather than per board: a headline nobody
+    can read is still better than a gap where the news should
+    be. */
+@Composable
+private fun MarketWidget(data: BoardData, act: BoardActions) {
+    val c = LocalReiad.current
+    val stories = data.news.take(5)
+    if (stories.isEmpty()) {
+        InfoCard(
+            title = if (data.lang == "bn") "বাজারের খবর এখানে আসবে" else "Market pulse lands here",
+            dek = if (data.lang == "bn") {
+                "তিনটা সূত্র থেকে বাছাই করা শিরোনাম, নেটওয়ার্ক পেলেই।"
+            } else {
+                "Headlines picked from three feeds, as soon as there is a connection."
+            },
+        )
+        return
+    }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Gap.s4)) {
+        WidgetHead(if (data.lang == "bn") "বাজারের খবর" else "Market pulse")
+        for (story in stories) {
+            RowCard(
+                title = story.headline(data.lang),
+                icon = "spark",
+                /* The site's own label for the feed, not the
+                   publisher's: a masthead that renames itself
+                   cannot rename a region here. */
+                chip = story.region.takeIf { it.isNotBlank() },
+                onOpen = { act.onStory(story) },
+                trailing = { SourceTag(story.source) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SourceTag(source: String) {
+    val c = LocalReiad.current
+    Text(
+        source,
+        style = MaterialTheme.typography.labelSmall,
+        color = c.inkSoft,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.width(88.dp),
     )
 }
 

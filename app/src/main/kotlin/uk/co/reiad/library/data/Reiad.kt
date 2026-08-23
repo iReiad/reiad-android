@@ -32,6 +32,7 @@ import uk.co.reiad.library.core.Bookmark
 import uk.co.reiad.library.core.BookKeyResponse
 import uk.co.reiad.library.core.BookResponse
 import uk.co.reiad.library.core.PieceResponse
+import uk.co.reiad.library.core.NewsResponse
 import uk.co.reiad.library.core.PiecesResponse
 import uk.co.reiad.library.core.stock.ToolWords
 import uk.co.reiad.library.core.ProgressKeys
@@ -143,6 +144,16 @@ class Reiad(private val context: Context) {
         of six pieces should not pull six bodies. */
     suspend fun pieces(): Cached<PiecesResponse> =
         fetch("$SITE_ORIGIN/api/articles", "cache:pieces", PiecesResponse.serializer())
+
+    /** The market board: three RSS feeds, read and scored on the
+        server, cached at the edge for half an hour.
+
+        Cached HERE as well, under the same rule everything else
+        follows, and for this one the stale copy is worth more
+        than most: yesterday's headlines with a date on them are
+        a board, and an empty box is not. */
+    suspend fun news(): Cached<NewsResponse> =
+        fetch("$SITE_ORIGIN/api/news", "cache:news", NewsResponse.serializer())
 
     /** One piece, body included. Cached under its own slug, so a
         piece read once is readable on a train. */

@@ -216,6 +216,44 @@ fun NavGroup.hubItem(): NavItem? = items.firstOrNull { it.hub }
 fun rowsOf(group: NavGroup): List<NavItem> =
     group.items.filter { !it.hub }.ifEmpty { group.items }
 
+/* ---------- /api/news ---------- */
+
+/** One market story, as `/api/news` picked it.
+
+    The endpoint reads three RSS feeds server-side, scores each
+    story against a keyword table and dedupes, so what arrives is
+    already the shortlist. `_score` and the rest of its working
+    are not sent and are not wanted: the ranking is the site's
+    editorial judgement and a client that re-ranked would be a
+    second opinion nobody asked for.
+
+    `titleBn` is present only where a translation succeeded, and
+    a story with none is shown in English rather than held back:
+    a headline nobody can read is still better than a gap where
+    the news should be. */
+@Serializable
+data class Story(
+    val title: String = "",
+    @SerialName("title_bn") val titleBn: String? = null,
+    val url: String = "",
+    val summary: String = "",
+    val source: String = "",
+    /** `BD` or `Global`, and it is the SITE's label for a feed
+        rather than anything the publisher said. */
+    val region: String = "",
+    val published: String? = null,
+) {
+    fun headline(lang: String): String =
+        if (lang == "bn") titleBn?.takeIf { it.isNotBlank() } ?: title else title
+}
+
+@Serializable
+data class NewsResponse(
+    val updated: String = "",
+    val count: Int = 0,
+    val items: List<Story> = emptyList(),
+)
+
 @Serializable
 data class Audience(val id: String = "", val label: String = "", val sub: String = "")
 
