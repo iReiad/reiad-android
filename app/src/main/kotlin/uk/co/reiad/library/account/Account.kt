@@ -15,6 +15,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -29,6 +30,7 @@ import uk.co.reiad.library.core.Arrival
 import uk.co.reiad.library.core.Reader
 import uk.co.reiad.library.core.Session
 import uk.co.reiad.library.core.Supabase
+import uk.co.reiad.library.core.encodeComponent
 import uk.co.reiad.library.core.arrivalOf
 import uk.co.reiad.library.core.authorizeUrl
 import uk.co.reiad.library.core.needsRefresh
@@ -109,24 +111,42 @@ class Account(private val context: Context) {
         offered fewer would be an account somebody could make on
         one and not reach on the other. */
     suspend fun sendLink(email: String): Boolean = runCatching {
-        http.post("${Supabase.AUTH}/otp") {
+        /* ---- `redirect_to` is a QUERY PARAMETER ----
+
+           It was `options.email_redirect_to` in the body, which
+           is the JS client library's shape and not this API's.
+           GoTrue ignores a field it does not know, so the request
+           returned 200, the screen said the link had been sent,
+           the email arrived, and the link went to the SITE_URL
+           default instead of back to the app. Every part of that
+           looks like success.
+
+           `aab/src/account.ts` does it the right way and has
+           since it was written, which is what settled it: the
+           site's magic link works and the app's did not, over one
+           difference. */
+        val answer = http.post(
+            "${Supabase.AUTH}/otp?redirect_to=${encodeComponent(Supabase.REDIRECT)}",
+        ) {
             header("apikey", Supabase.KEY)
             contentType(ContentType.Application.Json)
-            /* The address is BUILT rather than interpolated, so
-               a quote or a backslash in what somebody typed
-               cannot end the string early and change the shape of
-               the request. */
+            /* The body is BUILT rather than interpolated, so a
+               quote or a backslash in what somebody typed cannot
+               end the string early and change the shape of the
+               request. */
             setBody(
                 buildJsonObject {
                     put("email", email)
                     put("create_user", true)
-                    putJsonObject("options") {
-                        put("email_redirect_to", Supabase.REDIRECT)
-                    }
                 }.toString(),
             )
         }
-        true
+        /* And the ANSWER is read. `runCatching` around a call that
+           cannot throw on a 400 turned every refusal into a
+           success: a rate limit, a malformed address and a
+           project with email sign-in switched off all reported
+           "we have sent you a link". */
+        answer.status.isSuccess()
     }.getOrDefault(false)
 
     /** What came back on the redirect. */
