@@ -221,17 +221,23 @@ class AccountLookTest {
         a heading that did not. */
     @Test fun settingsLarge() {
         pz.snapshot {
-            ReiadTheme(accent = Accents.GREEN, dark = false, scale = Scale.LARGE) {
-                val c = LocalReiad.current
-                Box(Modifier.fillMaxSize().background(c.paper)) {
-                    SettingsSheet(
-                        prefs = Prefs(text = "large"),
-                        onChange = {},
-                        onClose = {},
-                        held = Held(89, 1_430_000),
-                        onForget = {},
-                        builtFrom = "0000000  1970-01-01 00:00",
-                    )
+            /* Drawn already arrived: a snapshot is one frame, and
+               one frame into the sheet's rise is an empty page. */
+            androidx.compose.runtime.CompositionLocalProvider(
+                uk.co.reiad.library.ui.LocalStill provides true,
+            ) {
+                ReiadTheme(accent = Accents.GREEN, dark = false, scale = Scale.LARGE) {
+                    val c = LocalReiad.current
+                    Box(Modifier.fillMaxSize().background(c.paper)) {
+                        SettingsSheet(
+                            prefs = Prefs(text = "large"),
+                            onChange = {},
+                            onClose = {},
+                            held = Held(89, 1_430_000),
+                            onForget = {},
+                            builtFrom = "0000000  1970-01-01 00:00",
+                        )
+                    }
                 }
             }
         }

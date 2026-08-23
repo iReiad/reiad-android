@@ -2,6 +2,7 @@ package uk.co.reiad.library.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -156,6 +157,19 @@ fun Shell(
             }
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 content()
+                /* The page fades out under each floating bar
+                   rather than being cut off by it. Both bars are
+                   glass and the page scrolls through them, which
+                   is the design — but between the status bar and
+                   the pill there was a strip where prose floated
+                   over nothing, colliding with the clock. A
+                   breath of the paper's own colour under each
+                   end says "the page continues under here" the
+                   way the site's veil does. */
+                if (chrome == Chrome.BAR) {
+                    EdgeFade(Modifier.align(Alignment.TopCenter), top = true)
+                    EdgeFade(Modifier.align(Alignment.BottomCenter), top = false)
+                }
                 if (chrome == Chrome.BAR) {
                     /* The site's own top bar, and it is the app's
                        identity as much as the colours are: every
@@ -202,6 +216,27 @@ fun Shell(
     }
 }
 
+/** The soft ground behind a floating bar's end of the screen.
+
+    A vertical gradient of the page's own paper: solid where the
+    system's clock and gesture bar live, gone by the time the
+    page's prose is fully out from under the glass. Drawn between
+    the content and the bars, so both stay legible over anything
+    that scrolls past. */
+@Composable
+private fun EdgeFade(modifier: Modifier, top: Boolean) {
+    val c = LocalReiad.current
+    val colours =
+        if (top) listOf(c.paper.copy(alpha = 0.92f), c.paper.copy(alpha = 0f))
+        else listOf(c.paper.copy(alpha = 0f), c.paper.copy(alpha = 0.92f))
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(if (top) 64.dp else 56.dp)
+            .background(androidx.compose.ui.graphics.Brush.verticalGradient(colours)),
+    )
+}
+
 /* ---------- how far a page has to keep clear ----------
 
    Both bars FLOAT over the page rather than pushing it, which is
@@ -244,17 +279,24 @@ fun pagePadding(horizontal: Dp = Gap.s8, extraTop: Dp = 0.dp): PaddingValues =
 @Composable
 private fun RoundButton(icon: String, label: String, onClick: () -> Unit) {
     val c = LocalReiad.current
+    val glow = rememberGlow()
+    val touch = rememberTouch()
     Box(
         Modifier
             .size(Gap.tap)
+            .pressing(glow)
             .clip(RoundedCornerShape(Corner.pill))
-            .material(Kind.CONTROL, c, Corner.pill)
+            .material(Kind.CONTROL, c, Corner.pill, lit = { glow.lit })
+            .follows(glow)
             /* A visible rim. The material gives a control its
                lit edge, and at 44dp against a pane of the same
                glass that edge is not enough to say "this is a
                button": the site draws a hairline circle. */
             .border(1.dp, c.hairline, RoundedCornerShape(Corner.pill))
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(role = Role.Button) {
+                touch.tap()
+                onClick()
+            }
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
@@ -373,7 +415,11 @@ private fun Bar(
             .clip(RoundedCornerShape(Corner.pill))
             .material(Kind.PANE, c, Corner.pill)
             .padding(horizontal = Gap.s4, vertical = Gap.s3),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        /* A breath between the five, so each is its own target
+           rather than one striped bar. The gap costs nothing —
+           each destination keeps its equal share — and it is
+           where the selected pill's edge lives. */
+        horizontalArrangement = Arrangement.spacedBy(Gap.s2),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         /* Home first, and it is not in the nav table.
@@ -470,11 +516,16 @@ private fun Destination(
 ) {
     val c = LocalReiad.current
     val glow = rememberGlow()
+    val touch = rememberTouch()
     val lift by animateFloatAsState(
         targetValue = if (selected) 1f else 0f,
         animationSpec = tween(Motion.FAST_MS),
         label = "selected",
     )
+    /* The ink follows the lift rather than jumping, so arriving
+       somewhere is one movement: the ground comes up and the icon
+       warms into the accent together. */
+    val ink = androidx.compose.ui.graphics.lerp(c.inkSoft, accent, lift)
     Column(
         modifier
             .clip(RoundedCornerShape(Corner.pill))
@@ -490,16 +541,20 @@ private fun Destination(
                 lit = { glow.lit },
             )
             .follows(glow)
-            .clickable(role = Role.Tab, onClick = onClick)
+            .pressing(glow)
+            .clickable(role = Role.Tab) {
+                if (!selected) touch.tick()
+                onClick()
+            }
             .padding(vertical = Gap.s4),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(icon, size = 22.dp, tint = if (selected) accent else c.inkSoft)
+        Icon(icon, size = 22.dp, tint = ink)
         Spacer(Modifier.height(Gap.s2))
         Text(
             label,
             style = MaterialTheme.typography.labelSmall,
-            color = if (selected) accent else c.inkSoft,
+            color = ink,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -528,6 +583,8 @@ private fun Rail(
             .padding(vertical = Gap.s7, horizontal = Gap.s5)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = if (open) Alignment.Start else Alignment.CenterHorizontally,
+        /* The same breath the drawer's rows get. */
+        verticalArrangement = Arrangement.spacedBy(Gap.s2),
     ) {
         RailRow("home", "Home", current == null, c.accent, open, onHome)
         RailRow("search", "Search", false, c.accent, open, onSearch)
@@ -634,45 +691,23 @@ private fun Drawer(
     onClose: () -> Unit,
 ) {
     val c = LocalReiad.current
-    val reduced = rememberReducedMotion()
-    val retreat = rememberRetreat(onBack = onClose)
-    Box(
-        Modifier
-            .fillMaxSize()
-            /* The scrim closes it. Not a decoration: on a phone
-               the outside of a sheet is the biggest and most
-               obvious target there is. */
-            .background(Color.Black.copy(alpha = 0.45f))
-            .clickable(
-                indication = null,
-                interactionSource = remembering(),
-                onClick = onClose,
-            ),
-    ) {
-        Column(
-            Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .retreating(retreat, reduced)
-                .clip(RoundedCornerShape(topStart = Corner.lg, topEnd = Corner.lg))
-                .material(Kind.PANE, c, Corner.lg, ground = c.paper)
-                .clickable(indication = null, interactionSource = remembering()) { }
-                .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = Gap.s8, vertical = Gap.s8)
-                .verticalScroll(rememberScrollState()),
-        ) {
-            site?.audiences?.takeIf { it.size > 1 }?.let { audiences ->
-                AudienceSwitch(audiences.map { it.id to it.label }, audience, onAudience)
-                Spacer(Modifier.height(Gap.s8))
-            }
+    Sheet(onClose = onClose) { _ ->
+        site?.audiences?.takeIf { it.size > 1 }?.let { audiences ->
+            AudienceSwitch(audiences.map { it.id to it.label }, audience, onAudience)
+            Spacer(Modifier.height(Gap.s8))
+        }
 
-            for (group in groups) {
-                Text(
-                    group.label.uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = c.inkSoft,
-                    modifier = Modifier.padding(bottom = Gap.s4),
-                )
+        for (group in groups) {
+            Text(
+                group.label.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                color = c.inkSoft,
+                modifier = Modifier.padding(bottom = Gap.s4),
+            )
+            /* A breath between rows. Flush, twenty rows read as
+               one column of text with lines on it; two pixels
+               apart they read as twenty things you can press. */
+            Column(verticalArrangement = Arrangement.spacedBy(Gap.s2)) {
                 for (item in group.items) {
                     DrawerRow(
                         item = item,
@@ -681,15 +716,14 @@ private fun Drawer(
                         onClick = { onItem(item) },
                     )
                 }
-                Spacer(Modifier.height(Gap.s7))
             }
+            Spacer(Modifier.height(Gap.s7))
+        }
 
-            Rung(Modifier.clickable(role = Role.Button, onClick = onSettings)) {
-                Icon("theme", size = 20.dp, tint = c.inkSoft)
-                Spacer(Modifier.width(Gap.s6))
-                Text("Settings", style = MaterialTheme.typography.bodyLarge, color = c.ink)
-            }
-            Spacer(Modifier.height(Gap.s8))
+        Rung(Modifier.clickable(role = Role.Button, onClick = onSettings)) {
+            Icon("theme", size = 20.dp, tint = c.inkSoft)
+            Spacer(Modifier.width(Gap.s6))
+            Text("Settings", style = MaterialTheme.typography.bodyLarge, color = c.ink)
         }
     }
 }
@@ -737,7 +771,8 @@ private fun DrawerRow(
 
 /** A groove with a control riding in it, which is the site's own
     segmented control said in the material's words: the track is
-    a channel cut in and the thumb is a thing sitting on it.
+    a channel cut in and the thumb is a thing sitting on it —
+    `Segmented`, so the thumb SLIDES between the two answers.
 
     It REORDERS and never hides, and the label under it says so,
     because a switch whose effect a reader cannot predict is a
@@ -750,42 +785,17 @@ fun AudienceSwitch(
 ) {
     val c = LocalReiad.current
     Column {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                /* The GROOVE is a tap taller than a tap, because
-                   what rides in it is the target: at `Gap.tap`
-                   with the channel's own padding the two thumbs
-                   came to 36dp each. */
-                .height(Gap.tap + Gap.s4)
-                .clip(RoundedCornerShape(Corner.pill))
-                .material(Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
-                .padding(Gap.s2),
-        ) {
-            for ((id, label) in options) {
-                val on = id == chosen
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(Corner.pill))
-                        .material(
-                            kind = Kind.CONTROL,
-                            colours = c,
-                            corner = Corner.pill,
-                            ground = if (on) c.accent else Color.Transparent,
-                        )
-                        .clickable(role = Role.RadioButton) { onChoose(id) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (on) c.paper else c.inkSoft,
-                    )
-                }
-            }
-        }
+        Segmented(
+            options = options,
+            chosen = options.firstOrNull { it.first == chosen },
+            onChoose = { onChoose(it.first) },
+            label = { it.second },
+            /* A tap taller than a tap, because what rides in the
+               groove is the target: at `Gap.tap` with the
+               channel's own padding the two thumbs came to 36dp
+               each. */
+            height = Gap.tap + Gap.s4,
+        )
         Spacer(Modifier.height(Gap.s4))
         Text(
             "This reorders the menu. Nothing is hidden either way.",
@@ -793,6 +803,47 @@ fun AudienceSwitch(
             color = c.inkSoft,
         )
     }
+}
+
+/* ---------- how a screen replaces a screen ---------- */
+
+/**
+ * Screens change with a breath rather than a cut.
+ *
+ * The whole app switched screens by recomposing a `when`, which
+ * is a hard cut: the ladder vanishes and the lesson IS there, in
+ * one frame, with nothing saying which way the reader moved. The
+ * arriving screen now rises a little as it fades in, in the
+ * material's own enter step, and the leaving one gets out of the
+ * way quickly — the same asymmetry as the light, because arriving
+ * matters and leaving should not be watched.
+ *
+ * Reduced motion swaps in one frame, which is the cut back, on
+ * purpose.
+ */
+@Composable
+fun <T> ScreenSwitch(
+    at: T,
+    modifier: Modifier = Modifier,
+    content: @Composable (T) -> Unit,
+) {
+    val reduced = rememberReducedMotion()
+    androidx.compose.animation.AnimatedContent(
+        targetState = at,
+        modifier = modifier,
+        transitionSpec = {
+            if (reduced) {
+                androidx.compose.animation.EnterTransition.None togetherWith
+                    androidx.compose.animation.ExitTransition.None
+            } else {
+                (
+                    androidx.compose.animation.fadeIn(tween(Motion.ENTER_MS)) +
+                        androidx.compose.animation.slideInVertically(tween(Motion.ENTER_MS)) { it / 28 }
+                    ) togetherWith androidx.compose.animation.fadeOut(tween(Motion.QUICK_MS))
+            }
+        },
+        label = "screen",
+    ) { here -> content(here) }
 }
 
 /* ---------- odds ---------- */
@@ -808,7 +859,3 @@ fun accentColour(token: String?, colours: ReiadColours): Color {
     return coloursOf(accent, colours.isDark).accent
 }
 
-@Composable
-private fun remembering() = androidx.compose.runtime.remember {
-    androidx.compose.foundation.interaction.MutableInteractionSource()
-}

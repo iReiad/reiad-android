@@ -63,6 +63,20 @@ fun speakable(blocks: List<Block>): List<Utterance> {
                 walk(block.body, at)
             }
 
+            /* The German school's pattern box is the lesson's own
+               argument, and the sentence pairs are what a learner
+               repeats: a sentence, then its meaning, which read
+               out loud is exactly a language tape. */
+            is Block.Pattern -> {
+                say(at, block.label.words())
+                say(at, block.shape.words())
+                walk(block.body, at)
+            }
+            is Block.Sentences -> for (row in block.rows) {
+                say(at, row.lead.words())
+                say(at, row.gloss.words())
+            }
+
             is Block.Unknown -> say(at, block.inlines.words())
 
             /* Read out loud these are noise rather than argument. */

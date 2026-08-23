@@ -347,8 +347,12 @@ private fun DayPage(
         /* The day's tick, and the sentence under it that grows
            with the level: Stufe 1 asks whether yesterday's page
            was read first, Stufe 3 asks for a whole story. */
+        val touch = rememberTouch()
         Control(
-            modifier = Modifier.fillMaxWidth().clickable(role = Role.Checkbox, onClick = onTick),
+            modifier = Modifier.fillMaxWidth().clickable(role = Role.Checkbox) {
+                touch.latch(!ticked)
+                onTick()
+            },
             ground = if (ticked) c.accent else c.panel,
         ) {
             Text(

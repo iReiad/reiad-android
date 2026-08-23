@@ -79,6 +79,17 @@ The faces are the site's six, bundled: Spectral, IBM Plex Sans and
 Mono, Noto Sans and Serif Bengali, Caveat. `docs/FONTS.md` says
 why bundled rather than downloaded, and what nearly shipped.
 
+**And it moves like a made thing.** Screens change with a breath
+rather than a cut, the sheets rise over the page and stop below
+the clock instead of behind it, every three-way choice is one
+thumb sliding in its groove, a meter pours to its number, and a
+pressed surface gives two per cent under the finger on the
+light's own curve. A state change hums through the vibrator — a
+tick, a latch, a segment — and plain navigation stays silent,
+because a reading app that buzzes on every row is a reading app
+somebody turns the vibrator off for, and then the ticks lose
+their voice too. Reduced motion snaps all of it, as everywhere.
+
 **And there is a shell around it now**, read from the site's one
 nav table rather than from a copy: a bottom bar on a phone, a rail
 on a tablet or an unfolded foldable, and a drawer holding the
@@ -101,6 +112,21 @@ filter nothing is not offered. A piece renders through the same
 parser the lessons use, with photos: Coil, honouring the site's
 own crop classes, so `frame-square` and `focus-top` mean here what
 they mean there and what the share card means by them.
+
+The parser reads like a browser reads. Pretty-printed source no
+longer breaks a sentence where the author's editor wrapped the
+line, a dissolved block leaves a line break at its edges rather
+than gluing a German sentence to its Bangla meaning, and the
+German school's own furniture — the `.muster` pattern box, the
+`.satz` sentence pairs, the `.merke` rail — renders as itself
+rather than as loose grey prose, off the site's own rules.
+`lesson-satzbau.json` is the fixture that holds all three. A
+table sits on its own piece of glass, its columns as wide as the
+widest thing in them, and scrolls inside the glass rather than
+off the screen. And a link inside a lesson or a piece OPENS:
+every href goes through the same resolver a shared link uses, so
+a glossary term lands on the term's own page in the app, and
+anything the app cannot draw opens on the site.
 
 **Read aloud carries on with the screen off**, which is the one
 thing the site's own read-aloud cannot do: a browser stops
