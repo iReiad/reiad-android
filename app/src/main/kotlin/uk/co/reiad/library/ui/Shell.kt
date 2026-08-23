@@ -2,6 +2,14 @@ package uk.co.reiad.library.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -257,6 +265,29 @@ fun Shell(
                         onAccount = onAccount,
                     )
                 }
+                /* THE MENU SITS UNDER THE BAR. It used to mount
+                   over the whole screen, so opening it swallowed
+                   the one control a reader had just learned to
+                   stand on. Now the bar keeps the top layer: the
+                   sheet rises to meet it and stops a breath
+                   above, More stays lit and pressable as the way
+                   back out, and any other tab both navigates and
+                   closes. */
+                if (chrome == Chrome.BAR) {
+                    Drawer(
+                        open = state.drawerOpen && groups.isNotEmpty(),
+                        site = state.site,
+                        groups = groups,
+                        current = state.current,
+                        audience = state.audience,
+                        backdrop = Modifier.hazeEffect(glass, glassStyle),
+                        clearBelow = gaps.bottom,
+                        onItem = { onDrawer(false); onItem(it) },
+                        onAudience = onAudience,
+                        onSettings = { onDrawer(false); onSettings() },
+                        onClose = { onDrawer(false) },
+                    )
+                }
                 if (chrome == Chrome.BAR && groups.isNotEmpty()) {
                     BarScrim(
                         height = navBar + Gap.s5 + Gap.s6,
@@ -266,21 +297,40 @@ fun Shell(
                     Bar(
                         groups = groups,
                         current = state.current,
+                        menuOpen = state.drawerOpen,
                         backdrop = Modifier.hazeEffect(glass, glassStyle),
+                        /* The thumb is a LENS, not a state: its
+                           own frost is clearer and deeper than
+                           the bar around it, so the page reads
+                           differently through it and the pill is
+                           a thing riding ON the glass. */
+                        thumbBackdrop = Modifier.hazeEffect(
+                            glass,
+                            HazeStyle(
+                                backgroundColor = c.paper,
+                                tint = HazeTint(c.paper.copy(alpha = 0.32f)),
+                                blurRadius = 30.dp,
+                                noiseFactor = 0f,
+                            ),
+                        ),
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .testTag("bottombar")
                             .onSizeChanged { bottomPx = it.height },
-                        onHome = onHome,
-                        onGroup = onGroup,
-                        onMore = { onDrawer(true) },
+                        onHome = { if (state.drawerOpen) onDrawer(false); onHome() },
+                        onGroup = { if (state.drawerOpen) onDrawer(false); onGroup(it) },
+                        onMore = { onDrawer(!state.drawerOpen) },
                     )
                 }
             }
         }
 
-        if (state.drawerOpen) {
+        /* A rail-width screen keeps the old arrangement: the
+           drawer is bar chrome, and without a bar there is
+           nothing it could hide behind. */
+        if (state.drawerOpen && chrome != Chrome.BAR) {
             Drawer(
+                open = true,
                 site = state.site,
                 groups = groups,
                 current = state.current,
@@ -578,6 +628,11 @@ private fun Bar(
     /** See `TopBar.backdrop`: the frosted glass, clipped to the
         pill by arriving after the clip. */
     backdrop: Modifier = Modifier,
+    /** The thumb's own glass. See the call site. */
+    thumbBackdrop: Modifier = Modifier,
+    /** The menu is open, so More is where the reader stands and
+        pressing it again is the way back out. */
+    menuOpen: Boolean = false,
     onHome: () -> Unit,
     onGroup: (NavGroup) -> Unit,
     onMore: () -> Unit,
@@ -614,10 +669,14 @@ private fun Bar(
         add(BarStop("menu", "More", c.accent, null, onMore))
     }
 
-    val here = stops.firstOrNull { stop ->
-        if (stop.key == null) current == null && stop.label == "Home"
-        else groups.firstOrNull { it.id == stop.key }
-            ?.items?.any { it.key != null && it.key == current } == true
+    val here = if (menuOpen) {
+        stops.lastOrNull()
+    } else {
+        stops.firstOrNull { stop ->
+            if (stop.key == null) current == null && stop.label == "Home"
+            else groups.firstOrNull { it.id == stop.key }
+                ?.items?.any { it.key != null && it.key == current } == true
+        }
     }
 
     Box(
@@ -645,6 +704,7 @@ private fun Bar(
             onChoose = { it.open() },
             height = Gap.tap + Gap.s3,
             label = { it.label },
+            thumbBackdrop = thumbBackdrop,
             /* The thumb is a quiet panel rather than the accent:
                on a bar the accent belongs to the icon, and five
                accent tiles in a row is a bar with no answer to
@@ -852,10 +912,19 @@ private fun RailRow(
     What it is NOT is a different menu: it reads the same list. */
 @Composable
 private fun Drawer(
+    open: Boolean,
     site: SiteManifest?,
     groups: List<NavGroup>,
     current: String?,
     audience: String?,
+    /** The same frost the bars wear. The sheet floats over the
+        page, so the page shows through it the way it shows
+        through the bar it rises to meet. */
+    backdrop: Modifier = Modifier,
+    /** How far above the bottom edge the sheet stops: the bar's
+        own clearance, so the bar stays visible and pressable
+        with the menu open. Nought where there is no bar. */
+    clearBelow: Dp = 0.dp,
     onItem: (NavItem) -> Unit,
     onAudience: (String) -> Unit,
     onSettings: () -> Unit,
@@ -864,13 +933,43 @@ private fun Drawer(
     val c = LocalReiad.current
     val reduced = rememberReducedMotion()
     val retreat = rememberRetreat(onBack = onClose)
+
+    /* Mounted through AnimatedVisibility so it RISES: a menu
+       that pops fully-formed is furniture appearing, one that
+       comes up from the bar it belongs to is the bar answering.
+       Reduced motion cuts, exactly like the screen switch. */
+    /* Seeded with `open` so a shell COMPOSED with the menu
+       already up renders it up: the enter plays only on a real
+       toggle. A snapshot is the caller this matters for, and a
+       drawer that rendered one frame into its own slide would
+       photograph as absent. */
+    val seen = remember { androidx.compose.animation.core.MutableTransitionState(open) }
+    seen.targetState = open
+    androidx.compose.animation.AnimatedVisibility(
+        visibleState = seen,
+        enter = if (reduced) EnterTransition.None else {
+            fadeIn(tween(160)) + slideInVertically(
+                animationSpec = spring(
+                    dampingRatio = 0.82f,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+                initialOffsetY = { it / 3 },
+            )
+        },
+        exit = if (reduced) ExitTransition.None else {
+            fadeOut(tween(140)) + slideOutVertically(tween(180)) { it / 3 }
+        },
+    ) {
     Box(
         Modifier
             .fillMaxSize()
             /* The scrim closes it. Not a decoration: on a phone
                the outside of a sheet is the biggest and most
-               obvious target there is. */
-            .background(Color.Black.copy(alpha = 0.45f))
+               obvious target there is. Lighter than it was,
+               because the sheet frosts what is under it now and
+               a heavy scrim on top of frost reads as a power
+               cut. */
+            .background(Color.Black.copy(alpha = 0.35f))
             .clickable(
                 indication = null,
                 interactionSource = remembering(),
@@ -881,14 +980,31 @@ private fun Drawer(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                .padding(horizontal = Gap.s5)
+                .padding(bottom = if (clearBelow > 0.dp) clearBelow else 0.dp)
+                .let {
+                    if (clearBelow > 0.dp) it
+                    else it.windowInsetsPadding(WindowInsets.navigationBars)
+                }
                 .retreating(retreat, reduced)
-                .clip(RoundedCornerShape(topStart = Corner.lg, topEnd = Corner.lg))
-                .material(Kind.PANE, c, Corner.lg, ground = c.paper)
+                .clip(RoundedCornerShape(Corner.lg))
+                .then(backdrop)
+                .material(Kind.PANE, c, Corner.lg, ground = c.paper.copy(alpha = 0.42f))
                 .clickable(indication = null, interactionSource = remembering()) { }
-                .windowInsetsPadding(WindowInsets.navigationBars)
                 .padding(horizontal = Gap.s8, vertical = Gap.s8)
                 .verticalScroll(rememberScrollState()),
         ) {
+            /* The handle, which every sheet on a phone wears: it
+               says "this rises and falls" without a word. */
+            Box(
+                Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = Gap.s6)
+                    .width(36.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(Corner.pill))
+                    .background(c.inkSoft.copy(alpha = 0.4f)),
+            )
             site?.audiences?.takeIf { it.size > 1 }?.let { audiences ->
                 AudienceSwitch(audiences.map { it.id to it.label }, audience, onAudience)
                 Spacer(Modifier.height(Gap.s8))
@@ -909,7 +1025,7 @@ private fun Drawer(
                         onClick = { onItem(item) },
                     )
                 }
-                Spacer(Modifier.height(Gap.s7))
+                Spacer(Modifier.height(Gap.s8))
             }
 
             Rung(Modifier.clickable(role = Role.Button, onClick = onSettings)) {
@@ -919,6 +1035,7 @@ private fun Drawer(
             }
             Spacer(Modifier.height(Gap.s8))
         }
+    }
     }
 }
 

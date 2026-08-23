@@ -197,6 +197,10 @@ import uk.co.reiad.library.ui.Checkpoints
 import uk.co.reiad.library.ui.barClearance
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import uk.co.reiad.library.core.BOARD_FLOOR
 import uk.co.reiad.library.core.Placed
 import uk.co.reiad.library.core.pairSmalls
@@ -323,6 +327,38 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         arrival.value = addressIn(intent)
+
+        /* Two launch deaths in a row: the normal screen is what
+           is dying, so the one drawn INSTEAD is the report. See
+           `Guard.kt`, which exists because the only diagnosis a
+           phone could offer was "doesn't open, just crashes". */
+        if (ReiadApp.troubled(this)) {
+            val stack = ReiadApp.lastCrash(this).orEmpty()
+            setContent {
+                uk.co.reiad.library.ui.ReiadTheme {
+                    CrashScreen(
+                        stack = stack,
+                        onCopy = {
+                            val clip = getSystemService(android.content.ClipboardManager::class.java)
+                            clip?.setPrimaryClip(
+                                android.content.ClipData.newPlainText("crash", stack),
+                            )
+                        },
+                        onTryAgain = {
+                            ReiadApp.forgetCrash(this)
+                            recreate()
+                        },
+                    )
+                }
+            }
+            return
+        }
+
+        /* The screen came up and stayed up: whatever this counter
+           held, it is not a crash LOOP. Ten seconds, matching the
+           window `ReiadApp` counts an early death inside. */
+        window.decorView.postDelayed({ ReiadApp.settled(this) }, ReiadApp.EARLY_MS)
+
         setContent { App(arrival) }
     }
 
@@ -1189,18 +1225,6 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         true
     }.getOrDefault(false)
 
-    init {
-        refresh()
-        viewModelScope.launch {
-            _routineGlance.value = reiad.cachedRoutineGlance()
-            _dietGlance.value = reiad.cachedDietGlance()
-            /* The board's streak widget reads the same local set
-               the account page draws, and needs it before the
-               account screen has ever been opened. */
-            _daysActive.value = reiad.daysActive()
-        }
-    }
-
     /** Ask the site what it holds, and say so if it will not.
 
         Public and re-callable, because the front page's failure
@@ -1960,6 +1984,38 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
 
     fun chooseAudience(id: String) {
         viewModelScope.launch { reiad.setAudience(id) }
+    }
+
+    /* ============================================================
+       LAST IN THE CLASS, AND THAT IS THE FIX FOR A LAUNCH CRASH.
+
+       This block sat three hundred lines up, above the fields it
+       writes, and "build 404c6e8 doesn't open, just crashes" was
+       the whole of the symptom. Kotlin runs initializers in
+       source order, and `viewModelScope` dispatches on
+       Main.immediate: a coroutine launched here can run, or
+       resume from a DataStore read that completed without
+       suspending, BEFORE the declarations below the block have
+       assigned their fields. `_routineGlance.value` then throws
+       an NPE inside a coroutine nothing catches, and an uncaught
+       coroutine exception is process death, every launch, on
+       exactly the phones where the store answers fastest.
+
+       An init block after every property cannot meet a null
+       field, however the coroutines interleave. Do not move it
+       up, however lonely it looks down here; `LaunchTest` fails
+       on any uncaught launch exception either way.
+       ============================================================ */
+    init {
+        refresh()
+        viewModelScope.launch {
+            _routineGlance.value = reiad.cachedRoutineGlance()
+            _dietGlance.value = reiad.cachedDietGlance()
+            /* The board's streak widget reads the same local set
+               the account page draws, and needs it before the
+               account screen has ever been opened. */
+            _daysActive.value = reiad.daysActive()
+        }
     }
 }
 
@@ -2942,6 +2998,10 @@ fun Home(
        has arranged nothing, and `BOARD_FLOOR` is the fallback
        for THAT, on a phone that has never fetched anything. */
     var arranging by rememberSaveable { mutableStateOf(false) }
+    /* Decoration answers to reduced motion before anything else
+       does: the jiggle while arranging is the definition of
+       decoration. */
+    val jiggle = !rememberReducedMotion()
     val catalogue = remember(site) {
         site?.widgets?.kinds.orEmpty().associateBy { it.id }
     }
@@ -2970,14 +3030,36 @@ fun Home(
     }
 
     val listState = rememberLazyListState()
-    /* Hold a widget's grip and move it: the board reorders under
-       the finger as it passes each neighbour, and every question
+    /* Hold a widget and move it: the board reorders under the
+       finger as it passes each neighbour, and every question
        about where the finger is goes to what the list actually
-       laid out. See `ui/BoardDrag.kt`. */
+       laid out. See `ui/BoardDrag.kt`.
+
+       THE GESTURE OWNS A WORKING COPY. Writing the store on
+       every pass meant the next pass was computed against the
+       board as it stood before the last one, and the card fought
+       its way back to where it started: that was the report
+       "unable to move positions, if i change one that jumps
+       right back". The copy is opened on pick, mutated in the
+       same frame the finger crosses a neighbour, and committed
+       ONCE on drop. `working` is read at CALL time inside these
+       lambdas, not at composition time, which is what makes two
+       moves in one frame land in order. */
+    var working by remember { mutableStateOf<List<Placed>?>(null) }
+    val showing = working ?: placed
     val drag = rememberBoardDrag(
         state = listState,
-        indexOf = { key -> placed.indexOfFirst { it.id == key }.takeIf { it >= 0 } },
-        onMove = { from, to -> onBoard(storedOf(moved(placed, from, to))) },
+        indexOf = { key ->
+            (working ?: placed).indexOfFirst { it.id == key }.takeIf { it >= 0 }
+        },
+        onPick = { working = placed },
+        onMove = { from, to -> working = moved(working ?: placed, from, to) },
+        onDrop = {
+            /* Only a changed board is worth a write: a long press
+               that went nowhere is not an arrangement. */
+            working?.takeIf { it != placed }?.let { onBoard(storedOf(it)) }
+            working = null
+        },
     )
 
     /* CAPPED AND CENTRED, not reflowed, at tablet width. A wide
@@ -3077,6 +3159,23 @@ fun Home(
         if (!arranging) {
             val rows = pairSmalls(placed)
             items(rows, key = { row -> row.joinToString("+") { it.id } }) { row ->
+                /* HOLD TO ARRANGE, from the board itself. The
+                   সাজান button stays for anyone who would never
+                   guess a long press, but the gesture a phone
+                   teaches on its own home screen works here too:
+                   hold a widget and the board goes into
+                   arranging with a knock, ready to drag. The
+                   wrapper sits BEHIND the widget's own taps, so
+                   opening a card is untouched. */
+                val knock = LocalHapticFeedback.current
+                Box(
+                    Modifier.pointerInput(Unit) {
+                        detectTapGestures(onLongPress = {
+                            knock.performHapticFeedback(HapticFeedbackType.LongPress)
+                            arranging = true
+                        })
+                    },
+                ) {
                 if (row.size == 2) {
                     Row(
                         Modifier.fillMaxWidth(),
@@ -3091,10 +3190,11 @@ fun Home(
                 } else {
                     Widget(row.first().id, row.first().size, data, act)
                 }
+                }
                 Spacer(Modifier.height(Gap.s7))
             }
         } else {
-        itemsIndexed(placed, key = { _, p -> p.id }) { at, p ->
+        itemsIndexed(showing, key = { _, p -> p.id }) { at, p ->
             /* The catalogue describes a widget; it is not what
                DRAWS one. A phone that has never fetched the
                manifest still has `BOARD_FLOOR` and still has
@@ -3122,19 +3222,21 @@ fun Home(
                 kind = kind,
                 placed = p,
                 arranging = arranging,
+                moving = jiggle,
+                carried = carried,
                 first = at == 0,
-                last = at == placed.lastIndex,
+                last = at == showing.lastIndex,
                 lang = lang,
-                onUp = { onBoard(storedOf(moved(placed, at, at - 1))) },
-                onDown = { onBoard(storedOf(moved(placed, at, at + 1))) },
+                onUp = { onBoard(storedOf(moved(showing, at, at - 1))) },
+                onDown = { onBoard(storedOf(moved(showing, at, at + 1))) },
                 onResize = {
                     val other = kind.other(p.size) ?: return@WidgetFrame
-                    onBoard(storedOf(placed.toMutableList().also { it[at] = p.copy(size = other) }))
+                    onBoard(storedOf(showing.toMutableList().also { it[at] = p.copy(size = other) }))
                 },
                 onRemove = {
-                    onBoard(storedOf(placed.filterIndexed { i, _ -> i != at }))
+                    onBoard(storedOf(showing.filterIndexed { i, _ -> i != at }))
                 },
-                grip = Modifier.dragHandle(drag, p.id),
+                handle = Modifier.dragHandle(drag, p.id),
             ) {
                 Widget(p.id, p.size, data, act)
             }

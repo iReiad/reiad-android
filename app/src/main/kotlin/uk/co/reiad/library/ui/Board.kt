@@ -10,11 +10,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -61,14 +72,26 @@ import uk.co.reiad.library.core.WidgetSize
    them later; it cannot replace them.
    ============================================================ */
 
-/** One widget on the board, with its arranging controls when the
+/** One widget on the board, wearing its arranging dress when the
     board is being arranged.
 
-    The controls are a strip ABOVE the widget rather than an
-    overlay on it, because an overlay on glass is a second
-    surface on a surface and the site has one rule about that:
-    every kind having the same rest state is what turned the rail
-    into twenty boxes. */
+    ---- the shape is a phone's own ----
+
+    It was a strip of four controls above every widget, and the
+    report on it was one word: congested. A home screen already
+    taught everyone the other shape, so this is that: the widget
+    itself leans and sways a little (the jiggle, which is what
+    says "these are loose now"), the whole surface is the drag
+    handle, and the only controls ON it are the two that cannot
+    be a gesture: remove, and the size step. Move-up and
+    move-down still exist for a switch or a screen reader, as
+    custom accessibility actions on the frame rather than as
+    44dp of drawn chrome per widget.
+
+    A tap while arranging goes NOWHERE: the eater under the drag
+    consumes it, because a board in jiggle mode is for moving
+    things, and opening a card mid-arrange is the misfire a
+    reader cannot undo. */
 @Composable
 fun WidgetFrame(
     modifier: Modifier = Modifier,
@@ -78,14 +101,19 @@ fun WidgetFrame(
     first: Boolean,
     last: Boolean,
     lang: String,
+    /** Motion is real for this reader. The jiggle is decoration
+        and decoration is the first thing reduced motion means. */
+    moving: Boolean = true,
+    /** Is this the one in the hand right now. The carried widget
+        holds still and proud; its neighbours are the ones that
+        sway aside. */
+    carried: Boolean = false,
     onUp: () -> Unit,
     onDown: () -> Unit,
     onResize: () -> Unit,
     onRemove: () -> Unit,
-    /** Pick it up and move it. Applied to the grip at the left of
-        the strip rather than to the whole widget: a long press on
-        a card a reader is reading belongs to the card. */
-    grip: Modifier = Modifier,
+    /** Pick it up and move it, applied to the whole surface. */
+    handle: Modifier = Modifier,
     body: @Composable () -> Unit,
 ) {
     if (!arranging) {
@@ -94,78 +122,85 @@ fun WidgetFrame(
     }
 
     val c = LocalReiad.current
-    Column(modifier.fillMaxWidth()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(Corner.pill))
-                .material(Kind.GROOVE, c, Corner.pill)
-                .padding(horizontal = Gap.s4, vertical = Gap.s2),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            /* The grip. Press and hold it, then move: the board
-               reorders under the finger as it passes each
-               neighbour rather than waiting for the release, so
-               nobody has to guess where a card will land.
+    val name = kind.name(lang)
+    val resize = kind.other(placed.size)
 
-               The arrows stay, and not as decoration: a drag
-               cannot be reached by a switch or a screen reader,
-               and those two still move a widget one step at a
-               time. */
-            Row(
-                grip
-                    .weight(1f)
-                    .height(Gap.tap)
-                    .semantics {
-                        contentDescription = "${kind.name(lang)}: ধরে সরান"
-                    },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon("menu", size = 15.dp, tint = c.inkSoft)
-                Spacer(Modifier.width(Gap.s4))
-                Text(
-                    kind.name(lang),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = c.inkSoft,
-                )
+    /* The sway. A slow lean, out of phase with its neighbours by
+       the widget's own name so the board never marches in step,
+       held STILL on the carried one: the thing in the hand is
+       already answering the finger, and a wobble on top of a
+       drag reads as the drag slipping. */
+    val sway = rememberInfiniteTransition(label = "jiggle")
+    val lean by sway.animateFloat(
+        initialValue = -0.4f,
+        targetValue = 0.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 340 + (placed.id.hashCode().mod(5)) * 30,
+                easing = androidx.compose.animation.core.EaseInOutSine,
+            ),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "lean",
+    )
+
+    Box(
+        modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                if (moving && !carried) rotationZ = lean
             }
-            /* Absent rather than present and inert at the ends of
-               the list. A control that cannot do anything is a
-               control a reader presses twice before deciding the
-               page is broken. */
-            if (!first) {
-                Handle("chevron-up", "${kind.name(lang)}: উপরে নিন", onUp)
-            }
-            if (!last) {
-                Handle("chevron-down", "${kind.name(lang)}: নিচে নামান", onDown)
-            }
-            kind.other(placed.size)?.let { other ->
-                /* The mark says the DIRECTION the press goes, and
-                   the word matches the site's own three: ছোট,
-                   লম্বা or চওড়া করুন. */
-                Handle(
-                    if (other == WidgetSize.SMALL) "shrink" else "grow",
-                    "${kind.name(lang)}: " + when (other) {
+            /* What a screen reader can do here, without any of it
+               being drawn: the frame is one node whose actions
+               are the moves. The drawn controls are only the two
+               that cannot be a gesture. */
+            .semantics {
+                contentDescription = "$name: ধরে সরান"
+                customActions = buildList {
+                    if (!first) add(CustomAccessibilityAction("উপরে নিন") { onUp(); true })
+                    if (!last) add(CustomAccessibilityAction("নিচে নামান") { onDown(); true })
+                }
+            },
+    ) {
+        Box(Modifier.alpha(if (carried) 1f else 0.88f)) { body() }
+
+        /* The eater, over the widget and under the badges: while
+           the board is loose a tap must not open a card, and the
+           same surface is the drag handle, which is how "hold
+           anywhere and move it" is literally true. */
+        Box(
+            Modifier
+                .matchParentSize()
+                .pointerInput(placed.id) { detectTapGestures { } }
+                .then(handle),
+        )
+
+        /* Two glass badges on the top edge, the pair a phone
+           taught: take it off, and step its size. */
+        Row(
+            Modifier.align(Alignment.TopEnd).padding(Gap.s2),
+            horizontalArrangement = Arrangement.spacedBy(Gap.s2),
+        ) {
+            if (resize != null) {
+                Badge(
+                    icon = if (resize == WidgetSize.SMALL) "shrink" else "grow",
+                    label = "$name: " + when (resize) {
                         WidgetSize.SMALL -> "ছোট করুন"
                         WidgetSize.TALL -> "লম্বা করুন"
                         WidgetSize.WIDE -> "চওড়া করুন"
                     },
-                    onResize,
+                    onClick = onResize,
                 )
             }
-            Handle("close", "${kind.name(lang)}: সরিয়ে দিন", onRemove)
+            Badge(icon = "close", label = "$name: সরিয়ে দিন", onClick = onRemove)
         }
-        Spacer(Modifier.height(Gap.s3))
-        /* Dimmed, so the strip above it is what the eye goes to
-           and nobody tries to press a card that is being moved
-           rather than read. */
-        Box(Modifier.alpha(0.72f)) { body() }
     }
 }
 
-/** One 44dp control in the strip. */
+/** One round control riding a widget's corner while the board is
+    loose. 32dp of glass drawn, 44dp of target underneath. */
 @Composable
-private fun Handle(icon: String, label: String, onClick: () -> Unit) {
+private fun Badge(icon: String, label: String, onClick: () -> Unit) {
     val c = LocalReiad.current
     Box(
         Modifier
@@ -175,7 +210,15 @@ private fun Handle(icon: String, label: String, onClick: () -> Unit) {
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, size = 17.dp, tint = c.ink)
+        Box(
+            Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(Corner.pill))
+                .material(Kind.CONTROL, c, Corner.pill, ground = c.panel),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(icon, size = 15.dp, tint = c.ink)
+        }
     }
 }
 

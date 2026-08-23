@@ -30,6 +30,7 @@
          than the old onBackPressed, and Compose's BackHandler and
          PredictiveBackHandler both are. -->
     <application
+        android:name=".ReiadApp"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:allowBackup="true"

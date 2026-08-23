@@ -45,7 +45,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 /** What is being carried, and how far it has come. */
 class BoardDrag internal constructor(
     private val state: LazyListState,
-    private val onMove: (from: Int, to: Int) -> Unit,
 ) {
     /** The key of the widget in the hand, or null. */
     var carrying by mutableStateOf<Any?>(null)
@@ -62,6 +61,7 @@ class BoardDrag internal constructor(
         state.layoutInfo.visibleItemsInfo.firstOrNull { it.key == key }
 
     fun pick(key: Any) {
+        onPick()
         carrying = key
         offset = 0f
         startedAt = itemFor(key)
@@ -100,10 +100,37 @@ class BoardDrag internal constructor(
         carrying = null
         offset = 0f
         startedAt = null
+        onDrop()
     }
 
-    /** Where a key sits in the board, which the caller owns. */
+    /** Where a key sits in the board, which the caller owns.
+
+        BOTH callbacks are `var`s reassigned on every
+        recomposition, and the second one used to be a constructor
+        capture. That was the snap-back a reader reported as
+        "unable to move positions, if i change one that jumps
+        right back": the remembered lambda closed over the FIRST
+        composition's `placed`, so every move after the first was
+        computed against the board as it stood before any move,
+        and each write restored the old order under the finger.
+        A capture that is refreshed for one callback and not its
+        neighbour is worse than none, because the file looks like
+        it knows about the trap. */
     internal var indexOfKey: (Any) -> Int? = { null }
+    internal var onMove: (from: Int, to: Int) -> Unit = { _, _ -> }
+
+    /** The SESSION, which is what made the reorder stick.
+
+        Each pass over a neighbour used to write the whole board
+        to the store and wait for the flow to come back round
+        before the next pass could see it, so a finger crossing
+        two neighbours quickly computed its second move against
+        the board before the first. The caller now opens a local
+        working copy on `onPick`, mutates it synchronously in
+        `onMove`, and commits it ONCE on `onDrop`: one write per
+        gesture, and nothing between the finger and the list. */
+    internal var onPick: () -> Unit = {}
+    internal var onDrop: () -> Unit = {}
 }
 
 @Composable
@@ -111,9 +138,14 @@ fun rememberBoardDrag(
     state: LazyListState,
     indexOf: (Any) -> Int?,
     onMove: (from: Int, to: Int) -> Unit,
+    onPick: () -> Unit = {},
+    onDrop: () -> Unit = {},
 ): BoardDrag {
-    val drag = remember(state) { BoardDrag(state, onMove) }
+    val drag = remember(state) { BoardDrag(state) }
     drag.indexOfKey = indexOf
+    drag.onMove = onMove
+    drag.onPick = onPick
+    drag.onDrop = onDrop
     return drag
 }
 

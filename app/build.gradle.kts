@@ -240,6 +240,7 @@ dependencies {
        tree it walks is the one TalkBack would read, rather than a
        guess made from the source. */
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
     testImplementation(libs.compose.ui.test.junit4)
     debugImplementation(libs.compose.ui.test.manifest)
 }

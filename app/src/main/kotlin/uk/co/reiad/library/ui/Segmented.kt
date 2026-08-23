@@ -1,6 +1,8 @@
 package uk.co.reiad.library.ui
 
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -27,8 +29,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
@@ -113,6 +118,13 @@ fun <T> Segmented(
     /** How wide the thumb is against its segment. A bar's tiles
         want air between them; a setting's do not. */
     thumbInset: Dp = Gap.s2,
+    /** What the thumb is made of, when it is more than paint.
+        The navigation bar passes the frosted glass here, cut to
+        the thumb's own pill, so the pill is a LENS: the page
+        underneath shows through it differently from the bar
+        around it, which is most of what makes it read as a
+        thing riding ON the bar rather than a painted state. */
+    thumbBackdrop: Modifier = Modifier,
     content: @Composable (option: T, on: Boolean) -> Unit,
 ) {
     val c = LocalReiad.current
@@ -133,14 +145,46 @@ fun <T> Segmented(
     /* Where the thumb sits, in segments. While a finger is down
        this is the finger, exactly, with no animation between:
        an eased thumb lags behind the thing dragging it and reads
-       as the control being slow rather than smooth. Let go and it
-       settles on the chosen segment on the site's own curve. */
+       as the control being slow rather than smooth. Let go and
+       it settles on the chosen segment on a SPRING, with a
+       little overshoot: liquid settles, it does not park. */
     val resting by animateFloatAsState(
         targetValue = at.toFloat(),
-        animationSpec = tween(durationMillis = Motion.QUICK_MS),
+        animationSpec = spring(
+            dampingRatio = 0.72f,
+            stiffness = Spring.StiffnessMediumLow,
+        ),
         label = "thumb",
     )
     val thumbAt = if (held >= 0f) held else resting
+
+    /* The zoom under the finger. Held glass swells, which is the
+       press being ANSWERED: the thumb grows a twentieth and
+       settles back on the same spring when the finger lifts. */
+    val swell by animateFloatAsState(
+        targetValue = if (held >= 0f) 1.06f else 1f,
+        animationSpec = spring(
+            dampingRatio = 0.5f,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "swell",
+    )
+
+    /* A knock as the thumb crosses each boundary, which is the
+       feel of a detent: the finger learns the segments without
+       looking. Fired on the CHANGE of the rounded segment, so a
+       still finger costs nothing. */
+    val knock = LocalHapticFeedback.current
+    var lastOver by remember { mutableStateOf(-1) }
+    if (held >= 0f) {
+        val over = held.roundToInt()
+        if (lastOver != -1 && lastOver != over) {
+            knock.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        }
+        if (lastOver != over) lastOver = over
+    } else if (lastOver != -1) {
+        lastOver = -1
+    }
 
     /** The pointer's x, in segments, clamped to the track. */
     fun segmentOf(x: Float): Float {
@@ -197,7 +241,12 @@ fun <T> Segmented(
                     .width(span)
                     .fillMaxHeight()
                     .padding(thumbInset)
+                    .graphicsLayer {
+                        scaleX = swell
+                        scaleY = swell
+                    }
                     .clip(RoundedCornerShape(Corner.pill))
+                    .then(thumbBackdrop)
                     .material(
                         kind = Kind.CONTROL,
                         colours = c,
