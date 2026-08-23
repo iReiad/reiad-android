@@ -12,6 +12,7 @@ import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.isSuccess
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import kotlinx.coroutines.flow.first
@@ -128,7 +129,7 @@ class Sync(
         }
 
         writeLocal(settled, forget = emptySet())
-        if (send.isNotEmpty() && !runCatching { push(token, send) }.isSuccess) {
+        if (send.isNotEmpty() && runCatching { push(token, send) }.getOrDefault(false) != true) {
             base = null
             return false
         }
@@ -168,7 +169,20 @@ class Sync(
         return out
     }
 
-    private suspend fun push(token: String, rows: Map<String, StoredValue>) {
+    /** True only when the database took the rows.
+
+        THE STATUS IS THE RETURN VALUE, and the caller's guard
+        depends on it: `exchange` clears `base` when a push does
+        not land, so the un-pushed ticks still read as "what this
+        reader did" at the next exchange. With `push` returning
+        Unit, a 400 counted as pushed (nothing throws on a status
+        without `expectSuccess`), `base` recorded the ticks as the
+        account's, and the NEXT exchange reconciled them away:
+        local minus base is empty, so the remote copy without the
+        ticks won, and the reader's marks came quietly off their
+        own device. The routine lost a day to this exact shape one
+        file along. */
+    private suspend fun push(token: String, rows: Map<String, StoredValue>): Boolean {
         val body = buildJsonArray {
             for ((key, value) in rows) {
                 add(
@@ -183,13 +197,13 @@ class Sync(
            token, so this device never names whose rows it is
            writing. It cannot get that wrong and it cannot be
            talked into getting it wrong. */
-        http.post("$rest?on_conflict=user_id,key") {
+        return http.post("$rest?on_conflict=user_id,key") {
             header("apikey", Supabase.KEY)
             header("Authorization", "Bearer $token")
             header("Prefer", "resolution=merge-duplicates,return=minimal")
             contentType(ContentType.Application.Json)
             setBody(body.toString())
-        }
+        }.status.isSuccess()
     }
 
     /* ---------- what a value looks like on each side ---------- */

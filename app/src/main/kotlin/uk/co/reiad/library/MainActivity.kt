@@ -991,17 +991,22 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
                 lang = state.lang.takeIf { it != "en" },
             )
             val a = analyse(state.inputs, state.weights)
-            val ok = shelf.saveScenario(
+            val problem = shelf.saveScenario(
                 tool = "stock",
                 name = name,
                 query = query,
                 summary = summarise(a, words),
             )
-            _saveNote.value = words?.t(
-                if (ok) Keys.SAVED else Keys.SAVE_FAILED,
-                state.lang,
-            ) ?: if (ok) "Saved." else "That did not save."
-            if (ok) _scenarios.value = shelf.scenarios()
+            /* The tool's own phrase where it worked, and the
+               DATABASE'S sentence where it did not: "that did not
+               save" is not actionable and the constraint's own
+               name is. */
+            _saveNote.value = if (problem == null) {
+                words?.t(Keys.SAVED, state.lang) ?: "Saved."
+            } else {
+                problem
+            }
+            if (problem == null) _scenarios.value = shelf.scenarios()
         }
     }
 
@@ -1013,7 +1018,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     fun removeScenario(id: String) {
         val shelf = library ?: return
         viewModelScope.launch {
-            shelf.removeScenario(id)
+            shelf.removeScenario(id)?.let { _note.value = it }
             _scenarios.value = shelf.scenarios()
         }
     }
@@ -1514,7 +1519,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         _setup.value = now.copy(busy = true, note = null, wrong = false)
         viewModelScope.launch {
             val stamp = nowIso()
-            val ok = if (stampOnly) {
+            val problem = if (stampOnly) {
                 shelf.saveProfile(setupAt = stamp)
             } else {
                 shelf.saveProfile(
@@ -1526,13 +1531,13 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             }
             _setup.value = _setup.value.copy(
                 busy = false,
-                asked = _setup.value.asked || ok,
+                asked = _setup.value.asked || problem == null,
                 note = when {
-                    !ok -> "That did not save."
+                    problem != null -> problem
                     stampOnly -> "Fine. Everything above is here whenever you want it."
                     else -> "Saved."
                 },
-                wrong = !ok,
+                wrong = problem != null,
             )
         }
     }
@@ -1540,7 +1545,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     fun addTarget(target: Target) {
         val shelf = library ?: return
         viewModelScope.launch {
-            shelf.addTarget(target)
+            shelf.addTarget(target)?.let { _note.value = it }
             _targets.value = shelf.targets()
         }
     }
@@ -1558,7 +1563,12 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
                 listOf(Kept(url = url, title = title, kind = kind,
                     saved = saved ?: false, note = note.orEmpty()))
             }
-            shelf.keep(url, title, kind, saved, note)
+            /* The optimistic update above is what makes the
+               control feel instant, and this is what keeps it
+               honest: a note that hit a 400 says so and the list
+               is re-read either way, so the screen ends up
+               showing what the account actually holds. */
+            shelf.keep(url, title, kind, saved, note)?.let { _note.value = it }
             _kept.value = shelf.kept()
         }
     }
@@ -1566,7 +1576,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     fun removeTarget(id: String) {
         val shelf = library ?: return
         viewModelScope.launch {
-            shelf.removeTarget(id)
+            shelf.removeTarget(id)?.let { _note.value = it }
             _targets.value = shelf.targets()
         }
     }
@@ -1629,7 +1639,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         val shelf = library ?: return
         viewModelScope.launch {
             _erasing.value = "Erasing…"
-            val gone = shelf.eraseAll()
+            val problem = shelf.eraseAll()
             /* The mirror comes off either way. Leaving a phone
                full of rows the account no longer has would put
                every one of them straight back on the next
@@ -1639,11 +1649,8 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             _targets.value = emptyList()
             _daysActive.value = emptySet()
             loadMarks()
-            _erasing.value = if (gone) {
-                "Erased. Nothing of yours is on this account or on this phone."
-            } else {
-                "Some of that did not work. Try again with a connection."
-            }
+            _erasing.value = problem
+                ?: "Erased. Nothing of yours is on this account or on this phone."
         }
     }
 
