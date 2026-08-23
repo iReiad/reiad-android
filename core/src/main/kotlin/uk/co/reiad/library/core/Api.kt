@@ -2,6 +2,7 @@ package uk.co.reiad.library.core
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import uk.co.reiad.library.core.stock.Phrase
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
@@ -109,6 +110,21 @@ data class SiteManifest(
         Empty until a deployment carries it; `BOARD_FLOOR` is what
         a first run with no network draws. */
     val widgets: Widgets = Widgets(),
+
+    /** The diet tool's own readouts, in both languages.
+
+        Copy is DATA by the contract at the top of `CLAUDE.md`, so
+        a line reworded on the site is reworded here at the next
+        fetch and this app carries no Kotlin copy of nineteen
+        sentences. Its own table rather than a corner of
+        `/api/tools`, because `stringKeys` there is "every phrase
+        the stock check can render" and a diet phrase in that list
+        makes the stock test's assertion weaker for both tools.
+
+        Empty until a deployment carries it, and a screen that
+        reads it renders the figures with no explanation rather
+        than the key in square brackets. */
+    val dietWords: Map<String, Phrase> = emptyMap(),
 
     /** The palette's index: every page of the site that is not
         private, with the title, the address and one line saying
