@@ -71,10 +71,28 @@ data class DietEntry(
     val unit: String? = null,
     val kcal: Double? = null,
     val macros: Map<String, Double>? = null,
+    /** The coverage nutrients, which the panel counts by
+        PRESENCE. A key here with a nought in it buys the day a
+        coverage the log has not got, so nothing may default one
+        in: an absent nutrient is one nobody looked up. */
+    val micros: Map<String, Double>? = null,
+    val meal: String? = null,
+    /** The local clock, "HH:MM". The hour a thing was eaten is a
+        fact about the reader's own day, so it is stored beside
+        the date rather than read back out of `meal`, which is a
+        meal name. */
+    @SerialName("at_time") val atTime: String? = null,
+    /** A restaurant plate is not knowable. The midpoint goes into
+        the total and the WIDTH goes into the day's confidence, so
+        both ends are carried or neither is. */
+    @SerialName("est_low") val estLow: Double? = null,
+    @SerialName("est_high") val estHigh: Double? = null,
+    val planned: Boolean? = null,
     /** Where the figure came from: a portion out of the library,
         the reader's own item, a barcode, or a free estimate. Kept
         so a stale figure can be found and refreshed rather than
-        trusted for ever. */
+        trusted for ever. One of the eight `diet_entries`'s own
+        check constraint allows. */
     val source: String? = null,
     @SerialName("source_id") val sourceId: String? = null,
 )
@@ -117,13 +135,12 @@ fun bodyOf(profile: DietProfile?, day: DietDay?, thisYear: Int): Body? {
     )
 }
 
-/** What one day's entries add up to.
+/* What a day adds up to is `totalFor` in `Foods.kt`, which is
+   `shared/diet.ts`'s own `totalFor` ported whole.
 
-    Summed here rather than read off `diet_days.kcal`, because the
-    rollup column is written by whoever last edited the day and a
-    device that trusted it would show a total that no longer
-    matches the list under it. */
-fun totalOf(entries: List<DietEntry>): Double = entries.sumOf { it.kcal ?: 0.0 }
-
-fun macroOf(entries: List<DietEntry>, name: String): Double =
-    entries.sumOf { it.macros?.get(name) ?: 0.0 }
+   There were two little sums here, `totalOf` and `macroOf`, and
+   they were the same arithmetic done more simply and therefore
+   differently: neither filtered a PLANNED row, so a reader who
+   planned tomorrow's dinner on the site read today's total as
+   both days, and neither tracked coverage, which is the figure
+   the nutrition page refuses to print a number without. */

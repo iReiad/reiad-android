@@ -34,12 +34,16 @@ import uk.co.reiad.library.ui.StockScreen
 import uk.co.reiad.library.ui.StockState
 import uk.co.reiad.library.ui.DietScreen
 import uk.co.reiad.library.ui.DietState
+import uk.co.reiad.library.ui.DietNutrientPanel
+import uk.co.reiad.library.ui.FoodPicker
 import uk.co.reiad.library.core.diet.Ancestry
 import uk.co.reiad.library.core.diet.Body
 import uk.co.reiad.library.core.diet.DietDay
 import uk.co.reiad.library.core.diet.DietEntry
 import uk.co.reiad.library.core.diet.DietProfile
+import uk.co.reiad.library.core.diet.Ate
 import uk.co.reiad.library.core.diet.FloorHit
+import uk.co.reiad.library.core.diet.loggedFrom
 import uk.co.reiad.library.core.diet.Sex
 import uk.co.reiad.library.core.diet.Target
 import uk.co.reiad.library.ui.GroupScreen
@@ -402,12 +406,79 @@ class ScreensLookTest {
                 target = Target(1900, -400, listOf(), 0.5),
                 maintenance = 2300.0,
             ),
-            onWeight = {}, onRemove = {}, onOpenSite = {},
+            onWeight = {}, onRemove = {}, onAdd = { _, _ -> }, onOpenSite = {},
             contentPadding = PaddingValues(
                 start = Gap.s8, end = Gap.s8, top = 84.dp, bottom = 96.dp,
             ),
         )
     }
+
+    /* ---------- the food log ----------
+
+       Both of these are drawn from `/api/foods`'s own payload
+       through `FoodLibrary.from`, which is the point rather than
+       a convenience: nothing in this app names a food or a
+       nutrient, so a drawing made from a hand-written library
+       would show a screen that works and prove nothing about the
+       one a reader gets. */
+
+    @Test fun dietPicker() = page {
+        Box(Modifier.padding(Gap.s8)) {
+            FoodPicker(
+                library = fixtureFoods(),
+                place = "bd",
+                lang = "bn",
+                onAdd = { _, _ -> },
+                onClose = {},
+                onOpenSite = {},
+            )
+        }
+    }
+
+    /** A day with real scaled rows in it, so every coverage line
+        is a real fraction rather than a rounded 100%: the tea
+        carries almost nothing and is what pulls the denominator
+        away from the numerator without taking the day under the
+        floor. */
+    @Test fun dietHeld() = page {
+        val library = fixtureFoods()
+        Box(Modifier.padding(Gap.s8)) {
+            DietNutrientPanel(
+                entries = day(library, 3.0, unmeasured = 90.0),
+                library = library,
+                lang = "bn",
+                onOpenSite = {},
+            )
+        }
+    }
+
+    /** And the same panel refusing. A 780 kcal restaurant plate
+        beside one cup of rice is a day about a fifth of which is
+        known, and under half NOTHING is drawn: the site's own
+        rule, and the one a phone drawing the figures anyway would
+        break more dangerously than the site could. */
+    @Test fun dietHeldSparse() = page {
+        val library = fixtureFoods()
+        Box(Modifier.padding(Gap.s8)) {
+            DietNutrientPanel(
+                entries = day(library, 1.0, unmeasured = 780.0),
+                library = library,
+                lang = "bn",
+                onOpenSite = {},
+            )
+        }
+    }
+
+    private fun day(
+        library: uk.co.reiad.library.core.diet.FoodLibrary,
+        cups: Double,
+        unmeasured: Double,
+    ) = listOfNotNull(
+        library.byId("rice-white-cooked-cup")?.let {
+            loggedFrom(it, Ate(cups, "cup"), "2026-08-23", library)
+        },
+        DietEntry(date = "2026-08-23", label = "a plate at a restaurant", kcal = unmeasured),
+    )
 
     @Test fun dietEmpty() = page {
         DietScreen(
@@ -417,7 +488,7 @@ class ScreensLookTest {
                 profile = DietProfile(heightCm = 172.0, birthYear = 1992, sex = "male"),
                 target = Target(1200, -8, listOf(FloorHit.RATE, FloorHit.RESTING, FloorHit.ABSOLUTE), 0.01),
             ),
-            onWeight = {}, onRemove = {}, onOpenSite = {},
+            onWeight = {}, onRemove = {}, onAdd = { _, _ -> }, onOpenSite = {},
             contentPadding = PaddingValues(
                 start = Gap.s8, end = Gap.s8, top = 84.dp, bottom = 96.dp,
             ),

@@ -21,6 +21,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 import uk.co.reiad.library.core.LadderResponse
 import uk.co.reiad.library.core.LessonResponse
 import uk.co.reiad.library.core.AUDIENCE_KEY
@@ -155,6 +156,29 @@ class Reiad(private val context: Context) {
         a board, and an empty box is not. */
     suspend fun news(): Cached<NewsResponse> =
         fetch("$SITE_ORIGIN/api/news", "cache:news", NewsResponse.serializer())
+
+    /**
+     * The portion library: eighty-three bilingual rows, the
+     * nineteen nutrients and the two lists that split a scaled
+     * row.
+     *
+     * A route of its own rather than a field on `/api/site`,
+     * because it is 57 KB needed by one screen: a reader who
+     * never opens the diet tool should not download the food
+     * library to see the front page.
+     *
+     * **Decoded as a `JsonObject`, deliberately.** Nothing in
+     * `FoodLibrary` names a nutrient, so a figure added to
+     * `shared/foods.ts` next year is scaled and drawn by THIS
+     * build. A `@Serializable` class with nineteen fields on it
+     * would decode the new row perfectly and drop the new
+     * number, which is a copy of a vocabulary wearing a
+     * serialiser.
+     */
+    suspend fun foods(): Cached<JsonObject> =
+        fetch("$SITE_ORIGIN/api/foods", "cache:foods", JsonObject.serializer())
+
+    suspend fun cachedFoods(): JsonObject? = cached("cache:foods", JsonObject.serializer())
 
     /** One piece, body included. Cached under its own slug, so a
         piece read once is readable on a train. */

@@ -225,6 +225,7 @@ its words and reports itself.
 ```sh
 cd core/src/test/resources/fixtures
 curl -sS -o site.json          https://reiad.co.uk/api/site
+curl -sS -o foods.json         https://reiad.co.uk/api/foods
 curl -sS -o money.json         https://reiad.co.uk/api/schools/money
 curl -sS -o lesson-share.json  https://reiad.co.uk/api/schools/money/basics-1/share
 ```
@@ -232,3 +233,11 @@ curl -sS -o lesson-share.json  https://reiad.co.uk/api/schools/money/basics-1/sh
 Everything the app reads is public, so this needs no credential.
 A refresh that turns a test red is the app finding out the site
 changed, which is what they are for.
+
+`foods.json` earns that sentence more than any of them.
+`FoodSurfaceTest` fails on a field the endpoint sends and this app
+does not carry, and `FoodsTest` walks every numeric field on all
+eighty-three rows: a nutrient added to `shared/foods.ts` has to
+reach a screen here with no release, which is only true while
+nothing in `Foods.kt` names one. Refresh it and the tests say
+whether that is still so.

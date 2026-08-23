@@ -16,6 +16,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import uk.co.reiad.library.core.DietWords
+import uk.co.reiad.library.core.stock.inScript
 import uk.co.reiad.library.core.diet.Body
 import uk.co.reiad.library.core.diet.FatMethod
 import uk.co.reiad.library.core.diet.bmi
@@ -122,7 +123,11 @@ fun DietBodyPanel(
             )
         } ?: Reading(
             head = words.say("dt.whtr.head", lang),
-            value = "—",
+            /* The words, not a dash. A figure nobody measured is
+               "not known", which is a sentence; a rule laid on
+               its side is a reader guessing whether the tool is
+               broken. */
+            value = if (lang == "bn") "জানা নেই" else "not known",
             said = words.say("dt.whtr.empty", lang),
             why = null,
         )
@@ -145,7 +150,7 @@ fun DietBodyPanel(
                Anything printing a decimal place here is making it
                up, which is `DIET.md`'s own sentence. */
             value = if (lang == "bn") {
-                "${bn(fat.pct.low.roundToInt())} – ${bn(fat.pct.high.roundToInt())}%"
+                "${inScript(fat.pct.low.roundToInt().toString(), "bn")} – ${inScript(fat.pct.high.roundToInt().toString(), "bn")}%"
             } else {
                 "${fat.pct.low.roundToInt()} to ${fat.pct.high.roundToInt()}%"
             },
@@ -158,7 +163,7 @@ fun DietBodyPanel(
 
         Reading(
             head = words.say("dt.lean.head", lang),
-            value = if (lang == "bn") "${bn(one(fat.leanKg))} কেজি" else "${one(fat.leanKg)} kg",
+            value = if (lang == "bn") "${inScript(one(fat.leanKg), "bn")} কেজি" else "${one(fat.leanKg)} kg",
             said = "FFMI ${one(ffmiNormalised(fat.leanKg, body.heightCm))}",
             why = words.say("dt.lean.why", lang),
         )
@@ -227,13 +232,6 @@ private fun Reading(
         }
     }
 }
-
-private const val BENGALI = "০১২৩৪৫৬৭৮৯"
-
-private fun bn(text: String): String =
-    buildString { for (ch in text) append(if (ch in '0'..'9') BENGALI[ch - '0'] else ch) }
-
-private fun bn(n: Int): String = bn(n.toString())
 
 private fun one(x: Double): String = String.format("%.1f", x)
 

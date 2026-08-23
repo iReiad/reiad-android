@@ -142,13 +142,17 @@ import uk.co.reiad.library.ui.RoutineScreen
 import uk.co.reiad.library.ui.RoutineState
 import uk.co.reiad.library.diet.Log
 import uk.co.reiad.library.routine.Days
+import uk.co.reiad.library.core.diet.Ate
 import uk.co.reiad.library.core.diet.DietDay
 import uk.co.reiad.library.core.diet.DietEntry
 import uk.co.reiad.library.core.diet.DietProfile
+import uk.co.reiad.library.core.diet.FoodLibrary
 import uk.co.reiad.library.core.diet.GoalKind
+import uk.co.reiad.library.core.diet.Portion
 import uk.co.reiad.library.core.diet.activityFactor
 import uk.co.reiad.library.core.diet.bodyOf
 import uk.co.reiad.library.core.diet.estimatedBurn
+import uk.co.reiad.library.core.diet.loggedFrom
 import uk.co.reiad.library.core.diet.restingBurn
 import uk.co.reiad.library.core.diet.target
 import uk.co.reiad.library.ui.DietScreen
@@ -673,6 +677,54 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             val days = store.days(dayBefore(today, 14))
             val entries = store.entries(today)
             _diet.value = readDiet(profile, days, entries, today)
+                .copy(library = foodLibrary ?: loadFoods())
+        }
+    }
+
+    /* ---------- the portion library ----------
+
+       Fetched once per process and held, because it is 57 KB that
+       does not change between two presses of Add, and `foods()`
+       is already cached on disk under `cache:foods` for the run
+       after this one. Null where nothing has ever arrived, which
+       the picker says out loud rather than showing an empty
+       list. */
+
+    private var foodLibrary: FoodLibrary? = null
+
+    private suspend fun loadFoods(): FoodLibrary? {
+        val answer = reiad.foods().value ?: return null
+        return FoodLibrary.from(answer)?.also { foodLibrary = it }
+    }
+
+    /**
+     * One thing eaten, added.
+     *
+     * `loggedFrom` can REFUSE, and the screen will not have
+     * offered an Add that presses where it does. This still
+     * checks, because a refusal that reaches here means the two
+     * disagree and writing the row anyway would put a figure
+     * nobody measured into somebody's log.
+     */
+    fun addEaten(context: android.content.Context, row: Portion, ate: Ate) {
+        val store = dietStore ?: return
+        val library = foodLibrary ?: return
+        val today = _diet.value.today.ifBlank { java.time.LocalDate.now().toString() }
+        val now = java.time.LocalTime.now()
+        val entry = loggedFrom(
+            row = row,
+            ate = ate,
+            date = today,
+            library = library,
+            /* The local clock, which is a fact about the reader's
+               own day: the by-hour reading on the site is drawn
+               from this column and a row with no time in it
+               cannot appear in it. */
+            atTime = "%02d:%02d".format(now.hour, now.minute),
+        ) ?: return
+        viewModelScope.launch {
+            store.addEntry(entry)
+            openDiet(context)
         }
     }
 
@@ -2229,9 +2281,12 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         state = dietState,
                         onWeight = { model.weighIn(context, it) },
                         onRemove = { model.removeEaten(context, it) },
-                        /* The other thirteen pages of the tool are
-                           the site's. This one opens the log
-                           rather than pretending the app has it. */
+                        onAdd = { row, ate -> model.addEaten(context, row, ate) },
+                        /* Eleven of the tool's fourteen pages are
+                           still the site's, and so are the barcode
+                           scanner and the two public databases.
+                           This opens the log rather than
+                           pretending the app has all of it. */
                         onOpenSite = {
                             openOnSite(context, "/tools/diet/log", colours)
                         },

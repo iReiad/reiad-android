@@ -94,6 +94,22 @@ fun <T> fixture(name: String, serializer: kotlinx.serialization.DeserializationS
     return json.decodeFromString(serializer, file.readText())
 }
 
+/** The portion library out of `/api/foods`'s own payload.
+
+    Built through `FoodLibrary.from` rather than decoded, because
+    that IS the thing under test everywhere it is used: nothing in
+    the app names a nutrient, so a drawing made from a hand-written
+    library would prove nothing about whether the real one reaches
+    the screen. */
+fun fixtureFoods(): uk.co.reiad.library.core.diet.FoodLibrary {
+    val file = File("../core/src/test/resources/fixtures/foods.json")
+    val root = json.parseToJsonElement(file.readText())
+        as kotlinx.serialization.json.JsonObject
+    return checkNotNull(uk.co.reiad.library.core.diet.FoodLibrary.from(root)) {
+        "the endpoint's own payload did not parse"
+    }
+}
+
 /** One field of a fixture, for an endpoint that wraps what a
     screen needs inside a bigger answer. */
 fun <T> fixtureField(
