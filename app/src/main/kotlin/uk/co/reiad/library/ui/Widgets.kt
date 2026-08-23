@@ -23,6 +23,7 @@ import uk.co.reiad.library.core.LadderSchool
 import uk.co.reiad.library.core.NavGroup
 import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.Piece
+import uk.co.reiad.library.core.WidgetSize
 import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.Story
 import uk.co.reiad.library.core.rowsOf
@@ -100,12 +101,19 @@ data class BoardActions(
     rule and the right one everywhere. What returns false is a
     kind with no renderer, which is the version gap above. */
 @Composable
-fun Widget(id: String, data: BoardData, act: BoardActions): Boolean {
+fun Widget(id: String, size: WidgetSize, data: BoardData, act: BoardActions): Boolean {
+    /* The SIZE reaches the kinds it genuinely changes. A feed at
+       `wide` shows its first story and at `tall` the morning's
+       worth; the two link bands show one row of places wide and
+       the lot tall. A size that only stretched the same drawing
+       would be a stretch wearing a size's name, and the ones with
+       one honest drawing ignore the argument rather than fake a
+       second. */
     when (id) {
         "continue" -> ContinueWidget(data, act)
         "progress" -> ProgressWidget(data, act)
-        "pulse" -> PulseWidget(data, act)
-        "market" -> MarketWidget(data, act)
+        "pulse" -> PulseWidget(data, act, rows = if (size == WidgetSize.TALL) 4 else 1)
+        "market" -> MarketWidget(data, act, rows = if (size == WidgetSize.TALL) 5 else 3)
         "schools" -> SchoolsWidget(data, act)
         "tools" -> ToolsWidget(data, act)
         "stock" -> StockWidget(data, act)
@@ -248,8 +256,8 @@ private fun ProgressWidget(data: BoardData, act: BoardActions) {
 /* ---------- the latest writing ---------- */
 
 @Composable
-private fun PulseWidget(data: BoardData, act: BoardActions) {
-    val live = data.pieces.filter { it.status == "live" }.take(4)
+private fun PulseWidget(data: BoardData, act: BoardActions, rows: Int) {
+    val live = data.pieces.filter { it.status == "live" }.take(rows)
     if (live.isEmpty()) {
         InfoCard(
             title = if (data.lang == "bn") "নতুন লেখা এখানে আসবে" else "New writing lands here",
@@ -305,9 +313,9 @@ private fun MinutesTag(minutes: Int, lang: String) {
     can read is still better than a gap where the news should
     be. */
 @Composable
-private fun MarketWidget(data: BoardData, act: BoardActions) {
+private fun MarketWidget(data: BoardData, act: BoardActions, rows: Int) {
     val c = LocalReiad.current
-    val stories = data.news.take(5)
+    val stories = data.news.take(rows)
     if (stories.isEmpty()) {
         InfoCard(
             title = if (data.lang == "bn") "বাজারের খবর এখানে আসবে" else "Market pulse lands here",

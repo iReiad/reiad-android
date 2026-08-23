@@ -41,15 +41,28 @@ import kotlinx.serialization.Serializable
    which is not a thing an endpoint can send.
    ============================================================ */
 
-/** How wide a widget runs. Two, because a phone is one column
-    wide and anything finer is a grid nobody can drag on. */
+/** How much room a widget takes, in a phone home screen's own
+    three steps: half the row and square-ish, the row, or the row
+    with a LIST in it. The kind draws differently at each size it
+    offers, which is what makes this a size and not a stretch.
+
+    `half` and `full` were the first two and are inside real
+    accounts under `home-board`, so `of()` reads them for ever as
+    SMALL and WIDE. They are never written: `id` is the new
+    spelling, so a board saved today round-trips through the
+    three. Dropping the aliases would quietly empty the board of
+    everybody who arranged one before this shipped. */
 enum class WidgetSize(val id: String) {
-    HALF("half"),
-    FULL("full"),
+    SMALL("small"),
+    WIDE("wide"),
+    TALL("tall"),
     ;
 
     companion object {
-        fun of(id: String?): WidgetSize? = entries.firstOrNull { it.id == id }
+        private val ALIASES = mapOf("half" to SMALL, "full" to WIDE)
+
+        fun of(id: String?): WidgetSize? =
+            ALIASES[id] ?: entries.firstOrNull { it.id == id }
     }
 }
 
@@ -75,18 +88,25 @@ data class WidgetKind(
     fun name(lang: String): String = if (lang == "bn") bn.ifBlank { en } else en.ifBlank { bn }
 
     /** The size it gets when it is added: the first the site
-        offers, and full width where it offers nothing, because a
+        offers, and the row where it offers nothing, because a
         widget that arrives half-width reads as one somebody has
         already fiddled with. */
-    fun added(): WidgetSize = WidgetSize.of(sizes.firstOrNull()) ?: WidgetSize.FULL
+    fun added(): WidgetSize = WidgetSize.of(sizes.firstOrNull()) ?: WidgetSize.WIDE
 
-    fun offers(size: WidgetSize): Boolean = sizes.any { it == size.id }
+    fun offers(size: WidgetSize): Boolean = WidgetSize.of(sizes.firstOrNull { s ->
+        WidgetSize.of(s) == size
+    }) != null
 
-    /** The other size it offers, for the resize control. Null
-        where it offers one, and the control is absent rather
-        than present and inert. */
-    fun other(size: WidgetSize): WidgetSize? =
-        WidgetSize.entries.firstOrNull { it != size && offers(it) }
+    /** The next size along the kind's OWN list, wrapping, or null
+        where it offers one: a resize control on a widget with one
+        size is a control that does nothing twice. The order is
+        the site's, so the two boards cycle the same way. */
+    fun other(size: WidgetSize): WidgetSize? {
+        val offered = sizes.mapNotNull { WidgetSize.of(it) }.distinct()
+        if (offered.size < 2) return null
+        val at = offered.indexOf(size)
+        return offered[(if (at < 0) 0 else at + 1) % offered.size]
+    }
 }
 
 /** The catalogue and the default board, as `/api/site` sends
@@ -126,12 +146,12 @@ data class BoardRecord(
     manifest's own `home` wins the moment it arrives, so this
     goes stale by design and cannot be what anybody sees twice. */
 val BOARD_FLOOR: List<String> = listOf(
-    "continue:full",
-    "progress:full",
-    "pulse:full",
-    "market:full",
-    "schools:full",
-    "tools:full",
+    "continue:wide",
+    "progress:wide",
+    "pulse:tall",
+    "market:tall",
+    "schools:wide",
+    "tools:wide",
 )
 
 /** What each kind is called, before the catalogue arrives.
@@ -213,6 +233,35 @@ fun layoutOf(
 
 /** The placings back as a stored board. */
 fun storedOf(placed: List<Placed>): List<String> = placed.map { "${it.id}:${it.size.id}" }
+
+/**
+ * The board as display rows: two consecutive SMALLS pair, and
+ * everything else is a row of one.
+ *
+ * CONSECUTIVE, and that is the rule rather than a shortcut. The
+ * order is the reader's, and pairing a small past an intervening
+ * wide would reorder the board for them: a small alone before a
+ * wide stays alone, at the row's width, which is also what the
+ * site's grid does with an odd small.
+ */
+fun pairSmalls(placed: List<Placed>): List<List<Placed>> {
+    val rows = mutableListOf<List<Placed>>()
+    var hand: Placed? = null
+    for (p in placed) {
+        if (p.size != WidgetSize.SMALL) {
+            hand?.let { rows.add(listOf(it)) }
+            hand = null
+            rows.add(listOf(p))
+        } else if (hand == null) {
+            hand = p
+        } else {
+            rows.add(listOf(hand, p))
+            hand = null
+        }
+    }
+    hand?.let { rows.add(listOf(it)) }
+    return rows
+}
 
 /** One moved from `from` to `to`, which is the whole of a drag.
 

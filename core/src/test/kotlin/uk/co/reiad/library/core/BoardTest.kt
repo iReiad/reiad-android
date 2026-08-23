@@ -25,7 +25,7 @@ import kotlin.test.assertTrue
 class BoardTest {
 
     private val all = setOf(
-        "continue", "progress", "pulse", "market", "schools", "tools", "stock",
+        "continue", "progress", "pulse", "market", "schools", "tools", "stock", "diet",
     )
 
     private fun ids(stored: List<String>?) = layoutOf(stored, all).map { it.id }
@@ -35,18 +35,45 @@ class BoardTest {
         assertEquals(BOARD_FLOOR, storedOf(layoutOf(emptyList(), all)))
     }
 
+    /** THE BOARDS ALREADY IN ACCOUNTS. `half` and `full` were the
+        first two sizes and `home-board` holds them in real rows:
+        read for ever, written never. The day this fails is the
+        day everybody who arranged a board before the three sizes
+        shipped opens an empty page. */
+    @Test fun `the first two sizes are read for ever and written never`() {
+        assertEquals(
+            listOf("pulse:wide", "stock:small"),
+            storedOf(layoutOf(listOf("pulse:full", "stock:half"), all)),
+        )
+        assertTrue(storedOf(layoutOf(listOf("schools:full"), all)).none { "full" in it })
+    }
+
+    /** The resize control cycles the kind's own list, in the
+        site's order, so the two boards cycle the same way. */
+    @Test fun `resize walks the kind's own sizes and wraps`() {
+        val kind = WidgetKind(id = "x", sizes = listOf("wide", "small", "tall"))
+        assertEquals(WidgetSize.SMALL, kind.other(WidgetSize.WIDE))
+        assertEquals(WidgetSize.TALL, kind.other(WidgetSize.SMALL))
+        assertEquals(WidgetSize.WIDE, kind.other(WidgetSize.TALL))
+        assertNull(WidgetKind(id = "y", sizes = listOf("wide")).other(WidgetSize.WIDE))
+        /* And a catalogue still saying the OLD spellings cycles
+           too: a phone can be newer than the deploy it reads. */
+        val old = WidgetKind(id = "z", sizes = listOf("full", "half"))
+        assertEquals(WidgetSize.SMALL, old.other(WidgetSize.WIDE))
+    }
+
     /** The one that matters. A phone on a newer build writes a
         widget this one has never heard of, and the board has to
         come back one card short rather than not at all. */
     @Test fun `a widget this build cannot draw is dropped, not fatal`() {
         assertEquals(
             listOf("pulse", "schools"),
-            ids(listOf("pulse:full", "hologram:full", "schools:full")),
+            ids(listOf("pulse:wide", "hologram:wide", "schools:wide")),
         )
     }
 
     @Test fun `a size this build does not know is dropped`() {
-        assertEquals(listOf("schools"), ids(listOf("pulse:enormous", "schools:full")))
+        assertEquals(listOf("schools"), ids(listOf("pulse:enormous", "schools:wide")))
     }
 
     @Test fun `rubbish is dropped`() {
@@ -56,17 +83,17 @@ class BoardTest {
     /** A reader who emptied their board gets an empty board.
         Falling back there would be the page overruling them. */
     @Test fun `a list that parses to nothing stays nothing`() {
-        assertTrue(layoutOf(listOf("nothing:full"), all).isEmpty())
+        assertTrue(layoutOf(listOf("nothing:wide"), all).isEmpty())
     }
 
     @Test fun `one of each, and the first wins`() {
-        assertEquals(listOf("pulse:full"), storedOf(layoutOf(listOf("pulse:full", "pulse:half"), all)))
+        assertEquals(listOf("pulse:wide"), storedOf(layoutOf(listOf("pulse:wide", "pulse:small"), all)))
     }
 
     @Test fun `the order is the reader's`() {
         assertEquals(
             listOf("tools", "schools", "pulse"),
-            ids(listOf("tools:full", "schools:full", "pulse:full")),
+            ids(listOf("tools:wide", "schools:wide", "pulse:wide")),
         )
     }
 
@@ -74,19 +101,19 @@ class BoardTest {
         catalogue: that is the whole reason it is an argument. */
     @Test fun `a build that draws two widgets draws two`() {
         assertEquals(
-            listOf("pulse:full", "schools:full"),
+            listOf("pulse:tall", "schools:wide"),
             storedOf(layoutOf(BOARD_FLOOR, setOf("pulse", "schools"))),
         )
     }
 
     @Test fun `a round trip is the identity`() {
-        val board = listOf("market:full", "stock:half")
+        val board = listOf("market:wide", "stock:small")
         assertEquals(board, storedOf(layoutOf(board, all)))
     }
 
     /* ---------- the drag ---------- */
 
-    private val three = layoutOf(listOf("pulse:full", "market:full", "tools:full"), all)
+    private val three = layoutOf(listOf("pulse:wide", "market:wide", "tools:wide"), all)
 
     @Test fun `a reorder is right at both ends`() {
         assertEquals(listOf("market", "pulse", "tools"), moved(three, 0, 1).map { it.id })
@@ -100,22 +127,64 @@ class BoardTest {
         assertEquals(three.map { it.id }, moved(three, 1, 1).map { it.id })
     }
 
+    /* ---------- the paired rows ---------- */
+
+    private fun row(vararg ids: String) = ids.toList()
+
+    private fun rowsOf(stored: List<String>) =
+        pairSmalls(layoutOf(stored, all)).map { r -> r.map { it.id } }
+
+    @Test fun `two consecutive smalls pair and a wide is a row of one`() {
+        assertEquals(
+            listOf(row("continue"), row("progress", "stock"), row("pulse")),
+            rowsOf(listOf("continue:wide", "progress:small", "stock:small", "pulse:tall")),
+        )
+    }
+
+    /** The order is the reader's: a small does NOT reach past a
+        wide to find a partner, because that would reorder the
+        board for them. */
+    @Test fun `a small never pairs across a wide`() {
+        assertEquals(
+            listOf(row("progress"), row("continue"), row("stock")),
+            rowsOf(listOf("progress:small", "continue:wide", "stock:small")),
+        )
+    }
+
+    @Test fun `an odd small at the end is a row of one`() {
+        assertEquals(
+            listOf(row("progress", "stock"), row("diet")),
+            rowsOf(listOf("progress:small", "stock:small", "diet:small")),
+        )
+    }
+
+    @Test fun `every widget appears in the rows exactly once`() {
+        val stored = listOf(
+            "continue:wide", "progress:small", "stock:small",
+            "pulse:tall", "market:tall", "schools:wide",
+        )
+        assertEquals(
+            layoutOf(stored, all).map { it.id },
+            pairSmalls(layoutOf(stored, all)).flatten().map { it.id },
+        )
+    }
+
     /* ---------- what a kind offers ---------- */
 
     @Test fun `a kind that offers one size has no other`() {
-        val one = WidgetKind(id = "pulse", sizes = listOf("full"))
-        assertEquals(WidgetSize.FULL, one.added())
-        assertNull(one.other(WidgetSize.FULL))
+        val one = WidgetKind(id = "pulse", sizes = listOf("wide"))
+        assertEquals(WidgetSize.WIDE, one.added())
+        assertNull(one.other(WidgetSize.WIDE))
 
-        val two = WidgetKind(id = "progress", sizes = listOf("full", "half"))
-        assertEquals(WidgetSize.HALF, two.other(WidgetSize.FULL))
-        assertEquals(WidgetSize.FULL, two.other(WidgetSize.HALF))
+        val two = WidgetKind(id = "progress", sizes = listOf("wide", "small"))
+        assertEquals(WidgetSize.SMALL, two.other(WidgetSize.WIDE))
+        assertEquals(WidgetSize.WIDE, two.other(WidgetSize.SMALL))
     }
 
     /** A catalogue entry from a deploy that says nothing about
         sizes still has to be addable. */
-    @Test fun `a kind with no sizes is added full width`() {
-        assertEquals(WidgetSize.FULL, WidgetKind(id = "x").added())
+    @Test fun `a kind with no sizes is added at the row's width`() {
+        assertEquals(WidgetSize.WIDE, WidgetKind(id = "x").added())
     }
     /* ---------- the names before the catalogue ---------- */
 
@@ -138,15 +207,15 @@ class BoardTest {
         page. */
     @Test fun `the catalogue wins and the floor answers`() {
         val sent = WidgetKind(id = "pulse", bn = "নতুন", en = "New", sizes = listOf("full"))
-        assertEquals("নতুন", kindOf("pulse", mapOf("pulse" to sent), WidgetSize.FULL).bn)
+        assertEquals("নতুন", kindOf("pulse", mapOf("pulse" to sent), WidgetSize.WIDE).bn)
 
-        val floor = kindOf("pulse", emptyMap(), WidgetSize.FULL)
+        val floor = kindOf("pulse", emptyMap(), WidgetSize.WIDE)
         assertEquals(KIND_NAMES.getValue("pulse").first, floor.bn)
-        assertEquals(WidgetSize.FULL, floor.added())
+        assertEquals(WidgetSize.WIDE, floor.added())
 
         /* And a kind from a newer site that this build has never
            heard of still gets a name rather than a crash. */
-        assertEquals("hologram", kindOf("hologram", emptyMap(), WidgetSize.HALF).bn)
+        assertEquals("hologram", kindOf("hologram", emptyMap(), WidgetSize.SMALL).bn)
     }
 
 }

@@ -33,4 +33,30 @@ class HomeLookTest {
             }
         }
     }
+
+    /** A board with two SMALLS on it, which have to sit side by
+        side: the paired grid is what makes the three sizes a
+        home screen's rather than a stretch, and no other
+        snapshot holds a board that was actually arranged. */
+    @Test fun homePaired() {
+        pz.snapshot {
+            ReiadTheme(accent = Accents.GREEN, dark = false) {
+                val c = LocalReiad.current
+                Box(Modifier.fillMaxSize().background(c.paper)) {
+                    Home(
+                        site = site,
+                        stale = false,
+                        note = null,
+                        ticks = mapOf("money" to setOf("a", "b", "c")),
+                        audience = null,
+                        onOpen = {},
+                        board = listOf(
+                            "progress:small", "stock:small",
+                            "continue:wide", "pulse:tall",
+                        ),
+                    )
+                }
+            }
+        }
+    }
 }

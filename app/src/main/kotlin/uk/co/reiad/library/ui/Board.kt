@@ -140,9 +140,16 @@ fun WidgetFrame(
                 Handle("chevron-down", "${kind.name(lang)}: নিচে নামান", onDown)
             }
             kind.other(placed.size)?.let { other ->
+                /* The mark says the DIRECTION the press goes, and
+                   the word matches the site's own three: ছোট,
+                   লম্বা or চওড়া করুন. */
                 Handle(
-                    if (other == WidgetSize.HALF) "shrink" else "grow",
-                    "${kind.name(lang)}: " + if (other == WidgetSize.HALF) "ছোট করুন" else "বড় করুন",
+                    if (other == WidgetSize.SMALL) "shrink" else "grow",
+                    "${kind.name(lang)}: " + when (other) {
+                        WidgetSize.SMALL -> "ছোট করুন"
+                        WidgetSize.TALL -> "লম্বা করুন"
+                        WidgetSize.WIDE -> "চওড়া করুন"
+                    },
                     onResize,
                 )
             }

@@ -17,6 +17,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -196,6 +197,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.lazy.itemsIndexed
 import uk.co.reiad.library.core.BOARD_FLOOR
 import uk.co.reiad.library.core.Placed
+import uk.co.reiad.library.core.pairSmalls
 import uk.co.reiad.library.core.kindOf
 import uk.co.reiad.library.core.layoutOf
 import uk.co.reiad.library.core.moved
@@ -2918,6 +2920,37 @@ fun Home(
             Spacer(Modifier.height(Gap.s6))
         }
 
+        /* ---------- reading mode: the paired grid ----------
+
+           Two SMALLS sit side by side, the way a phone home
+           screen pairs its squares. Only consecutive smalls
+           pair, because the ORDER is the reader's and pairing
+           across a wide would reorder it for them.
+
+           While ARRANGING, everything runs full width instead:
+           the drag and the arrows work per widget, and a small
+           twice the size while being moved is the same trade
+           iOS makes when its grid shrinks in jiggle mode. */
+        if (!arranging) {
+            val rows = pairSmalls(placed)
+            items(rows, key = { row -> row.joinToString("+") { it.id } }) { row ->
+                if (row.size == 2) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Gap.s7),
+                    ) {
+                        for (p in row) {
+                            Box(Modifier.weight(1f)) {
+                                Widget(p.id, p.size, data, act)
+                            }
+                        }
+                    }
+                } else {
+                    Widget(row.first().id, row.first().size, data, act)
+                }
+                Spacer(Modifier.height(Gap.s7))
+            }
+        } else {
         itemsIndexed(placed, key = { _, p -> p.id }) { at, p ->
             /* The catalogue describes a widget; it is not what
                DRAWS one. A phone that has never fetched the
@@ -2960,9 +2993,10 @@ fun Home(
                 },
                 grip = Modifier.dragHandle(drag, p.id),
             ) {
-                Widget(p.id, data, act)
+                Widget(p.id, p.size, data, act)
             }
             Spacer(Modifier.height(Gap.s7))
+        }
         }
 
         if (arranging) {
