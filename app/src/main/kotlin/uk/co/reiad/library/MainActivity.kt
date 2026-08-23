@@ -64,6 +64,8 @@ import uk.co.reiad.library.core.LessonPage
 import uk.co.reiad.library.core.NavGroup
 import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.School
+import uk.co.reiad.library.core.measureOf
+import uk.co.reiad.library.core.scaleOf
 import uk.co.reiad.library.core.Scenario
 import uk.co.reiad.library.core.rungsOf
 import uk.co.reiad.library.core.standingOf
@@ -1734,7 +1736,15 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         Where.Home -> null
     }
 
-    ReiadTheme(accent = accent, dark = dark) {
+    /* The reader's own type size, applied at the ONE place every
+       screen goes through. It has been in `reader-prefs` and
+       syncing since the app was written, and nothing read it. */
+    ReiadTheme(
+        accent = accent,
+        dark = dark,
+        scale = scaleOf(prefs.text),
+        measure = measureOf(prefs.measure),
+    ) {
         val colours = LocalReiad.current
         Surface(Modifier.fillMaxSize(), color = colours.paper) {
             Shell(

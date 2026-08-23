@@ -36,6 +36,12 @@ import uk.co.reiad.library.core.Finish
 import uk.co.reiad.library.core.GLASSES
 import uk.co.reiad.library.core.Kind
 import uk.co.reiad.library.data.Held
+import uk.co.reiad.library.core.MEASURES
+import uk.co.reiad.library.core.Measure
+import uk.co.reiad.library.core.SCALES
+import uk.co.reiad.library.core.Scale
+import uk.co.reiad.library.core.measureOf
+import uk.co.reiad.library.core.scaleOf
 import uk.co.reiad.library.core.PrefOption
 import uk.co.reiad.library.core.Prefs
 import uk.co.reiad.library.core.THEMES
@@ -109,6 +115,31 @@ fun SettingsSheet(
                 "These travel with your account, so a change here reaches the site too.",
                 style = MaterialTheme.typography.bodySmall,
                 color = c.inkSoft,
+            )
+            Spacer(Modifier.height(Gap.s8))
+
+            /* Type size and line width FIRST, because they are
+               the two a reader who cannot comfortably read the
+               screen is looking for, and they were the two this
+               sheet did not have. Both were stored, both synced,
+               and neither did anything. */
+            Choice(
+                heading = "Type size",
+                options = SCALES,
+                chosen = scaleOf(prefs.text),
+                onChoose = { scale -> onChange { it.copy(text = scale.id) } },
+                label = { it.label },
+                note = { it.note },
+            )
+            Spacer(Modifier.height(Gap.s8))
+
+            Choice(
+                heading = "Line width",
+                options = MEASURES,
+                chosen = measureOf(prefs.measure),
+                onChoose = { measure -> onChange { it.copy(measure = measure.id) } },
+                label = { it.label },
+                note = { it.note },
             )
             Spacer(Modifier.height(Gap.s8))
 

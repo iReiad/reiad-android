@@ -68,6 +68,7 @@ import uk.co.reiad.library.core.standingOf
 import uk.co.reiad.library.core.BodyParser
 import uk.co.reiad.library.core.Reader
 import uk.co.reiad.library.core.Scenario
+import uk.co.reiad.library.core.Scale
 
 /* ============================================================
    The account, THREE SCREENS TALL.
@@ -200,6 +201,32 @@ class AccountLookTest {
                 ),
                 onOpen = {},
             )
+        }
+    }
+
+    /** The settings sheet at COMFORTABLE, beside the normal one
+        in `ScreensLookTest`.
+
+        A type scale is the one preference whose whole point is
+        visible and whose implementation is a multiplier: a
+        picture of it is the only thing that shows the headings
+        grew with the prose rather than a paragraph growing under
+        a heading that did not. */
+    @Test fun settingsLarge() {
+        pz.snapshot {
+            ReiadTheme(accent = Accents.GREEN, dark = false, scale = Scale.LARGE) {
+                val c = LocalReiad.current
+                Box(Modifier.fillMaxSize().background(c.paper)) {
+                    SettingsSheet(
+                        prefs = Prefs(text = "large"),
+                        onChange = {},
+                        onClose = {},
+                        held = Held(89, 1_430_000),
+                        onForget = {},
+                        builtFrom = "0000000  1970-01-01 00:00",
+                    )
+                }
+            }
         }
     }
 }
