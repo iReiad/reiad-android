@@ -68,6 +68,10 @@ fun DietBodyPanel(
     lang: String,
     onOpenSite: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The smoothed weight and the week's slope, where a
+        fortnight of mornings can support them. */
+    trendKg: Double? = null,
+    perWeek: uk.co.reiad.library.core.diet.Range? = null,
 ) {
     val c = LocalReiad.current
 
@@ -106,6 +110,31 @@ fun DietBodyPanel(
                 style = MaterialTheme.typography.titleSmall,
                 color = c.ink,
                 modifier = Modifier.semantics { heading() },
+            )
+        }
+
+        /* The TREND leads, where there is one, because it is the
+           screen's own advice taken: the weight box says "one
+           reading is noise, the trend is the signal", and a page
+           that said so while drawing no trend was carrying the
+           arithmetic and never showing it. The slope is a RANGE,
+           because a fit over a fortnight cannot support a point,
+           and the words state a DIRECTION and never a verdict. */
+        trendKg?.let { kg ->
+            Reading(
+                head = if (lang == "bn") "ওজনের গতি" else "Weight trend",
+                value = if (lang == "bn") {
+                    "${inScript(one(kg), "bn")} কেজি"
+                } else {
+                    "${one(kg)} kg"
+                },
+                said = perWeek?.let { slopeWords(it, lang) },
+                why = if (lang == "bn") {
+                    "দিনের ওঠানামা মসৃণ করে হিসাব করা: এক পাক্ষিকের সকালগুলো থেকে।"
+                } else {
+                    "Smoothed over the last fortnight's mornings, so one salty " +
+                        "dinner does not read as a kilogram."
+                },
             )
         }
 
@@ -230,6 +259,26 @@ private fun Reading(
             Spacer(Modifier.height(Gap.s3))
             Text(it, style = MaterialTheme.typography.bodySmall, color = c.inkSoft)
         }
+    }
+}
+
+/** The week's slope, said as a direction with its width, never a
+    verdict. `±` where the range straddles nought, because "steady"
+    would be a claim the fit cannot support either way. */
+private fun slopeWords(perWeek: uk.co.reiad.library.core.diet.Range, lang: String): String {
+    val lo = perWeek.low
+    val hi = perWeek.high
+    val n = { v: Double -> if (lang == "bn") inScript(one(kotlin.math.abs(v)), "bn") else one(kotlin.math.abs(v)) }
+    return when {
+        hi < 0 ->
+            if (lang == "bn") "সপ্তাহে ${n(hi)}–${n(lo)} কেজি কমছে"
+            else "down ${n(hi)} to ${n(lo)} kg a week"
+        lo > 0 ->
+            if (lang == "bn") "সপ্তাহে ${n(lo)}–${n(hi)} কেজি বাড়ছে"
+            else "up ${n(lo)} to ${n(hi)} kg a week"
+        else ->
+            if (lang == "bn") "সপ্তাহে ±${n(maxOf(-lo, hi))} কেজির মধ্যে"
+            else "within ±${n(maxOf(-lo, hi))} kg a week"
     }
 }
 

@@ -480,6 +480,28 @@ class ScreensLookTest {
         DietEntry(date = "2026-08-23", label = "a plate at a restaurant", kcal = unmeasured),
     )
 
+    /** The body page with a TREND on it, drawn straight: the
+        smoothed weight leads and the slope is a range with a
+        direction, never a verdict. */
+    @Test fun dietBody() = page {
+        Box(Modifier.padding(Gap.s8)) {
+            uk.co.reiad.library.ui.DietBodyPanel(
+                body = Body(172.0, 74.0, 34.0, Sex.MALE, Ancestry.ASIAN, waistCm = 88.0),
+                /* Empty on purpose: the fixture is production's
+                   own /api/site, which does not carry dietWords
+                   until the branch deploys, and the panel has to
+                   hold its shape with none anyway: a phrase that
+                   has not arrived draws NOTHING rather than its
+                   key. */
+                words = uk.co.reiad.library.core.DietWords(),
+                lang = "bn",
+                onOpenSite = {},
+                trendKg = 74.3,
+                perWeek = uk.co.reiad.library.core.diet.Range(-0.62, -0.4, -0.18),
+            )
+        }
+    }
+
     @Test fun dietEmpty() = page {
         DietScreen(
             state = DietState(

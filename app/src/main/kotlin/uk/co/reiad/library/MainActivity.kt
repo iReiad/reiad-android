@@ -785,6 +785,23 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         val body = bodyOf(profile, day ?: latest, java.time.LocalDate.now().year)
             ?: bodyOf(profile, latest, java.time.LocalDate.now().year)
 
+        /* The trend, out of the same fortnight. Day numbers are
+           days-before-today so the arithmetic never parses a
+           date, and the list arrives newest first, so it is
+           reversed into time order for the fit. */
+        val weighed = days.filter { it.weightKg != null }
+        val points = weighed.map { d ->
+            uk.co.reiad.library.core.diet.Point(
+                day = -java.time.temporal.ChronoUnit.DAYS.between(
+                    java.time.LocalDate.parse(d.date),
+                    java.time.LocalDate.parse(today),
+                ).toInt(),
+                kg = d.weightKg ?: 0.0,
+            )
+        }.sortedBy { it.day }
+        val smoothed = uk.co.reiad.library.core.diet.trend(points).lastOrNull()?.kg
+        val perWeek = uk.co.reiad.library.core.diet.slopePerWeek(points)
+
         val resting = body?.let { restingBurn(it) }
         val maintenance = resting?.let {
             estimatedBurn(it.kcal, activityFactor(profile?.activity ?: "sedentary"))
@@ -796,6 +813,8 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         }
         return DietState(
             loading = false,
+            trendKg = smoothed,
+            perWeek = perWeek,
             today = today,
             profile = profile,
             day = day,

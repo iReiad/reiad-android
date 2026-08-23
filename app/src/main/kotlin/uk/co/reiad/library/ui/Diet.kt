@@ -95,6 +95,12 @@ data class DietState(
         does: the picker says so rather than showing an empty
         list. */
     val library: FoodLibrary? = null,
+    /** The smoothed weight and the week's slope, out of the same
+        fortnight `openDiet` already fetched. Null until there are
+        enough mornings on the scale to say anything: `fit()`'s
+        own refusal, passed through rather than papered over. */
+    val trendKg: Double? = null,
+    val perWeek: uk.co.reiad.library.core.diet.Range? = null,
 )
 
 @Composable
@@ -210,6 +216,8 @@ fun DietScreen(
                     words = words,
                     lang = lang,
                     onOpenSite = onOpenSite,
+                    trendKg = state.trendKg,
+                    perWeek = state.perWeek,
                 )
             }
             return@LazyColumn
