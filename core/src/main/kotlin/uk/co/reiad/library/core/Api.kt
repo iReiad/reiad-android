@@ -168,6 +168,12 @@ data class LadderSchool(
     val href: String = "",
     val accent: String = "",
     val blurb: String = "",
+    /** What kind of thing this is, in Bangla: `কোর্স` for every
+        school. It is the chip on the card, and it comes from the
+        nav table rather than being spelled here, so the day a
+        school is something other than a course the app says so
+        with no release. */
+    val kind: String = "",
 )
 
 /** The routine tool's vocabulary, out of `shared/routine.ts`. */

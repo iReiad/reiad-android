@@ -2153,7 +2153,16 @@ fun SchoolCard(
         GoCard(
             title = school.bn,
             dek = school.blurb.takeIf { it.isNotBlank() },
-            chip = school.en,
+            /* The nav table's own word, which is Bangla, and
+               the Latin label only when a school has none.
+
+               It was `school.en`, so the cards on the front page
+               read MONEY, GERMAN and QUR'ANIC ARABIC to a reader
+               the whole site is written in Bangla for. The site's
+               own card says কোর্স, out of `kind` in `shared/nav.ts`,
+               and that field simply was not being carried: the
+               table mapped its fields by hand. */
+            chip = school.kind.ifBlank { school.en },
             go = "পড়া শুরু",
             done = done > 0,
             sway = sway,
