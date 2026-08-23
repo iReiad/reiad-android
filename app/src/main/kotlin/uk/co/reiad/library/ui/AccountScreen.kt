@@ -87,14 +87,19 @@ fun AccountScreen(
     val c = LocalReiad.current
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = Gap.s11, bottom = bottomPadding),
+        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
     ) {
         item("head") {
-            Text("আপনার", style = BanglaHeading.copy(
-                fontSize = MaterialTheme.typography.displaySmall.fontSize,
-            ), color = c.ink)
-            Text("Your account", style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
-            Spacer(Modifier.height(Gap.s9))
+            PageHead(
+                title = "আপনার অ্যাকাউন্ট",
+                eyebrow = "You · আপনার",
+                lede = if (reader == null) {
+                    "আপনি কতদূর পড়েছেন, কী সাভ করেছেন আর কী লক্ষ্য ঠিক করেছেন: সব এক জায়গায়, সব ডিভাইসে এক."
+                } else {
+                    null
+                },
+            )
+            Spacer(Modifier.height(Gap.s7))
         }
 
         if (reader != null) {

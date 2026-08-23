@@ -155,7 +155,7 @@ fun LiveScreen(
                     }
                 }
             }
-            state.loading -> item { Waiting() }
+            state.loading -> item { Skeleton(lines = 3, label = "Reading the portfolio") }
             else -> item { Sorry(state.trouble) }
         }
 

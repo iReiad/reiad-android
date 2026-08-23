@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.paparazzi)
 }
 
 android {
@@ -66,4 +67,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.coil.compose)
+
+    /* Paparazzi renders a screen on the JVM, so `recordPaparazzi`
+       is the only way anything here can LOOK at the app. It is
+       not a golden-image gate: see `app/src/test/.../Looks.kt`. */
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.junit)
 }

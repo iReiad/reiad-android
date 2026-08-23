@@ -3,10 +3,12 @@ package uk.co.reiad.library.ui
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -29,12 +31,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.window.core.layout.WindowWidthSizeClass
@@ -141,6 +146,22 @@ fun Shell(
             }
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 content()
+                if (chrome == Chrome.BAR) {
+                    /* The site's own top bar, and it is the app's
+                       identity as much as the colours are: every
+                       page of reiad.co.uk is a floating pill with
+                       the name in it and the two controls that
+                       are not destinations. The app had neither,
+                       so search was reachable only through a
+                       drawer nobody opens for it. */
+                    TopBar(
+                        name = state.site?.site?.name ?: "Reiad's Library",
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        onHome = onHome,
+                        onSearch = onSearch,
+                        onSettings = onSettings,
+                    )
+                }
                 if (chrome == Chrome.BAR && groups.isNotEmpty()) {
                     Bar(
                         groups = groups,
@@ -166,6 +187,121 @@ fun Shell(
                 onClose = { onDrawer(false) },
             )
         }
+    }
+}
+
+/* ---------- how far a page has to keep clear ----------
+
+   Both bars FLOAT over the page rather than pushing it, which is
+   what makes them glass: a reader scrolls prose under them and
+   sees it through them. The cost is that every screen has to open
+   below the top one and end above the bottom one, and a screen
+   that forgets is a screen whose first line is behind a bar.
+
+   Written down once here rather than at each of eleven call
+   sites. The top bar arrived after those eleven were written, so
+   every one of them opened at the old distance and every one of
+   them had its heading cut in half. */
+
+/** Clear of the top bar. */
+val TOP_CLEARANCE = 84.dp
+
+/** Clear of the bottom bar. */
+val BAR_CLEARANCE = 96.dp
+
+/** What a scrolling page's `contentPadding` should be.
+
+    Asks the chrome, so a tablet with a rail down the side gets
+    the smaller top gap it deserves: there is no top bar there. */
+@Composable
+fun pagePadding(horizontal: Dp = Gap.s8, extraTop: Dp = 0.dp): PaddingValues =
+    PaddingValues(
+        start = horizontal,
+        end = horizontal,
+        top = (if (rememberChrome() == Chrome.BAR) TOP_CLEARANCE else Gap.s10) + extraTop,
+        bottom = BAR_CLEARANCE,
+    )
+
+/* ---------- the top bar ---------- */
+
+/** One of the round buttons in the top bar.
+
+    A `control`, because it is one of two on a bar and each acts
+    on its own: the site's rule is that a lone button has to look
+    pressable because nothing else says it is. */
+@Composable
+private fun RoundButton(icon: String, label: String, onClick: () -> Unit) {
+    val c = LocalReiad.current
+    Box(
+        Modifier
+            .size(Gap.tap)
+            .clip(RoundedCornerShape(Corner.pill))
+            .material(Kind.CONTROL, c, Corner.pill)
+            /* A visible rim. The material gives a control its
+               lit edge, and at 44dp against a pane of the same
+               glass that edge is not enough to say "this is a
+               button": the site draws a hairline circle. */
+            .border(1.dp, c.hairline, RoundedCornerShape(Corner.pill))
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, size = 19.dp, tint = c.ink)
+    }
+}
+
+/**
+ * The site's top bar: a floating pill with the name in it.
+ *
+ * Every page of the site has this and the app had none of it, so
+ * a reader arriving from the site met something that shared its
+ * colours and none of its furniture. It carries the two controls
+ * that are not destinations, which is why they are not in the
+ * bottom bar: search and the reader's own settings act ON the
+ * page rather than taking you off it.
+ *
+ * The name is a link home, exactly as the site's is.
+ */
+@Composable
+fun TopBar(
+    name: String,
+    modifier: Modifier = Modifier,
+    onHome: () -> Unit,
+    onSearch: () -> Unit,
+    onSettings: () -> Unit,
+) {
+    val c = LocalReiad.current
+    Row(
+        modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(horizontal = Gap.s7, vertical = Gap.s5)
+            .clip(RoundedCornerShape(Corner.pill))
+            .material(Kind.PANE, c, Corner.pill)
+            .padding(horizontal = Gap.s5, vertical = Gap.s4),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(Corner.pill))
+                .clickable(role = Role.Button, onClick = onHome)
+                .padding(horizontal = Gap.s4, vertical = Gap.s3),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon("bars", size = 18.dp, tint = c.accent)
+            Spacer(Modifier.width(Gap.s5))
+            Text(
+                name,
+                style = MaterialTheme.typography.titleSmall,
+                color = c.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        RoundButton("search", "Search", onSearch)
+        Spacer(Modifier.width(Gap.s4))
+        RoundButton("theme", "Settings", onSettings)
     }
 }
 
@@ -227,7 +363,7 @@ private fun Bar(
                    the first item of a group is the one the group
                    is named after. */
                 icon = group.items.firstOrNull()?.icon ?: "home",
-                label = group.label,
+                label = tabLabel(group.label),
                 selected = group.items.any { it.key != null && it.key == current },
                 accent = accentColour(group.accent, c),
                 modifier = Modifier.weight(1f),
@@ -244,6 +380,24 @@ private fun Bar(
         )
     }
 }
+
+/**
+ * A group's name, cut down to something a tab can hold.
+ *
+ * The site's group labels are bilingual and written for a menu
+ * that has a whole line for each: "শেখা · Learning", "আপনার ·
+ * Yours". Five of those across a handset truncate into
+ * "শেখা ·", "Lea…", "কাজে লাগান", "…", which is the congestion
+ * the app shipped with.
+ *
+ * The Bangla half is the one kept, because Bangla is the site's
+ * learning language and the tab beneath an icon is a reminder
+ * rather than a description. Nothing is invented and nothing is
+ * abbreviated: the label is split on the separator the table
+ * already uses.
+ */
+internal fun tabLabel(label: String): String =
+    label.substringBefore("·").trim().ifBlank { label }
 
 /** Which groups the bar can hold, and the rule that the one you
     are ON is always among them.

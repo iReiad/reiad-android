@@ -100,7 +100,7 @@ fun PieceScreen(
         LazyColumn(
             state = scroll,
             modifier = Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-            contentPadding = PaddingValues(top = Gap.s11, bottom = bottomPadding),
+            contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
         ) {
             item("head") {
                 Text(

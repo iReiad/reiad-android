@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -215,16 +217,35 @@ fun Chip(
     text: String,
     modifier: Modifier = Modifier,
     tone: Color? = null,
+    /** A filled dot before the word, which is the site's `.gt-live`:
+        the one mark that says a number on the other side of it is
+        arriving now rather than being remembered. */
+    live: Boolean = false,
 ) {
     val c = LocalReiad.current
-    Box(
+    Row(
         modifier
             .clip(RoundedCornerShape(Corner.pill))
             .material(Kind.CHIP, c, Corner.pill, ground = c.accent.copy(alpha = 0.12f))
             .padding(horizontal = Gap.s6, vertical = Gap.s3),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (live) {
+            Box(
+                Modifier
+                    .size(7.dp)
+                    .clip(RoundedCornerShape(Corner.pill))
+                    .background(tone ?: c.accent),
+            )
+            Spacer(Modifier.width(Gap.s4))
+        }
         Text(
-            text.uppercase(),
+            /* Bangla has no case, and `uppercase()` on a Bengali
+               string is a no-op that costs an allocation. Said
+               here rather than at the call sites, because the
+               chip is the one place on this site that upper-cases
+               a word a reader wrote. */
+            if (isBangla(text)) text else text.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color = tone ?: c.accent,
             maxLines = 1,

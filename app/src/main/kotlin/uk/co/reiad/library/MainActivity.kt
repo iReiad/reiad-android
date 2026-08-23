@@ -60,6 +60,7 @@ import uk.co.reiad.library.core.LessonPage
 import uk.co.reiad.library.core.NavGroup
 import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.School
+import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.Prefs
 import uk.co.reiad.library.core.Stage
@@ -85,12 +86,32 @@ import uk.co.reiad.library.core.stock.analyse
 import uk.co.reiad.library.core.stock.shareLink
 import uk.co.reiad.library.core.stock.toCsv
 import uk.co.reiad.library.ui.StockScreen
-import uk.co.reiad.library.ui.Waiting
+import uk.co.reiad.library.ui.ToolsWaiting
+import uk.co.reiad.library.ui.Skeleton
+import uk.co.reiad.library.ui.Problem
+import uk.co.reiad.library.ui.RowCard
+import uk.co.reiad.library.ui.Crumb
+import uk.co.reiad.library.ui.Door
+import uk.co.reiad.library.ui.PageHead
+import uk.co.reiad.library.ui.Fact
 import uk.co.reiad.library.ui.StockState
 import uk.co.reiad.library.ui.CalcState
 import uk.co.reiad.library.ui.CalculatorsScreen
 import uk.co.reiad.library.ui.LiveScreen
 import uk.co.reiad.library.ui.LiveState
+import uk.co.reiad.library.ui.RoutineScreen
+import uk.co.reiad.library.ui.RoutineState
+import uk.co.reiad.library.routine.Days
+import uk.co.reiad.library.routine.RoutineRow
+import uk.co.reiad.library.core.routine.consistency
+import uk.co.reiad.library.core.routine.dayBefore
+import uk.co.reiad.library.core.routine.echo
+import uk.co.reiad.library.core.routine.greeting
+import uk.co.reiad.library.core.routine.heat
+import uk.co.reiad.library.core.routine.momentum
+import uk.co.reiad.library.core.routine.neverMarked
+import uk.co.reiad.library.core.routine.runs
+import uk.co.reiad.library.core.routine.seasonOf
 import uk.co.reiad.library.broker.Answer
 import uk.co.reiad.library.broker.Broker
 import uk.co.reiad.library.core.broker.dividendMonths
@@ -101,6 +122,8 @@ import uk.co.reiad.library.ui.AccountScreen
 import uk.co.reiad.library.ui.BodyView
 import uk.co.reiad.library.ui.Faces
 import uk.co.reiad.library.ui.Checkpoints
+import uk.co.reiad.library.ui.BAR_CLEARANCE
+import uk.co.reiad.library.ui.TOP_CLEARANCE
 import uk.co.reiad.library.ui.Chip
 import uk.co.reiad.library.ui.Control
 import uk.co.reiad.library.ui.Corner
@@ -184,7 +207,6 @@ class MainActivity : ComponentActivity() {
     edge, which is the site's own arrangement one level down, so
     nothing insets the content for it and every screen has to
     leave the room itself. */
-private val BAR_CLEARANCE = 96.dp
 
 /** The stock check's key in `shared/nav.ts`, which is the one
     place that table is said. Named rather than typed at the two
@@ -198,9 +220,12 @@ private const val TOOLS_KEY = "tools"
 /** The live portfolio. */
 private const val LIVE_KEY = "live"
 
+/** And the routine. */
+private const val ROUTINE_KEY = "routine"
+
 /* ---------- where the reader is ---------- */
 
-private sealed interface Where {
+internal sealed interface Where {
     data object Home : Where
     data class Group(val group: NavGroup) : Where
 
@@ -230,9 +255,15 @@ private sealed interface Where {
         showing a cached balance: a live portfolio that is not
         live is a screenshot. */
     data object Live : Where
+
+    /** The routine. It belongs to an ACCOUNT rather than to this
+        phone, which is the one thing about it worth saying twice:
+        there is nothing to show signed out, and that is not an
+        error. */
+    data object Routine : Where
 }
 
-private class AppModel(private val reiad: Reiad) : ViewModel() {
+internal class AppModel(private val reiad: Reiad) : ViewModel() {
 
     private val _site = MutableStateFlow<SiteManifest?>(null)
     val site: StateFlow<SiteManifest?> = _site.asStateFlow()
@@ -263,6 +294,16 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
     private val _words = MutableStateFlow<ToolWords?>(null)
     val words: StateFlow<ToolWords?> = _words.asStateFlow()
 
+    /** Why the words did not arrive, when they did not.
+
+        Kept rather than discarded, and that is the whole of the
+        black page: `Cached` reported a 404 and `openTools` threw
+        the report away, so every calculator waited for ever on an
+        endpoint that could not answer. A fetch has three outcomes
+        and this is the second one. */
+    private val _wordsProblem = MutableStateFlow<String?>(null)
+    val wordsProblem: StateFlow<String?> = _wordsProblem.asStateFlow()
+
     private val _stock = MutableStateFlow(StockState())
     val stock: StateFlow<StockState> = _stock.asStateFlow()
 
@@ -272,6 +313,11 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
     private val _live = MutableStateFlow(LiveState())
     val live: StateFlow<LiveState> = _live.asStateFlow()
 
+    private val _routine = MutableStateFlow(RoutineState())
+    val routine: StateFlow<RoutineState> = _routine.asStateFlow()
+
+    private var routineStore: Days? = null
+
     private val _toolNote = MutableStateFlow<String?>(null)
     val toolNote: StateFlow<String?> = _toolNote.asStateFlow()
 
@@ -280,7 +326,19 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
         on a phone that may never open one. */
     fun openTools() {
         if (_words.value != null) return
-        viewModelScope.launch { _words.value = reiad.toolWords().value }
+        viewModelScope.launch {
+            _wordsProblem.value = null
+            val answer = reiad.toolWords()
+            _words.value = answer.value
+            _wordsProblem.value = answer.problem
+        }
+    }
+
+    /** And again, after a reader presses the button that says so. */
+    fun retryTools() {
+        _words.value = null
+        _wordsProblem.value = null
+        openTools()
     }
 
     fun setStock(next: StockState) { _stock.value = next }
@@ -344,6 +402,111 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
                 is Answer.Failed -> _live.value = _live.value.copy(trouble = own.trouble)
             }
             _live.value = _live.value.copy(loading = false)
+        }
+    }
+
+    /** The routine, and everything read off it.
+
+        A YEAR of days is fetched, not a week: `runs` looks back
+        365 and the heatmap twelve weeks, and a screen that asked
+        for less would quietly draw a shorter history as a worse
+        one. It is one request and a year of days is a few
+        kilobytes. */
+    fun openRoutine(context: android.content.Context) {
+        val store = routineStore ?: Days(account(context)).also { routineStore = it }
+        _routine.value = RoutineState(loading = true)
+        viewModelScope.launch {
+            if (account(context).token() == null) {
+                _routine.value = RoutineState(loading = false, signedOut = true)
+                return@launch
+            }
+            val today = java.time.LocalDate.now().toString()
+            val row = store.routine()
+            if (row == null) {
+                _routine.value = RoutineState(loading = false, today = today, greeting = hello())
+                return@launch
+            }
+            val entries = store.entries(dayBefore(today, 365))
+            _routine.value = readRoutine(row, entries, today)
+        }
+    }
+
+    /** Everything the screen draws, derived in one place so a
+        mark and a chart cannot disagree about what today is. */
+    private fun readRoutine(
+        row: RoutineRow,
+        entries: List<uk.co.reiad.library.core.routine.Entry>,
+        today: String,
+    ): RoutineState {
+        val shape = row.shape
+        return RoutineState(
+            routineId = row.id,
+            shape = shape,
+            today = today,
+            entry = entries.firstOrNull { it.date == today },
+            entries = entries,
+            heat = heat(shape, entries, today, 12),
+            consistency = consistency(shape, entries, today, 28),
+            neverMarked = neverMarked(shape, entries),
+            momentum = momentum(shape, entries, today, 28),
+            runs = runs(entries, today, 365),
+            echo = echo(entries, today),
+            season = seasonOf(today),
+            greeting = hello(),
+            loading = false,
+        )
+    }
+
+    private fun hello(): String = greeting(java.time.LocalTime.now().hour).first
+
+    /** One mark, saved.
+
+        UNTICKING REMOVES THE KEY rather than writing a zero. An
+        absent key is a day with nothing to say about that task
+        and a zero is a judgement wearing a number's clothes;
+        every piece of arithmetic in `core/routine` reads that
+        distinction. */
+    fun mark(taskId: String, value: Double) {
+        val now = _routine.value
+        val id = now.routineId ?: return
+        val marks = now.entry?.marks.orEmpty().toMutableMap()
+        if (value > 0) marks[taskId] = value else marks.remove(taskId)
+        writeDay(id, (now.entry ?: emptyDay(now.today)).copy(marks = marks))
+    }
+
+    fun mood(id: String?) {
+        val now = _routine.value
+        val routineId = now.routineId ?: return
+        writeDay(routineId, (now.entry ?: emptyDay(now.today)).copy(mood = id))
+    }
+
+    fun note(text: String) {
+        val now = _routine.value
+        val routineId = now.routineId ?: return
+        writeDay(routineId, (now.entry ?: emptyDay(now.today)).copy(note = text))
+    }
+
+    private fun emptyDay(date: String) =
+        uk.co.reiad.library.core.routine.Entry(date = date)
+
+    /** Written through at once, and every derived figure with it.
+
+        The screen redraws from the SAME derivation the fetch
+        used, rather than nudging a number: a tick that moved the
+        percentage without moving the heatmap would be two
+        answers about one day. */
+    private fun writeDay(routineId: String, entry: uk.co.reiad.library.core.routine.Entry) {
+        val now = _routine.value
+        val entries = now.entries.filter { it.date != entry.date } + entry
+        _routine.value = readRoutine(
+            RoutineRow(id = routineId, bands = now.shape.bands, tasks = now.shape.tasks),
+            entries.sortedByDescending { it.date },
+            now.today,
+        ).copy(saving = true)
+
+        viewModelScope.launch {
+            routineStore?.save(routineId, entry)
+            _routine.value = _routine.value.copy(saving = false)
         }
     }
 
@@ -417,14 +580,20 @@ private class AppModel(private val reiad: Reiad) : ViewModel() {
         true
     }.getOrDefault(false)
 
-    init {
+    init { refresh() }
+
+    /** Ask the site what it holds, and say so if it will not.
+
+        Public and re-callable, because the front page's failure
+        state has a button on it: an app that reports a problem
+        and offers no way to try again has told a reader something
+        they can do nothing with. */
+    fun refresh() {
         viewModelScope.launch {
             val answer = reiad.manifest()
             _site.value = answer.value
             _stale.value = answer.stale
-            if (answer.value == null) {
-                _note.value = "Could not reach the site, and nothing is saved yet."
-            }
+            _note.value = answer.problem
             for (school in School.entries) {
                 _ticks.value = _ticks.value + (school.id to reiad.ticksNow(school))
             }
@@ -877,9 +1046,11 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val audience by model.audience.collectAsState()
     val pieces by model.pieces.collectAsState()
     val words by model.words.collectAsState()
+    val wordsProblem by model.wordsProblem.collectAsState()
     val stockState by model.stock.collectAsState()
     val calcState by model.calc.collectAsState()
     val liveState by model.live.collectAsState()
+    val routineState by model.routine.collectAsState()
     val toolNote by model.toolNote.collectAsState()
     val openPiece by model.open.collectAsState()
     val reader by model.reader.collectAsState()
@@ -933,6 +1104,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         Where.Stock -> Accents.GOLD
         Where.Calculators -> Accents.GOLD
         Where.Live -> Accents.GOLD
+        Where.Routine -> Accents.GOLD
         Where.Home -> Accents.GREEN
     }
 
@@ -959,6 +1131,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         Where.Stock -> STOCK_KEY
         Where.Calculators -> TOOLS_KEY
         Where.Live -> LIVE_KEY
+        Where.Routine -> ROUTINE_KEY
         Where.Home -> null
     }
 
@@ -979,11 +1152,23 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                    site in the reader's own browser if it cannot. */
                 onHome = { where = Where.Home },
                 onGroup = { group -> where = Where.Group(group) },
+                /* Every row of the menu, through the one function
+                   that decides where a nav item goes.
+
+                   It handled SCHOOLS and nothing else, so the
+                   menu's other fourteen rows did nothing at all
+                   when pressed: the account, both tool screens,
+                   the live portfolio, the routine and every
+                   reading hub. The drawer is the only way to
+                   reach a group the bottom bar has no room for,
+                   which made "account doesn't open" a true report
+                   about a page that renders perfectly. */
                 onItem = { item ->
-                    val school = site?.ladders?.firstOrNull { it.key == item.key }
-                    if (school != null) {
-                        model.openLadder(school)
-                        where = Where.Ladder(school)
+                    where = if (opensHere(site, item)) {
+                        goTo(model, context, site, item, where)
+                    } else {
+                        openOnSite(context, item.href, colours)
+                        where
                     }
                 },
                 onDrawer = { drawer = it },
@@ -1092,6 +1277,21 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     )
                 }
 
+                Where.Routine -> {
+                    BackHandler { where = Where.Home }
+                    RoutineScreen(
+                        state = routineState,
+                        onMark = { task, value -> model.mark(task, value) },
+                        onMood = { model.mood(it) },
+                        onNote = { model.note(it) },
+                        onOpenSite = { openOnSite(context, "/tools/routine", colours) },
+                        contentPadding = PaddingValues(
+                            start = Gap.s8, end = Gap.s8,
+                            top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                        ),
+                    )
+                }
+
                 Where.Live -> {
                     BackHandler { where = Where.Home }
                     LiveScreen(
@@ -1103,7 +1303,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         onConnect = { openOnSite(context, "/tools/live", colours) },
                         contentPadding = PaddingValues(
                             start = Gap.s8, end = Gap.s8,
-                            top = Gap.s11, bottom = BAR_CLEARANCE,
+                            top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
                         ),
                     )
                 }
@@ -1112,7 +1312,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     BackHandler { where = Where.Home }
                     val toolWords = words
                     if (toolWords == null) {
-                        Waiting()
+                        ToolsWaiting(wordsProblem) { model.retryTools() }
                     } else {
                         CalculatorsScreen(
                             words = toolWords,
@@ -1127,7 +1327,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                                 .associate { it.id to (it.en to it.bn) },
                             contentPadding = PaddingValues(
                                 start = Gap.s8, end = Gap.s8,
-                                top = Gap.s11, bottom = BAR_CLEARANCE,
+                                top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
                             ),
                         )
                     }
@@ -1137,12 +1337,13 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     BackHandler { where = Where.Home }
                     val toolWords = words
                     if (toolWords == null) {
-                        /* Nothing is drawn until the words have
-                           answered. A page of key names that turns
-                           into sentences a second later is worse
-                           than a moment of nothing, and this is
-                           cached, so the moment happens once. */
-                        Waiting()
+                        /* No key names before the words answer: a
+                           page that turns into sentences a second
+                           later is worse than the shape of one.
+                           But never NOTHING, which is what stood
+                           here and is what a reader met when the
+                           endpoint 404ed. */
+                        ToolsWaiting(wordsProblem) { model.retryTools() }
                     } else {
                         StockScreen(
                             words = toolWords,
@@ -1160,7 +1361,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             note = toolNote,
                             contentPadding = PaddingValues(
                                 start = Gap.s8, end = Gap.s8,
-                                top = Gap.s11, bottom = BAR_CLEARANCE,
+                                top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
                             ),
                         )
                     }
@@ -1172,37 +1373,8 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         group = here.group,
                         accents = site?.accents.orEmpty(),
                         bottomPadding = BAR_CLEARANCE,
-                        canOpenHere = { item ->
-                            item.key == "account" || item.key == STOCK_KEY ||
-                                item.key == TOOLS_KEY || item.key == LIVE_KEY ||
-                                site?.ladders?.any { it.key == item.key } == true ||
-                                readingSection(site, item.key) != null
-                        },
-                        onOpenHere = { item ->
-                            val school = site?.ladders?.firstOrNull { it.key == item.key }
-                            val section = readingSection(site, item.key)
-                            when {
-                                item.key == "account" -> where = Where.Account
-                                item.key == STOCK_KEY -> {
-                                    model.openTools()
-                                    where = Where.Stock
-                                }
-                                item.key == TOOLS_KEY -> {
-                                    model.openTools()
-                                    where = Where.Calculators
-                                }
-                                item.key == LIVE_KEY -> {
-                                    model.openLive(context)
-                                    where = Where.Live
-                                }
-                                school != null -> {
-                                    model.openLadder(school)
-                                    where = Where.Ladder(school)
-                                }
-                                section != null ->
-                                    where = Where.Hub(section, sectionTitle(site, section))
-                            }
-                        },
+                        canOpenHere = { item -> opensHere(site, item) },
+                        onOpenHere = { item -> where = goTo(model, context, site, item, where) },
                     )
                 }
 
@@ -1211,10 +1383,26 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     stale = stale,
                     note = note,
                     ticks = ticks,
+                    audience = audience,
                     onOpen = { school ->
                         model.openLadder(school)
                         where = Where.Ladder(school)
                     },
+                    /* A handle on the front page goes where the
+                       same item in the menu goes, through the one
+                       function that decides that: two copies of
+                       this `when` is how a destination ends up
+                       reachable from the menu and dead from the
+                       front page. */
+                    onGo = { item ->
+                        where = if (opensHere(site, item)) {
+                            goTo(model, context, site, item, where)
+                        } else {
+                            openOnSite(context, item.href, colours)
+                            where
+                        }
+                    },
+                    onRetry = { model.refresh() },
                 )
 
                 is Where.Ladder -> {
@@ -1331,10 +1519,49 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
 
 /** The colour the SITE says this school owns, falling back to the
     computed table only when the manifest has never arrived. */
-private fun accentOf(school: LadderSchool): Accent =
+/** Whether this app can draw the destination itself.
+
+    Anything it cannot opens on the site in a Custom Tab, which is
+    the honest answer for a page nobody has ported: a dead handle
+    is worse than a browser. */
+internal fun opensHere(site: SiteManifest?, item: NavItem): Boolean =
+    item.key == "account" || item.key == STOCK_KEY ||
+        item.key == TOOLS_KEY || item.key == LIVE_KEY ||
+        item.key == ROUTINE_KEY ||
+        site?.ladders?.any { it.key == item.key } == true ||
+        readingSection(site, item.key) != null
+
+/** Where a nav item goes, and the ONE place that decides it.
+
+    Both the menu and the front page's handles come through here,
+    because the same item pressed in two places has to reach the
+    same screen. It was one `when` inside the menu's own callback,
+    which made a second caller a second copy. */
+internal fun goTo(
+    model: AppModel,
+    context: android.content.Context,
+    site: SiteManifest?,
+    item: NavItem,
+    now: Where,
+): Where {
+    val school = site?.ladders?.firstOrNull { it.key == item.key }
+    val section = readingSection(site, item.key)
+    return when {
+        item.key == "account" -> Where.Account
+        item.key == STOCK_KEY -> { model.openTools(); Where.Stock }
+        item.key == TOOLS_KEY -> { model.openTools(); Where.Calculators }
+        item.key == LIVE_KEY -> { model.openLive(context); Where.Live }
+        item.key == ROUTINE_KEY -> { model.openRoutine(context); Where.Routine }
+        school != null -> { model.openLadder(school); Where.Ladder(school) }
+        section != null -> Where.Hub(section, sectionTitle(site, section))
+        else -> now
+    }
+}
+
+internal fun accentOf(school: LadderSchool): Accent =
     Accents.byToken(school.accent) ?: Accents.BY_KEY[school.key] ?: Accents.GREEN
 
-private fun accentOfGroup(group: NavGroup): Accent = tokenAccent(group.accent)
+internal fun accentOfGroup(group: NavGroup): Accent = tokenAccent(group.accent)
 
 /** Which reading section a nav key is, or null.
 
@@ -1342,10 +1569,10 @@ private fun accentOfGroup(group: NavGroup): Accent = tokenAccent(group.accent)
     reading section added to the site turns up with no release.
     `sections` is the site's own table of them, and its `id` is
     the same string a piece carries in its `section` column. */
-private fun readingSection(site: SiteManifest?, key: String?): String? =
+internal fun readingSection(site: SiteManifest?, key: String?): String? =
     site?.sections?.firstOrNull { it.id == key }?.id
 
-private fun sectionTitle(site: SiteManifest?, section: String): String =
+internal fun sectionTitle(site: SiteManifest?, section: String): String =
     site?.sections?.firstOrNull { it.id == section }
         ?.let { it.bn.ifBlank { it.en } }
         ?: section.replaceFirstChar { it.uppercase() }
@@ -1353,12 +1580,15 @@ private fun sectionTitle(site: SiteManifest?, section: String): String =
 /* ---------- home ---------- */
 
 @Composable
-private fun Home(
+fun Home(
     site: SiteManifest?,
     stale: Boolean,
     note: String?,
     ticks: Map<String, Set<String>>,
+    audience: String?,
     onOpen: (LadderSchool) -> Unit,
+    onGo: (NavItem) -> Unit = {},
+    onRetry: () -> Unit = {},
 ) {
     val c = LocalReiad.current
     /* One sway for the whole screen, not one per card. Every card
@@ -1366,66 +1596,113 @@ private fun Home(
        the same handset: a lean per card would be twelve sensor
        listeners answering one movement. */
     val sway = rememberSway()
+    /* The site's own door, chosen by the audience switch exactly
+       as `data-hl` chooses it there, and `open` for a reader who
+       has not answered it. */
+    val door = site?.door
+    val copy = door?.copy?.get(audience ?: "open") ?: door?.copy?.get("open")
+    val icons = remember(site) {
+        site?.nav.orEmpty().flatMap { it.items }
+            .mapNotNull { item -> item.key?.let { it to item.icon } }
+            .toMap()
+    }
+    val rows = remember(site) {
+        site?.nav.orEmpty()
+            .flatMap { group -> group.items.map { group to it } }
+            .filter { (_, item) ->
+                item.key != null && site?.ladders?.none { it.key == item.key } == true
+            }
+    }
+
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
         /* The bar FLOATS over the page rather than pushing it, so
            the page has to end above it or the last card sits under
            the bar and looks like the list has been cut off. */
-        contentPadding = PaddingValues(top = Gap.s11, bottom = BAR_CLEARANCE),
+        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = BAR_CLEARANCE),
     ) {
-        item {
-            Text(
-                site?.site?.name ?: "Reiad's Library",
-                style = MaterialTheme.typography.displaySmall,
-                color = c.ink,
-            )
-            Text(
-                site?.site?.tagline ?: "Finance and Bangladesh markets",
-                style = MaterialTheme.typography.bodyMedium,
-                color = c.inkSoft,
-            )
+        item("door") {
+            if (copy != null) {
+                Door(
+                    eyebrow = door?.eyebrow,
+                    headline = copy.headline,
+                    mark = copy.mark,
+                    lede = copy.lede,
+                    facts = door?.facts.orEmpty().map { Fact(it.n, it.label) },
+                )
+            } else {
+                /* Before the first fetch has landed, and on a phone
+                   that has never had one. The site's name is the
+                   honest fallback: it is a fact this app ships
+                   with rather than one it is waiting for. */
+                Text(
+                    site?.site?.name ?: "Reiad's Library",
+                    style = MaterialTheme.typography.displaySmall,
+                    color = c.ink,
+                )
+                Text(
+                    site?.site?.tagline ?: "Finance & Bangladesh markets",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.inkSoft,
+                )
+            }
             if (stale) {
                 Spacer(Modifier.height(Gap.s6))
                 Chip("SAVED COPY")
             }
-            Spacer(Modifier.height(Gap.s9))
+            Spacer(Modifier.height(Gap.s10))
         }
 
-        if (note != null && site == null) {
-            item {
-                /* An InfoCard, deliberately: this is the end of
-                   the road. It reports what happened and there is
-                   nothing to press, so it gets no rail, no arrow
-                   and no light. */
-                InfoCard(title = "Nothing saved yet", dek = note)
+        if (site == null) {
+            /* Never an empty screen, and never a bare sentence in
+               the middle of one. Either the app is reading the
+               site or it could not: both are said, and the second
+               one has a button. */
+            item("waiting") {
+                if (note != null) {
+                    Problem("The site did not answer", note, onRetry = onRetry)
+                } else {
+                    Skeleton()
+                }
             }
         }
 
-        if (site == null && note == null) {
-            item { Text("Reading the site…", color = c.inkSoft) }
-        }
-
-        items(site?.ladders.orEmpty()) { school ->
-            SchoolCard(school, ticks[school.key].orEmpty().size, sway, onOpen)
+        items(site?.ladders.orEmpty(), key = { it.key }) { school ->
+            SchoolCard(
+                school,
+                ticks[school.key].orEmpty().size,
+                sway,
+                icons[school.key],
+                onOpen,
+            )
             Spacer(Modifier.height(Gap.s7))
         }
 
-        site?.counts?.let { counts ->
-            item {
+        /* And everything else the site holds, as HANDLES rather
+           than as cards, which is the site's own side column: a
+           tool, a reading hub and the account are one line each.
+           A list of places to go should not be a page of
+           paragraphs, and on a handset that difference is four
+           screens of scrolling. */
+        if (rows.isNotEmpty()) {
+            item("rows-head") {
                 Spacer(Modifier.height(Gap.s7))
-                Plate {
-                    Text("WHAT IS HERE", style = MaterialTheme.typography.labelSmall, color = c.accent)
-                    Spacer(Modifier.height(Gap.s4))
-                    Text(
-                        listOfNotNull(
-                            counts["lessons"]?.let { "$it lessons" },
-                            counts["calculators"]?.let { "$it calculators" },
-                            counts["caseStudies"]?.let { "$it case studies" },
-                        ).joinToString(" · "),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = c.inkSoft,
+                Text(
+                    "AND THE REST OF IT",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.inkSoft,
+                )
+                Spacer(Modifier.height(Gap.s6))
+            }
+            items(rows, key = { (_, item) -> item.key ?: item.label }) { (group, item) ->
+                ReiadTheme(accent = accentOfGroup(group), dark = c.isDark) {
+                    RowCard(
+                        title = item.sub?.takeIf { it.isNotBlank() } ?: item.label,
+                        icon = item.icon,
+                        onOpen = { onGo(item) },
                     )
                 }
+                Spacer(Modifier.height(Gap.s5))
             }
         }
     }
@@ -1440,10 +1717,11 @@ private fun Home(
     the two being separate components is what makes that a fact
     rather than an intention. */
 @Composable
-private fun SchoolCard(
+fun SchoolCard(
     school: LadderSchool,
     done: Int,
     sway: Sway,
+    icon: String?,
     onOpen: (LadderSchool) -> Unit,
 ) {
     ReiadTheme(accent = accentOf(school), dark = LocalReiad.current.isDark) {
@@ -1454,6 +1732,10 @@ private fun SchoolCard(
             go = "পড়া শুরু",
             done = done > 0,
             sway = sway,
+            /* The disc, from the icon the nav table already
+               names for this school. Looked up rather than
+               chosen here, so a sixth school arrives drawn. */
+            art = icon?.let { { Icon(it, size = 18.dp) } },
             onOpen = { onOpen(school) },
         )
     }
@@ -1462,7 +1744,7 @@ private fun SchoolCard(
 /* ---------- a ladder ---------- */
 
 @Composable
-private fun Ladder(
+fun Ladder(
     school: LadderSchool,
     stages: List<Stage>,
     ticks: Set<String>,
@@ -1475,7 +1757,7 @@ private fun Ladder(
     val c = LocalReiad.current
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = Gap.s11, bottom = BAR_CLEARANCE),
+        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = BAR_CLEARANCE),
     ) {
         item {
             Text(
@@ -1528,7 +1810,7 @@ private fun Ladder(
 }
 
 @Composable
-private fun StageCard(
+fun StageCard(
     stage: Stage,
     stages: List<Stage>,
     ticks: Set<String>,
@@ -1664,7 +1946,7 @@ private fun StageCard(
 /* ---------- a lesson ---------- */
 
 @Composable
-private fun Reading(
+fun Reading(
     school: LadderSchool,
     stage: Stage,
     lesson: Lesson,
@@ -1683,25 +1965,29 @@ private fun Reading(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Gap.s8)
-            .padding(top = Gap.s11, bottom = BAR_CLEARANCE)
+            .padding(top = TOP_CLEARANCE, bottom = BAR_CLEARANCE)
     ) {
-        Text(
-            "← ${stage.bn}",
-            style = MaterialTheme.typography.labelLarge,
-            color = c.accent,
-            modifier = Modifier.clickable { onBack() },
+        Crumb(stage.bn, onBack)
+        Spacer(Modifier.height(Gap.s7))
+
+        /* The lesson's own head, at the size the site sets a
+           lesson's head. It was `headlineMedium` with a grey line
+           under it, which is a card's title rather than a page's:
+           a reader who has opened a lesson has arrived somewhere
+           and the top of the page should say so. */
+        PageHead(
+            title = lesson.bn,
+            eyebrow = listOfNotNull(
+                stage.en ?: stage.bn,
+                lesson.minutes.takeIf { it > 0 }?.let { "$it min" },
+                lesson.risk,
+            ).joinToString(" · "),
+            lede = lesson.blurb,
         )
         Spacer(Modifier.height(Gap.s7))
 
-        Text(lesson.bn, style = MaterialTheme.typography.headlineMedium, color = c.ink)
-        lesson.blurb?.let {
-            Spacer(Modifier.height(Gap.s4))
-            Text(it, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
-        }
-        Spacer(Modifier.height(Gap.s9))
-
         when {
-            page == null -> Text("Opening…", color = c.inkSoft)
+            page == null -> Skeleton(lines = 5, label = "Opening the lesson")
             page.body.isBlank() -> Text(
                 "This one is promised and not written yet.",
                 style = MaterialTheme.typography.bodyLarge,

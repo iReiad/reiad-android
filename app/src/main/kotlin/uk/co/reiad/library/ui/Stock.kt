@@ -113,16 +113,41 @@ data class StockState(
     val open: Set<String> = OPEN_BY_DEFAULT,
 )
 
-/** Nothing at all, while the words are still on their way.
-
-    Deliberately blank rather than a page of key names that turns
-    into sentences a second later, and deliberately not a spinner:
-    this is cached after the first fetch, so on almost every open
-    it is one frame. A spinner that flashes for one frame is worse
-    than nothing, because it says something went slowly. */
+/**
+ * A calculator with no words yet: the shape of one, or what
+ * stopped them arriving.
+ *
+ * The phrases come down from `/api/tools` because they are DATA
+ * and an edited Bangla sentence must reach a phone with no app
+ * release. That is right, and it means every calculator on this
+ * app depends on a fetch, which means every one of them needs all
+ * three of `Waiting.kt`'s states rather than two.
+ *
+ * It had two. The null branch drew an empty Box, on the argument
+ * that a spinner flashing for one frame is worse than nothing.
+ * The argument holds for a SLOW fetch and says nothing about a
+ * FAILED one, and when `/api/tools` was not yet live the stock
+ * check and all five calculators opened on a black page.
+ */
 @Composable
-fun Waiting(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(Gap.s11))
+fun ToolsWaiting(
+    problem: String?,
+    modifier: Modifier = Modifier,
+    onRetry: () -> Unit,
+) {
+    Box(modifier.fillMaxWidth().padding(horizontal = Gap.s8, vertical = Gap.s10)) {
+        if (problem == null) {
+            Skeleton(lines = 4, label = "Reading the calculators")
+        } else {
+            Problem(
+                title = "The calculators could not load",
+                detail = "$problem\n\nThe arithmetic is in this app; " +
+                    "the words it says are the site's, so it needs one " +
+                    "answer from reiad.co.uk before it can show you any of it.",
+                onRetry = onRetry,
+            )
+        }
+    }
 }
 
 @Composable
@@ -150,22 +175,11 @@ fun StockScreen(
     ) {
         item {
             Column(Modifier.padding(top = Gap.s6)) {
-                Text(
-                    t(Keys.EYEBROW),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = c.accent,
-                )
-                Text(
-                    t(Keys.TITLE),
-                    style = headingStyle(t(Keys.TITLE)),
-                    color = c.ink,
+                PageHead(
+                    title = t(Keys.TITLE),
+                    eyebrow = t(Keys.EYEBROW),
+                    lede = t(Keys.LEDE),
                     modifier = Modifier.semantics { heading() },
-                )
-                Spacer(Modifier.height(Gap.s4))
-                Text(
-                    t(Keys.LEDE),
-                    style = bodyStyle(t(Keys.LEDE)),
-                    color = c.inkSoft,
                 )
 
                 /* The language, which is the reader's and not

@@ -51,6 +51,19 @@ jobs:
       - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
 
+      # The app's own tests as well as the build. `NavReachTest`
+      # is the one that matters most here: it walks the menu in a
+      # real manifest and fails on a row that goes nowhere, which
+      # is what shipped when the drawer's handler read schools and
+      # ignored the account, both tool screens and every hub.
+      #
+      # The Paparazzi renders run under this too and assert
+      # nothing: they exist so a person can LOOK at a screen.
+      # `verifyPaparazzi` is deliberately not here, because a
+      # design that cannot be changed without a hundred image
+      # diffs is a design nobody changes.
+      - run: ./gradlew :app:testDebugUnitTest --no-daemon
+
       - run: ./gradlew :app:assembleDebug --no-daemon
 
       # The APK itself, off every build. A commit somebody can

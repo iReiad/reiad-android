@@ -461,4 +461,29 @@ data class Cached<T>(
     val value: T?,
     val stale: Boolean,
     val failed: Throwable? = null,
-)
+) {
+    /** What went wrong, in a sentence a reader can act on.
+
+        Null when nothing went wrong OR when a saved copy
+        answered, because a reader looking at their own ladder
+        does not need to be told the network was busy. It is a
+        problem only when there is nothing to show. */
+    val problem: String?
+        get() {
+            if (value != null) return null
+            val why = failed ?: return null
+            return when (why) {
+                is java.net.UnknownHostException ->
+                    "No connection, and this phone has not saved a copy yet."
+                is java.net.SocketTimeoutException,
+                is io.ktor.client.plugins.HttpRequestTimeoutException ->
+                    "The site took too long to answer."
+                is io.ktor.client.plugins.ClientRequestException ->
+                    "The site answered ${why.response.status.value}. " +
+                        "That address may not be live yet."
+                is io.ktor.client.plugins.ServerResponseException ->
+                    "The site answered ${why.response.status.value}."
+                else -> why.message ?: why::class.simpleName ?: "Something went wrong."
+            }
+        }
+}

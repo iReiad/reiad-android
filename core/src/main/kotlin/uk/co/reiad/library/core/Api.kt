@@ -57,6 +57,16 @@ data class SiteManifest(
     val skills: List<Skill> = emptyList(),
     val counts: Map<String, Int> = emptyMap(),
 
+    /** What the front page SAYS: the eyebrow, one headline and
+        lede per audience, and the strip of counts.
+
+        Data rather than code, which is why it is here at all: the
+        app's front door was a title and a grey line for eleven
+        blocks because the site's was written into a React page.
+        Editing the headline on the site now changes the app on
+        its next fetch. */
+    val door: Door = Door(),
+
     /** The palette's index: every page of the site that is not
         private, with the title, the address and one line saying
         what it is. This is what the Ctrl+K palette searches on
@@ -147,6 +157,39 @@ data class LadderSchool(
     val href: String = "",
     val accent: String = "",
     val blurb: String = "",
+)
+
+/** The front door's words. `DOOR` in `shared/content.ts`. */
+@Serializable
+data class Door(
+    val eyebrow: String = "",
+    /** Keyed by audience id, plus `open` for a reader who has not
+        answered the switch. */
+    val copy: Map<String, DoorCopy> = emptyMap(),
+    val facts: List<DoorFact> = emptyList(),
+)
+
+@Serializable
+data class DoorCopy(
+    val headline: String = "",
+    /** The marked words, which the site guarantees are a
+        substring of `headline`: `check-content.ts` fails
+        otherwise, so nothing here has to cope with a mark that
+        is not in the sentence beyond not finding it. */
+    val mark: String = "",
+    val lede: String = "",
+    val lang: String = "bn",
+)
+
+@Serializable
+data class DoorFact(
+    /** Already in Bangla numerals, from the site's own `bnNum`. */
+    val n: String = "",
+    val label: String = "",
+    val en: String = "",
+    /** The key of `counts` this came from, so a client that wants
+        to redraw it from a fresher count can. */
+    val count: String = "",
 )
 
 @Serializable

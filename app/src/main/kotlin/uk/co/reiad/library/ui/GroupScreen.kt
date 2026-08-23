@@ -66,10 +66,17 @@ fun GroupScreen(
     val context = LocalContext.current
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = Gap.s11, bottom = bottomPadding),
+        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
     ) {
         item {
-            Text(group.label, style = MaterialTheme.typography.displaySmall, color = c.ink)
+            PageHead(
+                /* The group's own two halves as the site writes
+                   them: the Bangla name is the heading and the
+                   English is the eyebrow above it. */
+                title = tabLabel(group.label),
+                eyebrow = group.label.substringAfter("\u00b7", "").trim()
+                    .ifBlank { null },
+            )
             Spacer(Modifier.height(Gap.s9))
         }
 

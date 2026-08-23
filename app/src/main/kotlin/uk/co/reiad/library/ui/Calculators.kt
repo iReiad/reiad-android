@@ -115,21 +115,14 @@ fun CalculatorsScreen(
     ) {
         item {
             Column(Modifier.padding(top = Gap.s6)) {
-                Text(
-                    words.t("calc.eyebrow", lang),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = c.accent,
-                )
                 val name = titles[calc.id]
                     ?.let { (en, bn) -> if (lang == "bn") bn else en }
                     ?: words.t("calc.${calc.id}.short", lang)
-                Text(
-                    name,
-                    style = headingStyle(name),
-                    color = c.ink,
+                PageHead(
+                    title = name,
+                    eyebrow = words.t("calc.eyebrow", lang),
                     modifier = Modifier.semantics { heading() },
                 )
-                Spacer(Modifier.height(Gap.s5))
                 Row(horizontalArrangement = Arrangement.spacedBy(Gap.s3)) {
                     for ((id, label) in listOf("en" to "English", "bn" to "বাংলা")) {
                         Box(Modifier.clickable { onLang(id) }) {

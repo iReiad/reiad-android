@@ -46,6 +46,10 @@ private val SHAPES: Map<String, String> = mapOf(
     "compass" to "M12 21a9 9 0 100-18 9 9 0 000 18zM15.5 8.5l-2 5-5 2 2-5z",
     "calculator" to "M6 3h12a1 1 0 011 1v16a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1zM8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M16 15h0",
     "gauge" to "M4 18a8 8 0 1116 0M12 18l4-5",
+    /* The site's own mark, beside its name in the top bar:
+       three bars of a chart, which is what a finance library
+       draws rather than a monogram. */
+    "bars" to "M5 20V11M12 20V4M19 20v-6",
     "pen" to "M4 20l1-4L16 5l3 3L8 19zM14 7l3 3",
     "briefcase" to "M4 8h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1zM9 8V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V8",
     "person" to "M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-3.9 3.6-6 8-6s8 2.1 8 6",
@@ -55,6 +59,7 @@ private val SHAPES: Map<String, String> = mapOf(
     "magnifier" to "M11 18a7 7 0 100-14 7 7 0 000 14zM16 16l5 5",
     "theme" to "M12 3a9 9 0 100 18 9 9 0 000-18zM12 3v18",
     "chevron" to "M9 5l7 7-7 7",
+    "arrow" to "M4 12h15M13.5 6.5L20 12l-6.5 5.5",
     "menu" to "M4 7h16M4 12h16M4 17h16",
     "close" to "M6 6l12 12M18 6L6 18",
     "check" to "M5 13l4 4L19 7",

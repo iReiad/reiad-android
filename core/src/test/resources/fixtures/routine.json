@@ -1,0 +1,1715 @@
+{
+  "today": "2026-03-31",
+  "shape": {
+    "bands": [
+      {
+        "id": "learn",
+        "en": "Learning",
+        "bn": "পড়াশোনা",
+        "colour": "#6E52A8",
+        "order": 1
+      },
+      {
+        "id": "home",
+        "en": "Home",
+        "bn": "ঘর",
+        "colour": "#2F8A64",
+        "order": 2
+      },
+      {
+        "id": "mine",
+        "en": "Just for me",
+        "bn": "শুধু আমার জন্য",
+        "colour": "#A2790B",
+        "order": 3
+      },
+      {
+        "id": "rest",
+        "en": "Rest",
+        "bn": "বিশ্রাম",
+        "colour": "#4C61A8",
+        "order": 4
+      },
+      {
+        "id": "empty",
+        "en": "Nothing here",
+        "bn": "কিছু নেই",
+        "colour": "#B45570",
+        "order": 5
+      }
+    ],
+    "tasks": [
+      {
+        "id": "eng",
+        "band": "learn",
+        "en": "English",
+        "bn": "ইংরেজি",
+        "hours": 1,
+        "counts": true,
+        "order": 1
+      },
+      {
+        "id": "art",
+        "band": "learn",
+        "en": "Art",
+        "bn": "আর্ট",
+        "hours": 1,
+        "counts": true,
+        "order": 2
+      },
+      {
+        "id": "mth",
+        "band": "learn",
+        "en": "Maths",
+        "bn": "গণিত",
+        "hours": 1,
+        "counts": true,
+        "order": 3
+      },
+      {
+        "id": "qur",
+        "band": "learn",
+        "en": "Quran",
+        "bn": "কুরআন",
+        "hours": 1,
+        "counts": true,
+        "order": 4
+      },
+      {
+        "id": "brk",
+        "band": "home",
+        "en": "Breakfast",
+        "bn": "নাস্তা",
+        "hours": 1,
+        "counts": true,
+        "order": 5
+      },
+      {
+        "id": "din",
+        "band": "home",
+        "en": "Dinner",
+        "bn": "রাতের রান্না",
+        "hours": 2,
+        "counts": true,
+        "order": 6
+      },
+      {
+        "id": "sho",
+        "band": "home",
+        "en": "Shower",
+        "bn": "গোসল",
+        "hours": 0.5,
+        "counts": true,
+        "order": 7
+      },
+      {
+        "id": "brd",
+        "band": "home",
+        "en": "Feed the birds",
+        "bn": "পাখির খাবার",
+        "hours": 0.25,
+        "counts": true,
+        "order": 8
+      },
+      {
+        "id": "pln",
+        "band": "home",
+        "en": "Water the plants",
+        "bn": "গাছে পানি",
+        "hours": 0.25,
+        "counts": true,
+        "order": 9
+      },
+      {
+        "id": "tv",
+        "band": "mine",
+        "en": "TV",
+        "bn": "টিভি",
+        "hours": 1.5,
+        "counts": false,
+        "order": 10
+      },
+      {
+        "id": "bok",
+        "band": "mine",
+        "en": "Story book",
+        "bn": "গল্পের বই",
+        "hours": 1,
+        "counts": false,
+        "order": 11
+      },
+      {
+        "id": "own",
+        "band": "mine",
+        "en": "Something I chose",
+        "bn": "আমার পছন্দ",
+        "counts": false,
+        "order": 12
+      },
+      {
+        "id": "slp",
+        "band": "rest",
+        "en": "Sleep",
+        "bn": "ঘুম",
+        "hours": 7,
+        "counts": true,
+        "order": 13
+      },
+      {
+        "id": "run",
+        "band": "home",
+        "en": "Go for a run",
+        "bn": "দৌড়ানো",
+        "hours": 1,
+        "counts": true,
+        "order": 14
+      },
+      {
+        "id": "gone",
+        "band": "learn",
+        "en": "Something I stopped",
+        "bn": "যেটা আর করি না",
+        "hours": 1,
+        "counts": true,
+        "order": 99,
+        "archived": true
+      }
+    ]
+  },
+  "entries": [
+    {
+      "entry_date": "2025-03-31",
+      "marks": {
+        "eng": 1,
+        "qur": 1,
+        "sho": 1
+      },
+      "note": "The birds ate from my hand today.",
+      "mood": "light"
+    },
+    {
+      "entry_date": "2025-09-30",
+      "marks": {
+        "eng": 1
+      },
+      "note": "Six months back.",
+      "mood": "steady"
+    },
+    {
+      "entry_date": "2026-02-20",
+      "marks": {
+        "eng": 1,
+        "art": 1,
+        "mth": 1,
+        "qur": 1,
+        "brk": 1,
+        "din": 1,
+        "sho": 1,
+        "slp": 1
+      },
+      "mood": "steady"
+    },
+    {
+      "entry_date": "2026-02-21",
+      "marks": {
+        "eng": 1,
+        "qur": 1,
+        "brk": 1,
+        "sho": 1,
+        "slp": 1
+      },
+      "mood": "light"
+    },
+    {
+      "entry_date": "2026-02-22",
+      "marks": {
+        "eng": 0.5,
+        "qur": 1,
+        "slp": 1
+      },
+      "mood": "full"
+    },
+    {
+      "entry_date": "2026-03-09",
+      "marks": {
+        "eng": 1,
+        "qur": 1,
+        "sho": 1,
+        "slp": 1
+      },
+      "mood": "heavy"
+    },
+    {
+      "entry_date": "2026-03-10",
+      "marks": {
+        "tv": 1,
+        "bok": 1,
+        "own": 1
+      },
+      "chose": "Sat in the sun",
+      "mood": "light"
+    },
+    {
+      "entry_date": "2026-03-11",
+      "marks": {
+        "gone": 1,
+        "vanished": 1
+      }
+    },
+    {
+      "entry_date": "2026-03-12",
+      "marks": {},
+      "note": "Too tired to do anything.",
+      "mood": "heavy"
+    },
+    {
+      "entry_date": "2026-03-13",
+      "marks": {
+        "eng": 1.5,
+        "qur": 0.5,
+        "slp": 1
+      }
+    },
+    {
+      "entry_date": "2026-03-16",
+      "marks": {
+        "eng": 1,
+        "art": 1,
+        "brk": 1,
+        "slp": 1
+      },
+      "mood": "steady"
+    },
+    {
+      "entry_date": "2026-03-17",
+      "marks": {
+        "eng": 1,
+        "mth": 1,
+        "din": 1,
+        "sho": 1,
+        "slp": 1
+      }
+    },
+    {
+      "entry_date": "2026-03-18",
+      "marks": {
+        "qur": 1,
+        "brd": 1,
+        "pln": 1,
+        "slp": 1
+      },
+      "mood": "light"
+    },
+    {
+      "entry_date": "2026-03-19",
+      "marks": {
+        "eng": 1,
+        "qur": 1,
+        "art": 1,
+        "mth": 1,
+        "brk": 1,
+        "din": 1,
+        "sho": 1,
+        "brd": 1,
+        "pln": 1,
+        "slp": 1,
+        "tv": 1
+      },
+      "note": "Everything, somehow.",
+      "mood": "full"
+    },
+    {
+      "entry_date": "2026-03-20",
+      "marks": {
+        "eng": 1,
+        "slp": 1
+      }
+    },
+    {
+      "entry_date": "2026-03-21",
+      "marks": {
+        "qur": 1,
+        "brk": 1,
+        "slp": 1
+      },
+      "mood": "steady"
+    },
+    {
+      "entry_date": "2026-03-27",
+      "marks": {
+        "eng": 1,
+        "qur": 1,
+        "slp": 1
+      }
+    },
+    {
+      "entry_date": "2026-03-28",
+      "marks": {
+        "eng": 1,
+        "brk": 1,
+        "slp": 1
+      }
+    },
+    {
+      "entry_date": "2026-03-29",
+      "marks": {
+        "eng": 1,
+        "qur": 1,
+        "sho": 1,
+        "slp": 1
+      },
+      "mood": "light"
+    },
+    {
+      "entry_date": "2026-03-30",
+      "marks": {
+        "eng": 1,
+        "qur": 1,
+        "slp": 1
+      },
+      "note": "Steady week.",
+      "mood": "steady"
+    }
+  ],
+  "days": [
+    {
+      "name": "full",
+      "why": "a day with almost everything on it",
+      "date": "2026-03-19",
+      "out": {
+        "done": 0.9090909090909091,
+        "hours": {
+          "done": 15,
+          "planned": 16
+        }
+      }
+    },
+    {
+      "name": "half",
+      "why": "a half mark counts as a half rather than as a lesser nothing",
+      "date": "2026-02-22",
+      "out": {
+        "done": 0.22727272727272727,
+        "hours": {
+          "done": 8.5,
+          "planned": 16
+        }
+      }
+    },
+    {
+      "name": "over-one",
+      "why": "a mark above one is CAPPED at one rather than counted, or a single task could carry a whole day",
+      "date": "2026-03-13",
+      "out": {
+        "done": 0.22727272727272727,
+        "hours": {
+          "done": 8.5,
+          "planned": 16
+        }
+      }
+    },
+    {
+      "name": "leisure-only",
+      "why": "not an empty day, and nothing this arithmetic can describe: it must answer null and never nought",
+      "date": "2026-03-10",
+      "out": {
+        "done": null,
+        "hours": {
+          "done": 0,
+          "planned": 16
+        }
+      }
+    },
+    {
+      "name": "archived-only",
+      "why": "a mark on an archived task renders on the day it was made and moves no figure, so this day is null too",
+      "date": "2026-03-11",
+      "out": {
+        "done": null,
+        "hours": {
+          "done": 0,
+          "planned": 16
+        }
+      }
+    },
+    {
+      "name": "note-only",
+      "why": "a row carrying words and no marks",
+      "date": "2026-03-12",
+      "out": {
+        "done": null,
+        "hours": {
+          "done": 0,
+          "planned": 16
+        }
+      }
+    },
+    {
+      "name": "absent",
+      "why": "a date with no row at all, which is the ordinary empty day",
+      "date": "2026-03-25",
+      "out": {
+        "done": null,
+        "hours": {
+          "done": 0,
+          "planned": 16
+        }
+      }
+    },
+    {
+      "name": "none",
+      "why": "no entry passed in at all",
+      "date": null,
+      "out": {
+        "done": null,
+        "hours": {
+          "done": 0,
+          "planned": 16
+        }
+      }
+    }
+  ],
+  "shapeHours": {
+    "planned": 18.5,
+    "free": 5.5
+  },
+  "heat": [
+    {
+      "date": "2026-01-07",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-08",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-09",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-10",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-11",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-12",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-13",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-14",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-15",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-16",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-17",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-18",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-19",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-20",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-21",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-22",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-23",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-24",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-25",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-26",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-27",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-28",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-29",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-30",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-01-31",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-01",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-02",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-03",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-04",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-05",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-06",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-07",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-08",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-09",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-10",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-11",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-12",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-13",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-14",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-15",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-16",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-17",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-18",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-19",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-20",
+      "fraction": 0.7272727272727273,
+      "mood": "steady"
+    },
+    {
+      "date": "2026-02-21",
+      "fraction": 0.45454545454545453,
+      "mood": "light"
+    },
+    {
+      "date": "2026-02-22",
+      "fraction": 0.22727272727272727,
+      "mood": "full"
+    },
+    {
+      "date": "2026-02-23",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-24",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-25",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-26",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-27",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-02-28",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-01",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-02",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-03",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-04",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-05",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-06",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-07",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-08",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-09",
+      "fraction": 0.36363636363636365,
+      "mood": "heavy"
+    },
+    {
+      "date": "2026-03-10",
+      "fraction": null,
+      "mood": "light"
+    },
+    {
+      "date": "2026-03-11",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-12",
+      "fraction": null,
+      "mood": "heavy"
+    },
+    {
+      "date": "2026-03-13",
+      "fraction": 0.22727272727272727,
+      "mood": null
+    },
+    {
+      "date": "2026-03-14",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-15",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-16",
+      "fraction": 0.36363636363636365,
+      "mood": "steady"
+    },
+    {
+      "date": "2026-03-17",
+      "fraction": 0.45454545454545453,
+      "mood": null
+    },
+    {
+      "date": "2026-03-18",
+      "fraction": 0.36363636363636365,
+      "mood": "light"
+    },
+    {
+      "date": "2026-03-19",
+      "fraction": 0.9090909090909091,
+      "mood": "full"
+    },
+    {
+      "date": "2026-03-20",
+      "fraction": 0.18181818181818182,
+      "mood": null
+    },
+    {
+      "date": "2026-03-21",
+      "fraction": 0.2727272727272727,
+      "mood": "steady"
+    },
+    {
+      "date": "2026-03-22",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-23",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-24",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-25",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-26",
+      "fraction": null,
+      "mood": null
+    },
+    {
+      "date": "2026-03-27",
+      "fraction": 0.2727272727272727,
+      "mood": null
+    },
+    {
+      "date": "2026-03-28",
+      "fraction": 0.2727272727272727,
+      "mood": null
+    },
+    {
+      "date": "2026-03-29",
+      "fraction": 0.36363636363636365,
+      "mood": "light"
+    },
+    {
+      "date": "2026-03-30",
+      "fraction": 0.2727272727272727,
+      "mood": "steady"
+    },
+    {
+      "date": "2026-03-31",
+      "fraction": null,
+      "mood": null
+    }
+  ],
+  "series": [
+    {
+      "date": "2026-03-02",
+      "value": null
+    },
+    {
+      "date": "2026-03-03",
+      "value": null
+    },
+    {
+      "date": "2026-03-04",
+      "value": null
+    },
+    {
+      "date": "2026-03-05",
+      "value": null
+    },
+    {
+      "date": "2026-03-06",
+      "value": null
+    },
+    {
+      "date": "2026-03-07",
+      "value": null
+    },
+    {
+      "date": "2026-03-08",
+      "value": null
+    },
+    {
+      "date": "2026-03-09",
+      "value": 0.36363636363636365
+    },
+    {
+      "date": "2026-03-10",
+      "value": null
+    },
+    {
+      "date": "2026-03-11",
+      "value": null
+    },
+    {
+      "date": "2026-03-12",
+      "value": null
+    },
+    {
+      "date": "2026-03-13",
+      "value": 0.22727272727272727
+    },
+    {
+      "date": "2026-03-14",
+      "value": null
+    },
+    {
+      "date": "2026-03-15",
+      "value": null
+    },
+    {
+      "date": "2026-03-16",
+      "value": 0.36363636363636365
+    },
+    {
+      "date": "2026-03-17",
+      "value": 0.45454545454545453
+    },
+    {
+      "date": "2026-03-18",
+      "value": 0.36363636363636365
+    },
+    {
+      "date": "2026-03-19",
+      "value": 0.9090909090909091
+    },
+    {
+      "date": "2026-03-20",
+      "value": 0.18181818181818182
+    },
+    {
+      "date": "2026-03-21",
+      "value": 0.2727272727272727
+    },
+    {
+      "date": "2026-03-22",
+      "value": null
+    },
+    {
+      "date": "2026-03-23",
+      "value": null
+    },
+    {
+      "date": "2026-03-24",
+      "value": null
+    },
+    {
+      "date": "2026-03-25",
+      "value": null
+    },
+    {
+      "date": "2026-03-26",
+      "value": null
+    },
+    {
+      "date": "2026-03-27",
+      "value": 0.2727272727272727
+    },
+    {
+      "date": "2026-03-28",
+      "value": 0.2727272727272727
+    },
+    {
+      "date": "2026-03-29",
+      "value": 0.36363636363636365
+    },
+    {
+      "date": "2026-03-30",
+      "value": 0.2727272727272727
+    },
+    {
+      "date": "2026-03-31",
+      "value": null
+    }
+  ],
+  "moodRibbon": [
+    {
+      "date": "2026-03-02",
+      "mood": null
+    },
+    {
+      "date": "2026-03-03",
+      "mood": null
+    },
+    {
+      "date": "2026-03-04",
+      "mood": null
+    },
+    {
+      "date": "2026-03-05",
+      "mood": null
+    },
+    {
+      "date": "2026-03-06",
+      "mood": null
+    },
+    {
+      "date": "2026-03-07",
+      "mood": null
+    },
+    {
+      "date": "2026-03-08",
+      "mood": null
+    },
+    {
+      "date": "2026-03-09",
+      "mood": "heavy"
+    },
+    {
+      "date": "2026-03-10",
+      "mood": "light"
+    },
+    {
+      "date": "2026-03-11",
+      "mood": null
+    },
+    {
+      "date": "2026-03-12",
+      "mood": "heavy"
+    },
+    {
+      "date": "2026-03-13",
+      "mood": null
+    },
+    {
+      "date": "2026-03-14",
+      "mood": null
+    },
+    {
+      "date": "2026-03-15",
+      "mood": null
+    },
+    {
+      "date": "2026-03-16",
+      "mood": "steady"
+    },
+    {
+      "date": "2026-03-17",
+      "mood": null
+    },
+    {
+      "date": "2026-03-18",
+      "mood": "light"
+    },
+    {
+      "date": "2026-03-19",
+      "mood": "full"
+    },
+    {
+      "date": "2026-03-20",
+      "mood": null
+    },
+    {
+      "date": "2026-03-21",
+      "mood": "steady"
+    },
+    {
+      "date": "2026-03-22",
+      "mood": null
+    },
+    {
+      "date": "2026-03-23",
+      "mood": null
+    },
+    {
+      "date": "2026-03-24",
+      "mood": null
+    },
+    {
+      "date": "2026-03-25",
+      "mood": null
+    },
+    {
+      "date": "2026-03-26",
+      "mood": null
+    },
+    {
+      "date": "2026-03-27",
+      "mood": null
+    },
+    {
+      "date": "2026-03-28",
+      "mood": null
+    },
+    {
+      "date": "2026-03-29",
+      "mood": "light"
+    },
+    {
+      "date": "2026-03-30",
+      "mood": "steady"
+    },
+    {
+      "date": "2026-03-31",
+      "mood": null
+    }
+  ],
+  "consistency": [
+    {
+      "id": "slp",
+      "marked": 12,
+      "of": 28
+    },
+    {
+      "id": "eng",
+      "marked": 10,
+      "of": 28
+    },
+    {
+      "id": "qur",
+      "marked": 8,
+      "of": 28
+    },
+    {
+      "id": "brk",
+      "marked": 4,
+      "of": 28
+    },
+    {
+      "id": "sho",
+      "marked": 4,
+      "of": 28
+    },
+    {
+      "id": "art",
+      "marked": 2,
+      "of": 28
+    },
+    {
+      "id": "mth",
+      "marked": 2,
+      "of": 28
+    },
+    {
+      "id": "din",
+      "marked": 2,
+      "of": 28
+    },
+    {
+      "id": "brd",
+      "marked": 2,
+      "of": 28
+    },
+    {
+      "id": "pln",
+      "marked": 2,
+      "of": 28
+    },
+    {
+      "id": "tv",
+      "marked": 2,
+      "of": 28
+    },
+    {
+      "id": "bok",
+      "marked": 1,
+      "of": 28
+    },
+    {
+      "id": "own",
+      "marked": 1,
+      "of": 28
+    },
+    {
+      "id": "run",
+      "marked": 0,
+      "of": 28
+    }
+  ],
+  "neverMarked": [
+    "run"
+  ],
+  "changed": {
+    "eng": {
+      "now": 6,
+      "before": 4,
+      "of": 14
+    },
+    "tv": {
+      "now": 1,
+      "before": 1,
+      "of": 14
+    }
+  },
+  "balance": [
+    {
+      "band": "learn",
+      "share": 0.46206896551724136
+    },
+    {
+      "band": "home",
+      "share": 0.27586206896551724
+    },
+    {
+      "band": "mine",
+      "share": 0.05517241379310345
+    },
+    {
+      "band": "rest",
+      "share": 0.20689655172413793
+    }
+  ],
+  "momentum": {
+    "now": 0.3598484848484848,
+    "before": 0.4696969696969697,
+    "days": 28,
+    "marked": 12
+  },
+  "weekdays": [
+    {
+      "day": 0,
+      "en": "Sun",
+      "bn": "রবিবার",
+      "rate": 0.29545454545454547,
+      "marked": 2
+    },
+    {
+      "day": 1,
+      "en": "Mon",
+      "bn": "সোমবার",
+      "rate": 0.3333333333333333,
+      "marked": 3
+    },
+    {
+      "day": 2,
+      "en": "Tue",
+      "bn": "মঙ্গলবার",
+      "rate": 0.45454545454545453,
+      "marked": 1
+    },
+    {
+      "day": 3,
+      "en": "Wed",
+      "bn": "বুধবার",
+      "rate": 0.36363636363636365,
+      "marked": 1
+    },
+    {
+      "day": 4,
+      "en": "Thu",
+      "bn": "বৃহস্পতিবার",
+      "rate": 0.9090909090909091,
+      "marked": 1
+    },
+    {
+      "day": 5,
+      "en": "Fri",
+      "bn": "শুক্রবার",
+      "rate": 0.3522727272727273,
+      "marked": 4
+    },
+    {
+      "day": 6,
+      "en": "Sat",
+      "bn": "শনিবার",
+      "rate": 0.3333333333333333,
+      "marked": 3
+    }
+  ],
+  "bandRates": [
+    {
+      "id": "learn",
+      "bn": "পড়াশোনা",
+      "en": "Learning",
+      "rate": 0.48333333333333334,
+      "marked": 15,
+      "tasks": 4
+    },
+    {
+      "id": "home",
+      "bn": "ঘর",
+      "en": "Home",
+      "rate": 0.3166666666666666,
+      "marked": 10,
+      "tasks": 6
+    },
+    {
+      "id": "mine",
+      "bn": "শুধু আমার জন্য",
+      "en": "Just for me",
+      "rate": 0.3333333333333333,
+      "marked": 1,
+      "tasks": 3
+    },
+    {
+      "id": "rest",
+      "bn": "বিশ্রাম",
+      "en": "Rest",
+      "rate": 1,
+      "marked": 15,
+      "tasks": 1
+    }
+  ],
+  "runs": {
+    "now": 4,
+    "best": 6
+  },
+  "written": [
+    "2026-03-30",
+    "2026-03-19",
+    "2026-03-12",
+    "2025-09-30",
+    "2025-03-31"
+  ],
+  "echo": {
+    "entry": {
+      "entry_date": "2025-03-31",
+      "marks": {
+        "eng": 1,
+        "qur": 1,
+        "sho": 1
+      },
+      "note": "The birds ate from my hand today.",
+      "mood": "light"
+    },
+    "bn": "এক বছর আগে আজ",
+    "en": "A year ago today"
+  },
+  "everMarked": {
+    "eng": 15,
+    "tv": 2
+  },
+  "flock": [
+    {
+      "times": 0,
+      "birds": 0
+    },
+    {
+      "times": 1,
+      "birds": 1
+    },
+    {
+      "times": 2,
+      "birds": 1
+    },
+    {
+      "times": 3,
+      "birds": 2
+    },
+    {
+      "times": 9,
+      "birds": 2
+    },
+    {
+      "times": 10,
+      "birds": 3
+    },
+    {
+      "times": 24,
+      "birds": 3
+    },
+    {
+      "times": 25,
+      "birds": 4
+    },
+    {
+      "times": 49,
+      "birds": 4
+    },
+    {
+      "times": 50,
+      "birds": 5
+    },
+    {
+      "times": 99,
+      "birds": 5
+    },
+    {
+      "times": 100,
+      "birds": 6
+    },
+    {
+      "times": 199,
+      "birds": 6
+    },
+    {
+      "times": 200,
+      "birds": 7
+    },
+    {
+      "times": 500,
+      "birds": 7
+    }
+  ],
+  "garden": [
+    {
+      "times": 0,
+      "plants": []
+    },
+    {
+      "times": 1,
+      "plants": [
+        {
+          "bn": "তুলসী",
+          "en": "Tulsi"
+        }
+      ]
+    },
+    {
+      "times": 4,
+      "plants": [
+        {
+          "bn": "তুলসী",
+          "en": "Tulsi"
+        }
+      ]
+    },
+    {
+      "times": 5,
+      "plants": [
+        {
+          "bn": "তুলসী",
+          "en": "Tulsi"
+        },
+        {
+          "bn": "জবা",
+          "en": "Hibiscus"
+        }
+      ]
+    },
+    {
+      "times": 19,
+      "plants": [
+        {
+          "bn": "তুলসী",
+          "en": "Tulsi"
+        },
+        {
+          "bn": "জবা",
+          "en": "Hibiscus"
+        }
+      ]
+    },
+    {
+      "times": 20,
+      "plants": [
+        {
+          "bn": "তুলসী",
+          "en": "Tulsi"
+        },
+        {
+          "bn": "জবা",
+          "en": "Hibiscus"
+        },
+        {
+          "bn": "বেলি",
+          "en": "Beli"
+        }
+      ]
+    },
+    {
+      "times": 59,
+      "plants": [
+        {
+          "bn": "তুলসী",
+          "en": "Tulsi"
+        },
+        {
+          "bn": "জবা",
+          "en": "Hibiscus"
+        },
+        {
+          "bn": "বেলি",
+          "en": "Beli"
+        }
+      ]
+    },
+    {
+      "times": 60,
+      "plants": [
+        {
+          "bn": "তুলসী",
+          "en": "Tulsi"
+        },
+        {
+          "bn": "জবা",
+          "en": "Hibiscus"
+        },
+        {
+          "bn": "বেলি",
+          "en": "Beli"
+        },
+        {
+          "bn": "কামিনী",
+          "en": "Kamini"
+        }
+      ]
+    },
+    {
+      "times": 149,
+      "plants": [
+        {
+          "bn": "তুলসী",
+          "en": "Tulsi"
+        },
+        {
+          "bn": "জবা",
+          "en": "Hibiscus"
+        },
+        {
+          "bn": "বেলি",
+          "en": "Beli"
+        },
+        {
+          "bn": "কামিনী",
+          "en": "Kamini"
+        }
+      ]
+    },
+    {
+      "times": 150,
+      "plants": [
+        {
+          "bn": "তুলসী",
+          "en": "Tulsi"
+        },
+        {
+          "bn": "জবা",
+          "en": "Hibiscus"
+        },
+        {
+          "bn": "বেলি",
+          "en": "Beli"
+        },
+        {
+          "bn": "কামিনী",
+          "en": "Kamini"
+        },
+        {
+          "bn": "শিউলি",
+          "en": "Shiuli"
+        }
+      ]
+    },
+    {
+      "times": 400,
+      "plants": [
+        {
+          "bn": "তুলসী",
+          "en": "Tulsi"
+        },
+        {
+          "bn": "জবা",
+          "en": "Hibiscus"
+        },
+        {
+          "bn": "বেলি",
+          "en": "Beli"
+        },
+        {
+          "bn": "কামিনী",
+          "en": "Kamini"
+        },
+        {
+          "bn": "শিউলি",
+          "en": "Shiuli"
+        }
+      ]
+    }
+  ],
+  "seasons": [
+    {
+      "date": "2026-01-01",
+      "season": "sheet"
+    },
+    {
+      "date": "2026-02-14",
+      "season": "sheet"
+    },
+    {
+      "date": "2026-02-15",
+      "season": "bosonto"
+    },
+    {
+      "date": "2026-04-14",
+      "season": "bosonto"
+    },
+    {
+      "date": "2026-04-15",
+      "season": "grishmo"
+    },
+    {
+      "date": "2026-06-14",
+      "season": "grishmo"
+    },
+    {
+      "date": "2026-06-15",
+      "season": "barsha"
+    },
+    {
+      "date": "2026-08-14",
+      "season": "barsha"
+    },
+    {
+      "date": "2026-08-15",
+      "season": "sharat"
+    },
+    {
+      "date": "2026-10-14",
+      "season": "sharat"
+    },
+    {
+      "date": "2026-10-15",
+      "season": "hemanta"
+    },
+    {
+      "date": "2026-12-14",
+      "season": "hemanta"
+    },
+    {
+      "date": "2026-12-15",
+      "season": "sheet"
+    },
+    {
+      "date": "2026-12-31",
+      "season": "sheet"
+    }
+  ],
+  "greeting": [
+    {
+      "hour": 0,
+      "bn": "শুভ রাত্রি",
+      "en": "Good night"
+    },
+    {
+      "hour": 4,
+      "bn": "শুভ রাত্রি",
+      "en": "Good night"
+    },
+    {
+      "hour": 5,
+      "bn": "সুপ্রভাত",
+      "en": "Good morning"
+    },
+    {
+      "hour": 11,
+      "bn": "সুপ্রভাত",
+      "en": "Good morning"
+    },
+    {
+      "hour": 12,
+      "bn": "শুভ দুপুর",
+      "en": "Good afternoon"
+    },
+    {
+      "hour": 15,
+      "bn": "শুভ দুপুর",
+      "en": "Good afternoon"
+    },
+    {
+      "hour": 16,
+      "bn": "শুভ সন্ধ্যা",
+      "en": "Good evening"
+    },
+    {
+      "hour": 19,
+      "bn": "শুভ সন্ধ্যা",
+      "en": "Good evening"
+    },
+    {
+      "hour": 20,
+      "bn": "শুভ রাত্রি",
+      "en": "Good night"
+    },
+    {
+      "hour": 23,
+      "bn": "শুভ রাত্রি",
+      "en": "Good night"
+    }
+  ]
+}
