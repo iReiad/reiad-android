@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -93,6 +94,7 @@ fun Card(
     val glow = lit ?: rememberGlow()
     Column(
         modifier
+            .pressing(glow)
             .clip(RoundedCornerShape(corner))
             .material(Kind.CARD, c, corner, ground, lit = { glow.lit })
             .follows(glow)
@@ -113,6 +115,7 @@ fun Control(
     val glow = rememberGlow()
     Row(
         modifier
+            .pressing(glow)
             .height(Gap.tap)
             .clip(RoundedCornerShape(corner))
             .material(Kind.CONTROL, c, corner, ground, lit = { glow.lit })
@@ -147,6 +150,7 @@ fun PillButton(
 ) {
     val c = LocalReiad.current
     val ink = if (filled) c.paper else c.accent
+    val touch = rememberTouch()
     Control(
         modifier
             /* A MINIMUM WIDTH, not only a height.
@@ -166,7 +170,11 @@ fun PillButton(
                 if (filled) Modifier
                 else Modifier.border(1.dp, c.hairline, RoundedCornerShape(Corner.pill)),
             )
-            .clickable(role = Role.Button, onClick = onClick)
+            /* A button that acts should also be FELT to act. */
+            .clickable(role = Role.Button) {
+                touch.tap()
+                onClick()
+            }
             .then(
                 if (description == null) Modifier
                 else Modifier.semantics { contentDescription = description },
@@ -209,11 +217,15 @@ fun Tap(
     label: String? = null,
     content: @Composable () -> Unit,
 ) {
+    val touch = rememberTouch()
     Box(
         modifier
             .sizeIn(minWidth = Gap.tap, minHeight = Gap.tap)
             .clip(RoundedCornerShape(Corner.pill))
-            .clickable(role = role, onClick = onClick)
+            .clickable(role = role) {
+                touch.tap()
+                onClick()
+            }
             .then(
                 if (label == null) Modifier
                 else Modifier.semantics { contentDescription = label },
@@ -238,6 +250,7 @@ fun Rung(
     val glow = rememberGlow()
     Row(
         modifier
+            .pressing(glow)
             .fillMaxWidth()
             /* A rung is usually the target itself: the menu's
                rows, a ladder's lessons. At `Gap.s5` of padding
@@ -303,6 +316,21 @@ fun Groove(
     height: Dp = 6.dp,
 ) {
     val c = LocalReiad.current
+    /* The fill MOVES to a new value rather than being redrawn at
+       it. A channel is a physical thing, and physical things do
+       not teleport: a reading line that glides as the reader
+       scrolls, and a meter that pours when a tick lands, are the
+       same statement the 190ms light makes. Reduced motion snaps,
+       as everywhere. */
+    val filled by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = fraction.coerceIn(0f, 1f),
+        animationSpec = if (rememberReducedMotion()) {
+            androidx.compose.animation.core.snap()
+        } else {
+            androidx.compose.animation.core.tween(uk.co.reiad.library.core.Motion.SLOW_MS)
+        },
+        label = "groove",
+    )
     Box(
         modifier
             .fillMaxWidth()
@@ -312,7 +340,7 @@ fun Groove(
     ) {
         Box(
             Modifier
-                .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                .fillMaxWidth(filled)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(Corner.pill))
                 .background(c.accent),
@@ -394,6 +422,7 @@ fun Glass(
     val glow = rememberGlow()
     Box(
         modifier
+            .then(if (kind.follows) Modifier.pressing(glow) else Modifier)
             .clip(RoundedCornerShape(corner))
             .material(kind, c, corner, ground, lit = { glow.lit })
             .then(if (kind.follows) Modifier.follows(glow) else Modifier),

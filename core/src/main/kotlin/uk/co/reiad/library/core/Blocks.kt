@@ -51,9 +51,12 @@ sealed interface Inline {
     ) : Inline
 }
 
-/** The kind of a bordered aside. Each is a class in the article
-    allowlist and a rule in the site's stylesheet. */
-enum class CalloutKind { AT_A_GLANCE, SIDE_NOTE, NOTE, EXAMPLE }
+/** The kind of a bordered aside. The first four are classes in
+    the article allowlist and rules in the site's stylesheet. The
+    last two are the German school's own: `.merke` is the box
+    worth remembering, drawn against an accent rail, and
+    `.merke.warn` is the same box in the danger colour. */
+enum class CalloutKind { AT_A_GLANCE, SIDE_NOTE, NOTE, EXAMPLE, REMEMBER, CAUTION }
 
 sealed interface Block {
     data class Heading(val level: Int, val inlines: List<Inline>) : Block
@@ -96,12 +99,35 @@ sealed interface Block {
         val scrolls: Boolean,
     ) : Block
 
+    /** `.muster`, the German school's pattern box: who is
+        talking, the pattern itself at display size, and the
+        sentences under it. Its own block rather than a callout,
+        because the SHAPE line is the lesson's whole point and a
+        renderer has to be able to set it larger than the prose
+        around it. */
+    data class Pattern(
+        val label: List<Inline>,
+        val shape: List<Inline>,
+        val body: List<Block>,
+    ) : Block
+
+    /** `.satz-list`: example sentences, each a pair. The lead is
+        the sentence in the language being learnt and the gloss is
+        its Bangla meaning, and keeping them as two fields is what
+        stops them arriving as one word: `<span>` dissolves, so
+        "Ich esse Reis." and "আমি ভাত খাই।" met with nothing
+        between them, which is how the first German build drew
+        every example on the site. */
+    data class Sentences(val rows: List<SentenceRow>) : Block
+
     /** A shape the parser did not know. Its text survives; only
         the tag is lost. */
     data class Unknown(val tag: String, val inlines: List<Inline>) : Block
 }
 
 data class Figure(val value: List<Inline>, val caption: List<Inline>)
+
+data class SentenceRow(val lead: List<Inline>, val gloss: List<Inline>)
 
 /** The parsed body, plus what it did not recognise. */
 data class Body(val blocks: List<Block>, val unknown: List<String> = emptyList())
@@ -129,10 +155,16 @@ object BodyParser {
 
     private val VOID = setOf("br", "hr", "img")
 
+    /** The whitespace CSS collapses: space, tab and both line
+        enders. NOT `\s`, which would take ` ` with it, and an
+        author who wrote `&nbsp;` meant precisely a space that
+        does not collapse. */
+    private val WHITESPACE = Regex("[ \t\n\r]+")
+
     fun parse(html: String): Body {
         val unknown = mutableListOf<String>()
         val nodes = Tokeniser(html, unknown).parse()
-        val blocks = nodes.flatMap { blocksOf(it, unknown) }
+        val blocks = blocksOfChildren(nodes, unknown)
         return Body(blocks, unknown.distinct())
     }
 
@@ -146,14 +178,42 @@ object BodyParser {
         is Node.Element -> elementBlocks(node, unknown)
     }
 
+    /** A wrapper's children, as blocks, with one rule the naive
+        walk gets wrong: a RUN of inline children is one paragraph.
+
+        `<div>খেয়াল করো: <span lang="de">sie</span> = সে</div>` is
+        one sentence, and mapping each child to its own block dealt
+        it out as three paragraphs, each on its own line. So text
+        and inline tags gather until a real block arrives, and the
+        gathered run becomes a single paragraph. */
+    private fun blocksOfChildren(nodes: List<Node>, unknown: MutableList<String>): List<Block> {
+        val out = mutableListOf<Block>()
+        val run = mutableListOf<Node>()
+        fun flush() {
+            if (run.isEmpty()) return
+            val inlines = prose(run.toList(), unknown)
+            if (inlines.isNotEmpty()) out += Block.Paragraph(inlines)
+            run.clear()
+        }
+        for (node in nodes) {
+            val inline = node is Node.Text || (node is Node.Element && node.tag in INLINE)
+            if (inline) run += node else { flush(); out += blocksOf(node, unknown) }
+        }
+        flush()
+        return out
+    }
+
+    /** The tags that live inside a line rather than owning one. */
+    private val INLINE = setOf("strong", "em", "code", "a", "sup", "sub", "br", "inline-plain")
+
     private fun elementBlocks(el: Node.Element, unknown: MutableList<String>): List<Block> {
         val classes = el.classes
         return when (el.tag) {
-            "p" -> listOf(Block.Paragraph(inlinesOf(el.children, unknown)))
-            "h2" -> listOf(Block.Heading(2, inlinesOf(el.children, unknown)))
-            "h3" -> listOf(Block.Heading(3, inlinesOf(el.children, unknown)))
+            "p" -> listOf(Block.Paragraph(prose(el.children, unknown)))
+            "h2" -> listOf(Block.Heading(2, prose(el.children, unknown)))
+            "h3" -> listOf(Block.Heading(3, prose(el.children, unknown)))
             "hr" -> listOf(Block.Rule)
-            "blockquote" -> listOf(Block.Quote(inlinesOf(el.children, unknown)))
+            "blockquote" -> listOf(Block.Quote(prose(el.children, unknown)))
 
             "ul" -> when {
                 "checklist" in classes -> listOf(Block.Checklist(itemsOf(el, unknown)))
@@ -173,11 +233,11 @@ object BodyParser {
             /* A tag that only ever holds inline content, met where
                a block was expected. Its text is the point. */
             "strong", "em", "code", "a", "sup", "sub", "inline-plain" ->
-                listOf(Block.Paragraph(inlinesOf(listOf(el), unknown)))
+                listOf(Block.Paragraph(prose(listOf(el), unknown)))
 
             else -> {
                 unknown += el.tag
-                listOf(Block.Unknown(el.tag, inlinesOf(el.children, unknown)))
+                listOf(Block.Unknown(el.tag, prose(el.children, unknown)))
             }
         }
     }
@@ -203,8 +263,8 @@ object BodyParser {
             return listOf(
                 Block.Callout(
                     kind = kind,
-                    label = label?.let { inlinesOf(it.children, unknown) } ?: emptyList(),
-                    body = rest.flatMap { blocksOf(it, unknown) },
+                    label = label?.let { prose(it.children, unknown) } ?: emptyList(),
+                    body = blocksOfChildren(rest, unknown),
                 )
             )
         }
@@ -212,15 +272,74 @@ object BodyParser {
             val table = el.children.filterIsInstance<Node.Element>().firstOrNull { it.tag == "table" }
             if (table != null) return listOf(tableOf(table, unknown, scrolls = true))
         }
+
+        /* ---- the German school's own furniture ----
+
+           Not in the article allowlist, because a school lesson is
+           sanitised against its school's own list, and the German
+           one has three shapes of its own. Every one of them went
+           down the wrapper path below and every one of them lost
+           the thing that made it legible: the pattern box lost its
+           box, the sentence pairs lost the gap between a sentence
+           and its meaning, and the merke lost its rail. The rules
+           for all three are `body.deutsch` blocks in the site's
+           own stylesheet, and the numbers the renderer draws are
+           read off them. */
+        if ("muster" in classes) {
+            val label = el.children.filterIsInstance<Node.Element>()
+                .firstOrNull { "muster-label" in it.classes }
+            val shape = el.children.filterIsInstance<Node.Element>()
+                .firstOrNull { "muster-shape" in it.classes }
+            val rest = el.children.filter { it !== label && it !== shape }
+            return listOf(
+                Block.Pattern(
+                    label = label?.let { prose(it.children, unknown) } ?: emptyList(),
+                    shape = shape?.let { prose(it.children, unknown) } ?: emptyList(),
+                    body = blocksOfChildren(rest, unknown),
+                )
+            )
+        }
+        if ("satz-list" in classes) {
+            val rows = el.children.filterIsInstance<Node.Element>()
+                .filter { "satz" in it.classes || it.tag == "p" }
+                .map { satz ->
+                    /* The lead is the `<b>`, which the synonym
+                       table has already read as strong. A row
+                       without one keeps all its words as the
+                       lead rather than losing them. */
+                    val lead = satz.children.filterIsInstance<Node.Element>()
+                        .firstOrNull { it.tag == "strong" }
+                    if (lead == null) {
+                        SentenceRow(lead = prose(satz.children, unknown), gloss = emptyList())
+                    } else {
+                        SentenceRow(
+                            lead = prose(lead.children, unknown),
+                            gloss = prose(satz.children.filter { it !== lead }, unknown),
+                        )
+                    }
+                }
+                .filter { it.lead.isNotEmpty() || it.gloss.isNotEmpty() }
+            if (rows.isNotEmpty()) return listOf(Block.Sentences(rows))
+        }
+        if ("merke" in classes) {
+            return listOf(
+                Block.Callout(
+                    kind = if ("warn" in classes) CalloutKind.CAUTION else CalloutKind.REMEMBER,
+                    label = emptyList(),
+                    body = blocksOfChildren(el.children, unknown),
+                )
+            )
+        }
+
         /* A div carrying no class this renderer knows is a
            wrapper, so its children are the blocks. */
-        return el.children.flatMap { blocksOf(it, unknown) }
+        return blocksOfChildren(el.children, unknown)
     }
 
     private fun itemsOf(el: Node.Element, unknown: MutableList<String>): List<List<Inline>> =
         el.children.filterIsInstance<Node.Element>()
             .filter { it.tag == "li" }
-            .map { inlinesOf(it.children, unknown) }
+            .map { prose(it.children, unknown) }
 
     private fun figuresOf(el: Node.Element, unknown: MutableList<String>): List<Figure> =
         el.children.filterIsInstance<Node.Element>()
@@ -230,8 +349,8 @@ object BodyParser {
                     .firstOrNull { it.tag == "strong" }
                 val rest = li.children.filter { it !== strong }
                 Figure(
-                    value = strong?.let { inlinesOf(it.children, unknown) } ?: emptyList(),
-                    caption = inlinesOf(rest, unknown),
+                    value = strong?.let { prose(it.children, unknown) } ?: emptyList(),
+                    caption = prose(rest, unknown),
                 )
             }
 
@@ -242,7 +361,7 @@ object BodyParser {
         return Block.Photo(
             src = img?.attrs?.get("src").orEmpty(),
             alt = img?.attrs?.get("alt").orEmpty(),
-            caption = caption?.let { inlinesOf(it.children, unknown) } ?: emptyList(),
+            caption = caption?.let { prose(it.children, unknown) } ?: emptyList(),
             classes = el.classes,
         )
     }
@@ -267,7 +386,7 @@ object BodyParser {
         val cellsOf = { row: Node.Element ->
             row.children.filterIsInstance<Node.Element>()
                 .filter { it.tag == "th" || it.tag == "td" }
-                .map { inlinesOf(it.children, unknown) }
+                .map { prose(it.children, unknown) }
         }
         val headRow = rows.firstOrNull { row ->
             row.children.filterIsInstance<Node.Element>().any { it.tag == "th" }
@@ -282,36 +401,114 @@ object BodyParser {
 
     /* ---------- node to inline ---------- */
 
-    private fun inlinesOf(nodes: List<Node>, unknown: MutableList<String>): List<Inline> =
-        nodes.flatMap { node ->
+    /** Tags that own a line wherever they appear. When one has to
+        DISSOLVE into a run of inlines — a paragraph inside a table
+        cell, a dt/dd pair inside a wrapper nobody has met — its
+        edges become line breaks, because two block children joined
+        with nothing turn a sentence and its meaning into one word. */
+    private val BLOCKISH = setOf(
+        "p", "div", "li", "dt", "dd", "ul", "ol", "table", "tr",
+        "h2", "h3", "blockquote", "figure", "pre",
+    )
+
+    private fun inlinesOf(nodes: List<Node>, unknown: MutableList<String>): List<Inline> {
+        val out = mutableListOf<Inline>()
+        /* A dissolved block child just closed here: whatever
+           comes next starts its own line. */
+        var wall = false
+
+        fun add(items: List<Inline>, blockish: Boolean) {
+            if (items.isEmpty()) return
+            /* The whitespace between two dissolved paragraphs is
+               the gap the wall already draws, not prose. */
+            if (wall && items.all { it is Inline.Text && it.text.isBlank() }) return
+            if ((wall || blockish) && out.isNotEmpty()) out += Inline.Break
+            out += items
+            wall = blockish
+        }
+
+        for (node in nodes) {
             when (node) {
                 is Node.Text ->
-                    if (node.text.isEmpty()) emptyList() else listOf(Inline.Text(node.text))
+                    if (node.text.isNotEmpty()) add(listOf(Inline.Text(node.text)), blockish = false)
 
                 is Node.Element -> when (node.tag) {
-                    "strong" -> listOf(Inline.Strong(inlinesOf(node.children, unknown)))
-                    "em" -> listOf(Inline.Emphasis(inlinesOf(node.children, unknown)))
-                    "code" -> listOf(Inline.Code(inlinesOf(node.children, unknown)))
-                    "sup" -> listOf(Inline.Sup(inlinesOf(node.children, unknown)))
-                    "sub" -> listOf(Inline.Sub(inlinesOf(node.children, unknown)))
-                    "br" -> listOf(Inline.Break)
-                    "a" -> listOf(
-                        Inline.Link(
-                            href = node.attrs["href"].orEmpty(),
-                            children = inlinesOf(node.children, unknown),
-                            isTerm = "term" in node.classes,
-                        )
+                    "strong" -> add(listOf(Inline.Strong(inlinesOf(node.children, unknown))), false)
+                    "em" -> add(listOf(Inline.Emphasis(inlinesOf(node.children, unknown))), false)
+                    "code" -> add(listOf(Inline.Code(inlinesOf(node.children, unknown))), false)
+                    "sup" -> add(listOf(Inline.Sup(inlinesOf(node.children, unknown))), false)
+                    "sub" -> add(listOf(Inline.Sub(inlinesOf(node.children, unknown))), false)
+                    /* An explicit break serves as any wall still
+                       owed, rather than stacking a second blank
+                       line on top of it. */
+                    "br" -> { out += Inline.Break; wall = false }
+                    "a" -> add(
+                        listOf(
+                            Inline.Link(
+                                href = node.attrs["href"].orEmpty(),
+                                children = inlinesOf(node.children, unknown),
+                                isTerm = "term" in node.classes,
+                            )
+                        ),
+                        false,
                     )
                     /* A wrapper with nothing to say inline: keep
                        the words, drop the box. */
-                    "inline-plain", "p", "div", "li" -> inlinesOf(node.children, unknown)
+                    "inline-plain" -> add(inlinesOf(node.children, unknown), false)
+                    in BLOCKISH -> add(inlinesOf(node.children, unknown), blockish = true)
                     else -> {
                         unknown += node.tag
-                        inlinesOf(node.children, unknown)
+                        add(inlinesOf(node.children, unknown), false)
                     }
                 }
             }
-        }.let(::collapse)
+        }
+        return collapse(out)
+    }
+
+    /** A block's own run: flattened, then trimmed the way a
+        browser lays it out. Only a BLOCK's edges and its line
+        breaks swallow the source's indentation; the spaces inside
+        a strong or a link are prose and stay. */
+    private fun prose(nodes: List<Node>, unknown: MutableList<String>): List<Inline> =
+        tidy(inlinesOf(nodes, unknown))
+
+    /** What a browser does at a block's edges. The whitespace that
+        pretty-printed source leaves at the start and end of a run,
+        and either side of a line break, is layout rather than
+        prose: without this, every line the author wrapped arrived
+        indented by one space, which is what put " জার্মান:" a step
+        to the right of the line above it. */
+    private fun tidy(inlines: List<Inline>): List<Inline> {
+        if (inlines.isEmpty()) return inlines
+        val out = inlines.toMutableList()
+
+        fun trimEnd(at: Int): Int {
+            val item = out.getOrNull(at) as? Inline.Text ?: return 0
+            val trimmed = item.text.trimEnd()
+            if (trimmed.isEmpty()) { out.removeAt(at); return 1 }
+            out[at] = Inline.Text(trimmed)
+            return 0
+        }
+
+        fun trimStart(at: Int) {
+            val item = out.getOrNull(at) as? Inline.Text ?: return
+            val trimmed = item.text.trimStart()
+            if (trimmed.isEmpty()) out.removeAt(at) else out[at] = Inline.Text(trimmed)
+        }
+
+        trimStart(0)
+        trimEnd(out.lastIndex)
+        var i = 0
+        while (i < out.size) {
+            if (out[i] is Inline.Break) {
+                i -= trimEnd(i - 1)
+                trimStart(i + 1)
+            }
+            i++
+        }
+        return out
+    }
 
     /** Adjacent text runs become one, so a `<span>` that
         dissolved does not leave two halves of a word apart. */
@@ -400,7 +597,14 @@ object BodyParser {
         private fun normalise(tag: String): String = SYNONYMS[tag] ?: tag
 
         private fun addText(parent: Node.Element, text: String) {
-            val decoded = unescape(text)
+            /* Stored prose is pretty-printed, and a browser
+               collapses the indentation under `white-space:
+               normal`; nothing here did, so every line the author
+               wrapped arrived as a line break in the middle of a
+               sentence — "তোমার / বন্ধু" split mid-phrase in the
+               satzbau lesson was this. One space is what CSS
+               leaves. */
+            val decoded = unescape(text).replace(WHITESPACE, " ")
             if (decoded.isNotEmpty()) parent.children += Node.Text(decoded)
         }
 
@@ -506,8 +710,10 @@ fun checkpointBases(blocks: List<Block>): Map<String, Int> {
                 /* A callout holds blocks, and a checklist inside
                    one is a descendant of the article like any
                    other: the site's selector finds it and counts
-                   it in place. */
+                   it in place. The pattern box holds blocks the
+                   same way. */
                 is Block.Callout -> walk(block.body, path)
+                is Block.Pattern -> walk(block.body, path)
                 else -> Unit
             }
         }
@@ -525,6 +731,7 @@ fun checkpointCount(blocks: List<Block>): Int {
         for (block in list) when (block) {
             is Block.Checklist -> total += block.items.size
             is Block.Callout -> walk(block.body)
+            is Block.Pattern -> walk(block.body)
             else -> Unit
         }
     }

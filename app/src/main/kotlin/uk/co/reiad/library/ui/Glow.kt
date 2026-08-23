@@ -89,6 +89,26 @@ fun rememberReducedMotion(): Boolean {
     }
 }
 
+/** Whether this composition has no clock: a Paparazzi render, a
+    preview. One frame is all there will ever be, so anything that
+    ARRIVES — a sheet rising, a body settling — has to be drawn
+    already arrived or the picture is of the moment before it.
+
+    A local the render tests SET, because there is nothing
+    reliable to sniff: Paparazzi installs neither
+    `LocalInspectionMode` nor an edit-mode view, which was
+    measured the direct way — the settings sheet recorded as an
+    empty page, at 1.8KB, twice, under both detections. A test
+    that states its own condition beats a heuristic that lies
+    quietly. */
+val LocalStill = androidx.compose.runtime.staticCompositionLocalOf { false }
+
+@Composable
+fun rememberStill(): Boolean {
+    val inspecting = androidx.compose.ui.platform.LocalInspectionMode.current
+    return LocalStill.current || inspecting
+}
+
 @Composable
 fun rememberGlow(): Glow {
     val reduced = rememberReducedMotion()
@@ -129,6 +149,20 @@ fun Modifier.follows(glow: Glow): Modifier = pointerInput(glow) {
             }
         }
     }
+}
+
+/** The surface gives, very slightly, under the finger.
+
+    Not a second animation: it reads the glow's own amount inside
+    the layer block, so it rises in the light's 190ms, lingers out
+    over its 820, snaps under reduced motion, and costs no extra
+    state. Two per cent is deliberately at the edge of noticing —
+    real glass does not dent, but a surface that does not answer
+    pressure at all reads as a picture of one. */
+fun Modifier.pressing(glow: Glow): Modifier = graphicsLayer {
+    val give = 1f - 0.02f * glow.lit.a
+    scaleX = give
+    scaleY = give
 }
 
 /* ============================================================

@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -95,6 +96,35 @@ private fun Bar(width: Float, height: Dp = 14.dp, corner: Dp = Corner.xs) {
             .height(height)
             .clip(RoundedCornerShape(corner))
             .background(c.paperSunk.copy(alpha = a)),
+    )
+}
+
+/**
+ * Content that has just arrived settles up into place.
+ *
+ * The other half of the skeleton: a body that pops fully formed
+ * over the bars that stood for it reads as a glitch, and one that
+ * rises the material's enter step reads as the page finishing.
+ * Keyed, so walking from lesson to lesson settles each one and a
+ * recomposition of the same lesson settles nothing.
+ */
+@Composable
+fun Modifier.arriving(key: Any?): Modifier {
+    /* Already there for reduced motion, and for a render with no
+       clock: a snapshot is one frame, and one frame into a fade
+       is nothing to look at. */
+    val reduced = rememberReducedMotion() || rememberStill()
+    val seen = androidx.compose.runtime.remember(key) {
+        androidx.compose.animation.core.Animatable(if (reduced) 1f else 0f)
+    }
+    androidx.compose.runtime.LaunchedEffect(seen) {
+        seen.animateTo(1f, tween(Motion.ENTER_MS))
+    }
+    return this.then(
+        Modifier.graphicsLayer {
+            alpha = seen.value
+            translationY = (1f - seen.value) * 12.dp.toPx()
+        },
     )
 }
 

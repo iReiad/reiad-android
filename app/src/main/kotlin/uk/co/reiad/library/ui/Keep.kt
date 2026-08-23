@@ -76,10 +76,14 @@ fun Keep(
     val c = LocalReiad.current
     var writing by remember(state.url) { mutableStateOf(state.note.isNotBlank()) }
 
+    val touch = rememberTouch()
     Column(modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.spacedBy(Gap.s5)) {
             Control(
-                modifier = Modifier.clickable(role = Role.Checkbox) { onSave(!state.saved) },
+                modifier = Modifier.clickable(role = Role.Checkbox) {
+                    touch.latch(!state.saved)
+                    onSave(!state.saved)
+                },
                 ground = if (state.saved) c.accent else c.panel,
             ) {
                 Text(
