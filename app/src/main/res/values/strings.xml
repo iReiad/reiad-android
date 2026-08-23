@@ -18,4 +18,5 @@
     <string name="widget_progress_description">How many lessons you have read in each school.</string>
     <string name="widget_news_description">Today\'s market headlines, picked from three sources.</string>
     <string name="widget_routine_description">How much of today\'s routine is ticked.</string>
+    <string name="widget_diet_description">Today\'s food log, against your target.</string>
 </resources>

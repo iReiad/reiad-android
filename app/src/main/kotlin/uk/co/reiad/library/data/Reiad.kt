@@ -94,6 +94,21 @@ data class RoutineGlance(
     val of: Int = 0,
 )
 
+/** Today's food log, the same way: the day's total and the
+    target it sits against, and nothing else. `target` is 0 where
+    the reader has not set one, which draws as the total alone
+    rather than as a bar against an invented denominator. */
+@Serializable
+data class DietGlance(
+    val date: String = "",
+    val kcal: Int = 0,
+    val target: Int = 0,
+    /** How many things were logged: the difference between "0
+        kcal" and "nothing logged", which are different
+        sentences. */
+    val entries: Int = 0,
+)
+
 class Reiad(private val context: Context) {
 
     /** The one store, shared with `Sync`.
@@ -209,6 +224,16 @@ class Reiad(private val context: Context) {
 
     suspend fun cachedRoutineGlance(): RoutineGlance? =
         cached("cache:routine-today", RoutineGlance.serializer())
+
+    suspend fun keepDietGlance(glance: DietGlance) {
+        context.store.edit {
+            it[stringPreferencesKey("cache:diet-today")] =
+                json.encodeToString(DietGlance.serializer(), glance)
+        }
+    }
+
+    suspend fun cachedDietGlance(): DietGlance? =
+        cached("cache:diet-today", DietGlance.serializer())
 
     /** One piece, body included. Cached under its own slug, so a
         piece read once is readable on a train. */

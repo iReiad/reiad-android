@@ -341,6 +341,76 @@ class RoutineReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = RoutineWidget()
 }
 
+/* ---------- today's food log ---------- */
+
+/** The day's total against the target, out of the summary the
+    model keeps in step with the diet screen.
+
+    The routine widget's two refusals hold here, and a third
+    joins them: a total with NO target is the total alone,
+    because a bar against an invented denominator is a
+    decoration, which is the exact sentence the tool's own §16
+    uses about coverage. */
+class DietWidget : GlanceAppWidget() {
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val glance = Reiad(context).cachedDietGlance()
+        val today = java.time.LocalDate.now().toString()
+        val current = glance?.takeIf { it.date == today }
+        provideContent { GlanceTheme { DietToday(current, isNight(context)) } }
+    }
+}
+
+@Composable
+private fun DietToday(glance: uk.co.reiad.library.data.DietGlance?, dark: Boolean) {
+    val c = coloursFor(Accents.GREEN, dark)
+    Column(
+        GlanceModifier
+            .fillMaxSize()
+            .background(Color(c.panel))
+            .cornerRadius(20.dp)
+            .padding(16.dp)
+            .clickable(openOn("/tools/diet")),
+        verticalAlignment = Alignment.Vertical.Top,
+    ) {
+        Text(
+            "আজকের খাওয়া",
+            style = TextStyle(
+                color = ColorProvider(Color(c.accent)),
+                fontSize = 11.pt(),
+                fontWeight = FontWeight.Medium,
+            ),
+        )
+        Spacer(GlanceModifier.height(6.dp))
+        if (glance == null || glance.entries == 0) {
+            Text(
+                "আজ এখনো কিছু লেখা হয়নি।",
+                maxLines = 2,
+                style = TextStyle(color = ColorProvider(Color(c.inkSoft)), fontSize = 13.pt()),
+            )
+        } else {
+            Text(
+                bnDigits(glance.kcal) +
+                    if (glance.target > 0) " / ${bnDigits(glance.target)}" else "",
+                style = TextStyle(
+                    color = ColorProvider(Color(c.ink)),
+                    fontSize = 24.pt(),
+                    fontWeight = FontWeight.Bold,
+                ),
+            )
+            Spacer(GlanceModifier.height(2.dp))
+            Text(
+                "kcal",
+                style = TextStyle(color = ColorProvider(Color(c.inkSoft)), fontSize = 11.pt()),
+            )
+        }
+    }
+}
+
+class DietReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = DietWidget()
+}
+
 /* ---------- the small bridges ----------
 
    A widget is drawn in the LAUNCHER's process, so none of the

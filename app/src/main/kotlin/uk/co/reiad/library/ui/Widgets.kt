@@ -66,7 +66,7 @@ import uk.co.reiad.library.accentOf
     contract above working rather than failing. */
 val DRAWABLE: Set<String> = setOf(
     "continue", "progress", "pulse", "market", "schools", "tools", "stock",
-    "streak", "routine",
+    "streak", "routine", "diet",
 )
 
 /** Everything one of these renderers might need.
@@ -91,6 +91,8 @@ data class BoardData(
         widget reads, so the two can never disagree. Null until a
         day has been read once. */
     val routine: uk.co.reiad.library.data.RoutineGlance? = null,
+    /** And today's food log, the same way. */
+    val diet: uk.co.reiad.library.data.DietGlance? = null,
     val today: String = "",
 )
 
@@ -129,6 +131,7 @@ fun Widget(id: String, size: WidgetSize, data: BoardData, act: BoardActions): Bo
         "stock" -> StockWidget(data, act)
         "streak" -> StreakWidget(data)
         "routine" -> RoutineBoardWidget(data, act)
+        "diet" -> DietBoardWidget(data, act)
         else -> return false
     }
     return true
@@ -533,6 +536,74 @@ private fun RoutineBoardWidget(data: BoardData, act: BoardActions) {
                     )
                 }
                 Icon("chevron", size = 14.dp, tint = c.inkSoft)
+            }
+        }
+    }
+}
+
+
+/** Today's food log on the board: the day's total, against the
+    target where one is set.
+
+    THE SENTENCES ARE THREE AND THEY ARE DIFFERENT. Nothing
+    logged is an invitation; a total with no target is the total
+    alone, because a bar against an invented denominator is a
+    decoration; a total with a target says both numbers and
+    draws the groove. A nought is never printed. */
+@Composable
+private fun DietBoardWidget(data: BoardData, act: BoardActions) {
+    val c = LocalReiad.current
+    val glance = data.diet?.takeIf { it.date == data.today }
+    val item = data.site?.nav.orEmpty()
+        .flatMap { it.items }.firstOrNull { it.key == "diet" } ?: return
+
+    Pane(Modifier.fillMaxWidth()) {
+        WidgetHead(if (data.lang == "bn") "আজকের খাওয়া" else "Today's log")
+        Tap(onClick = { act.onItem(item) }, label = item.label) {
+            Column(Modifier.fillMaxWidth().padding(vertical = Gap.s3)) {
+                if (glance == null || glance.entries == 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            if (data.lang == "bn") {
+                                "আজ এখনো কিছু লেখা হয়নি।"
+                            } else {
+                                "Nothing logged yet today."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = c.inkSoft,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Icon("chevron", size = 14.dp, tint = c.inkSoft)
+                    }
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            inScript(glance.kcal.toString(), data.lang),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = c.accent,
+                        )
+                        Spacer(Modifier.width(Gap.s4))
+                        Text(
+                            if (glance.target > 0) {
+                                if (data.lang == "bn") {
+                                    "/ ${inScript(glance.target.toString(), "bn")} kcal"
+                                } else {
+                                    "of ${glance.target} kcal"
+                                }
+                            } else {
+                                "kcal"
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = c.inkSoft,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Icon("chevron", size = 14.dp, tint = c.inkSoft)
+                    }
+                    if (glance.target > 0) {
+                        Spacer(Modifier.height(Gap.s4))
+                        Groove((glance.kcal.toFloat() / glance.target).coerceIn(0f, 1f))
+                    }
+                }
             }
         }
     }

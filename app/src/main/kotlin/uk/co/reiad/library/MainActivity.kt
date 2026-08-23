@@ -694,6 +694,30 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             val entries = store.entries(today)
             _diet.value = readDiet(profile, days, entries, today)
                 .copy(library = foodLibrary ?: loadFoods())
+            keepDietGlance(context)
+        }
+    }
+
+    /** The summary the diet widgets read, from the SAME totals
+        the screen draws (`totalFor`, planned rows filtered), so
+        the widget and the screen cannot disagree about today. */
+    private fun keepDietGlance(context: android.content.Context) {
+        val now = _diet.value
+        if (now.today.isBlank() || now.signedOut) return
+        val day = uk.co.reiad.library.core.diet.totalFor(
+            now.entries,
+            now.library?.macros ?: listOf("protein", "carbs", "fat", "fibre"),
+        )
+        viewModelScope.launch {
+            val summary = uk.co.reiad.library.data.DietGlance(
+                date = now.today,
+                kcal = day.kcal.toInt(),
+                target = now.target?.kcal ?: 0,
+                entries = day.count,
+            )
+            reiad.keepDietGlance(summary)
+            _dietGlance.value = summary
+            runCatching { uk.co.reiad.library.widget.DietWidget().updateAll(context) }
         }
     }
 
@@ -1138,6 +1162,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         refresh()
         viewModelScope.launch {
             _routineGlance.value = reiad.cachedRoutineGlance()
+            _dietGlance.value = reiad.cachedDietGlance()
             /* The board's streak widget reads the same local set
                the account page draws, and needs it before the
                account screen has ever been opened. */
@@ -1423,6 +1448,11 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         MutableStateFlow<uk.co.reiad.library.data.RoutineGlance?>(null)
     val routineGlance: StateFlow<uk.co.reiad.library.data.RoutineGlance?> =
         _routineGlance.asStateFlow()
+
+    private val _dietGlance =
+        MutableStateFlow<uk.co.reiad.library.data.DietGlance?>(null)
+    val dietGlance: StateFlow<uk.co.reiad.library.data.DietGlance?> =
+        _dietGlance.asStateFlow()
 
     private val _exported = MutableStateFlow<String?>(null)
     val exported: StateFlow<String?> = _exported.asStateFlow()
@@ -1948,6 +1978,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val threadState by model.thread.collectAsState()
     val daysActive by model.daysActive.collectAsState()
     val routineGlance by model.routineGlance.collectAsState()
+    val dietGlance by model.dietGlance.collectAsState()
     val exported by model.exported.collectAsState()
     val erasing by model.erasing.collectAsState()
     val checks by model.checks.collectAsState()
@@ -2562,6 +2593,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     board = board,
                     daysActive = daysActive,
                     routineGlance = routineGlance,
+                    dietGlance = dietGlance,
                     bookmarks = bookmarks,
                     pieces = pieces,
                     lang = prefs.lang,
@@ -2837,6 +2869,7 @@ fun Home(
     board: List<String>? = null,
     daysActive: Set<String> = emptySet(),
     routineGlance: uk.co.reiad.library.data.RoutineGlance? = null,
+    dietGlance: uk.co.reiad.library.data.DietGlance? = null,
     bookmarks: Map<String, Bookmark> = emptyMap(),
     pieces: List<Piece> = emptyList(),
     news: List<Story> = emptyList(),
@@ -2890,7 +2923,7 @@ fun Home(
     val data = BoardData(
         site = site, ticks = ticks, bookmarks = bookmarks, pieces = pieces,
         sway = sway, icons = icons, lang = lang, news = news,
-        daysActive = daysActive, routine = routineGlance,
+        daysActive = daysActive, routine = routineGlance, diet = dietGlance,
         today = remember { java.time.LocalDate.now().toString() },
     )
     val act = BoardActions(

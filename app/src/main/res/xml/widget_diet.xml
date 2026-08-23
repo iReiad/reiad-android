@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Today's food log, on the home screen: the day's total against
+  the target where one is set, and a tap into the diet tool.
+
+  The same shape and the same rules as widget_routine beside it:
+  one cell tall, nothing polls, and the date guard is in the
+  widget so a morning glance shows the invitation rather than
+  yesterday's total.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="60dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="1"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="60dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_diet_description"
+    android:updatePeriodMillis="0" />
