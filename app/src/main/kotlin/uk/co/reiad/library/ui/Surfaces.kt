@@ -5,6 +5,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -113,6 +122,93 @@ fun Control(
     )
 }
 
+/**
+ * A control with a label on it, which is what a button is.
+ *
+ * `Control` is the surface and this is the thing you press. The
+ * difference matters because the material's lit edge is not
+ * enough on its own at this size: a control on a pane of the same
+ * glass reads as a label until it has a rim, and the site draws
+ * one. It shipped without, five times over, and every one of them
+ * looked like text somebody had coloured green.
+ *
+ * `filled` is a latch rather than an emphasis: a thing that is ON
+ * is the accent, a thing that ACTS is the rim.
+ */
+@Composable
+fun PillButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: String? = null,
+    filled: Boolean = false,
+    description: String? = null,
+) {
+    val c = LocalReiad.current
+    val ink = if (filled) c.paper else c.accent
+    Control(
+        modifier
+            .clip(RoundedCornerShape(Corner.pill))
+            .then(
+                if (filled) Modifier
+                else Modifier.border(1.dp, c.hairline, RoundedCornerShape(Corner.pill)),
+            )
+            .clickable(role = Role.Button, onClick = onClick)
+            .then(
+                if (description == null) Modifier
+                else Modifier.semantics { contentDescription = description },
+            ),
+        ground = if (filled) c.accent else null,
+    ) {
+        if (icon != null) {
+            Icon(icon, size = 15.dp, tint = ink)
+            Spacer(Modifier.width(Gap.s4))
+        }
+        Text(
+            label.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            color = ink,
+            maxLines = 1,
+        )
+    }
+}
+
+/**
+ * A tap target, never smaller than the site's own `--tap`.
+ *
+ * A chip is 29dp tall, which is right: it is a small mark that
+ * says what something is. When one is also PRESSABLE the mark and
+ * the target stop being the same thing, and the target is the one
+ * with a minimum. The language switch on the stock check and the
+ * seven calculator chips were all 28 by 29, well under both the
+ * site's 44 and Android's 48, and nothing could see it: they are
+ * the right size in a screenshot and the wrong size under a
+ * thumb.
+ *
+ * The child keeps its own size and is centred, so this changes
+ * what a finger can hit and not what a reader sees.
+ */
+@Composable
+fun Tap(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    role: Role = Role.Button,
+    label: String? = null,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier
+            .sizeIn(minWidth = Gap.tap, minHeight = Gap.tap)
+            .clip(RoundedCornerShape(Corner.pill))
+            .clickable(role = role, onClick = onClick)
+            .then(
+                if (label == null) Modifier
+                else Modifier.semantics { contentDescription = label },
+            ),
+        contentAlignment = Alignment.Center,
+    ) { content() }
+}
+
 /** A row in a column of rows.
 
     The same glass a card is, standing on nothing, which is what
@@ -130,6 +226,12 @@ fun Rung(
     Row(
         modifier
             .fillMaxWidth()
+            /* A rung is usually the target itself: the menu's
+               rows, a ladder's lessons. At `Gap.s5` of padding
+               around one line it came to 40dp, which is under
+               both the site's 44 and Android's 48 and is
+               invisible in a screenshot. */
+            .heightIn(min = Gap.tap)
             .clip(RoundedCornerShape(Corner.field))
             .material(
                 kind = Kind.CARD,
@@ -157,13 +259,14 @@ fun Rung(
 fun Plate(
     modifier: Modifier = Modifier,
     corner: Dp = Corner.field,
+    ground: Color? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val c = LocalReiad.current
     Column(
         modifier
             .clip(RoundedCornerShape(corner))
-            .material(Kind.PLATE, c, corner, ground = c.paperSunk)
+            .material(Kind.PLATE, c, corner, ground = ground ?: c.paperSunk)
             .padding(horizontal = Gap.s7, vertical = Gap.s6),
         content = content,
     )
@@ -214,16 +317,35 @@ fun Chip(
     text: String,
     modifier: Modifier = Modifier,
     tone: Color? = null,
+    /** A filled dot before the word, which is the site's `.gt-live`:
+        the one mark that says a number on the other side of it is
+        arriving now rather than being remembered. */
+    live: Boolean = false,
 ) {
     val c = LocalReiad.current
-    Box(
+    Row(
         modifier
             .clip(RoundedCornerShape(Corner.pill))
             .material(Kind.CHIP, c, Corner.pill, ground = c.accent.copy(alpha = 0.12f))
             .padding(horizontal = Gap.s6, vertical = Gap.s3),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (live) {
+            Box(
+                Modifier
+                    .size(7.dp)
+                    .clip(RoundedCornerShape(Corner.pill))
+                    .background(tone ?: c.accent),
+            )
+            Spacer(Modifier.width(Gap.s4))
+        }
         Text(
-            text.uppercase(),
+            /* Bangla has no case, and `uppercase()` on a Bengali
+               string is a no-op that costs an allocation. Said
+               here rather than at the call sites, because the
+               chip is the one place on this site that upper-cases
+               a word a reader wrote. */
+            if (isBangla(text)) text else text.uppercase(),
             style = MaterialTheme.typography.labelSmall,
             color = tone ?: c.accent,
             maxLines = 1,

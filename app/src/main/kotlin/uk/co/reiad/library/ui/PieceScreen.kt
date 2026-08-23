@@ -20,9 +20,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
@@ -31,9 +34,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import uk.co.reiad.library.core.Block
 import uk.co.reiad.library.core.BodyParser
+import uk.co.reiad.library.core.Kept
 import uk.co.reiad.library.core.Kind
 import uk.co.reiad.library.core.Pace
 import uk.co.reiad.library.core.Piece
+import uk.co.reiad.library.core.Utterance
 import uk.co.reiad.library.core.speakable
 import uk.co.reiad.library.read.Reader
 import uk.co.reiad.library.read.Speaking
@@ -64,6 +69,12 @@ fun PieceScreen(
     next: Piece?,
     stale: Boolean,
     bottomPadding: Dp,
+    /** Null while the account has not answered, which is not the
+        same as "no row": drawing an unsaved Save in that window
+        makes a reader who saved this last week watch it flip. */
+    kept: Kept?,
+    signedIn: Boolean,
+    onKeep: (Boolean?, String?) -> Unit,
     onOpen: (Piece) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -72,9 +83,32 @@ fun PieceScreen(
     val scroll = rememberLazyListState()
     val speaking by Reader.state.collectAsStateWithLifecycle()
 
-    val blocks = remember(piece.slug, piece.body) {
-        if (piece.body.isBlank()) emptyList() else BodyParser.parse(piece.body).blocks
+    /**
+     * The body, parsed OFF the main thread.
+     *
+     * `remember { parse(body) }` runs inside composition, which
+     * is the main thread, and a long piece is a hitch at the one
+     * moment a reader is watching: the frame where the article
+     * opens. `produceState` with a `Default` hop parses on a
+     * worker and the page fills in behind, which is what the
+     * skeleton below is for.
+     *
+     * Keyed on the SLUG as well as the body, because a body that
+     * arrives empty and then fills is one piece and not two: the
+     * list answer carries no body and the full one does.
+     */
+    val parsed by produceState(
+        initialValue = emptyList<Block>(),
+        piece.slug,
+        piece.body,
+    ) {
+        value = if (piece.body.isBlank()) {
+            emptyList()
+        } else {
+            withContext(Dispatchers.Default) { BodyParser.parse(piece.body).blocks }
+        }
     }
+    val blocks = parsed
     val lines = remember(blocks) { speakable(blocks) }
 
     /* Derived, so scrolling invalidates the bar and nothing else.
@@ -93,46 +127,37 @@ fun PieceScreen(
         LazyColumn(
             state = scroll,
             modifier = Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-            contentPadding = PaddingValues(top = Gap.s11, bottom = bottomPadding),
+            contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
         ) {
             item("head") {
-                Text(
-                    "← Back",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = c.accent,
-                    modifier = Modifier.clickable(role = Role.Button, onClick = onBack),
-                )
+                Crumb("Back", onBack)
                 Spacer(Modifier.height(Gap.s7))
-                Text(
-                    piece.title,
-                    style = if (piece.isBangla) BanglaHeading.copy(
-                        fontSize = MaterialTheme.typography.headlineMedium.fontSize,
-                    ) else MaterialTheme.typography.headlineMedium,
-                    color = c.ink,
+                PageHead(
+                    title = piece.title,
+                    eyebrow = piece.section.takeIf { it.isNotBlank() },
+                    lede = piece.dek.takeIf { it.isNotBlank() },
                 )
-                if (piece.dek.isNotBlank()) {
-                    Spacer(Modifier.height(Gap.s5))
-                    Text(
-                        piece.dek,
-                        style = if (piece.isBangla) BanglaBody else MaterialTheme.typography.bodyLarge,
-                        color = c.inkSoft,
-                    )
-                }
-                Spacer(Modifier.height(Gap.s6))
                 Byline(piece)
                 if (stale) {
                     Spacer(Modifier.height(Gap.s5))
                     Chip("SAVED COPY")
                 }
                 Spacer(Modifier.height(Gap.s6))
-                ReadAloudBar(piece, lines.isNotEmpty(), speaking)
+                Keep(
+                    state = kept,
+                    signedIn = signedIn,
+                    onSave = { onKeep(it, null) },
+                    onNote = { onKeep(null, it) },
+                )
+                Spacer(Modifier.height(Gap.s6))
+                ReadAloudBar(piece, lines, speaking)
                 Spacer(Modifier.height(Gap.s8))
             }
 
             if (blocks.isEmpty()) {
                 item("empty") {
                     Text(
-                        if (piece.body.isBlank()) "Opening…" else "This one has no words yet.",
+                        if (piece.body.isBlank()) "Opening" else "This one has no words yet.",
                         style = MaterialTheme.typography.bodyLarge,
                         color = c.inkSoft,
                     )
@@ -186,8 +211,12 @@ fun PieceScreen(
     is the difference between a feature that is absent and a
     feature that is broken. */
 @Composable
-private fun ReadAloudBar(piece: Piece, hasWords: Boolean, speaking: Speaking) {
-    if (!hasWords) return
+/** The bar takes the already-parsed LINES rather than the
+    piece's raw body: it used to parse the whole article a
+    second time, on the main thread, on a button press, with
+    the same list sitting in the caller. */
+private fun ReadAloudBar(piece: Piece, lines: List<Utterance>, speaking: Speaking) {
+    if (lines.isEmpty()) return
     val c = LocalReiad.current
     val context = LocalContext.current
 
@@ -206,9 +235,12 @@ private fun ReadAloudBar(piece: Piece, hasWords: Boolean, speaking: Speaking) {
                 if (speaking.on) {
                     Reader.stop(context)
                 } else {
-                    val body = if (piece.body.isBlank()) emptyList()
-                    else speakable(BodyParser.parse(piece.body).blocks)
-                    Reader.start(context, piece.title, body, Pace.NORMAL)
+                    /* `lines` is the same list, already parsed
+                       and already speakable. Parsing the body a
+                       second time here was the whole article
+                       through the parser again, on the main
+                       thread, on a button press. */
+                    Reader.start(context, piece.title, lines, Pace.NORMAL)
                 }
             },
             ground = if (speaking.on) c.accent else c.panel,

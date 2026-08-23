@@ -57,6 +57,27 @@ data class SiteManifest(
     val skills: List<Skill> = emptyList(),
     val counts: Map<String, Int> = emptyMap(),
 
+    /** What the front page SAYS: the eyebrow, one headline and
+        lede per audience, and the strip of counts.
+
+        Data rather than code, which is why it is here at all: the
+        app's front door was a title and a grey line for eleven
+        blocks because the site's was written into a React page.
+        Editing the headline on the site now changes the app on
+        its next fetch. */
+    val door: Door = Door(),
+
+    /** The routine tool's own vocabulary: the moods, the seasons,
+        the garden and the two task ids the drawings hang on.
+
+        Sent because every one of them is an id, a name in each
+        language and a colour, which is DATA by the contract at
+        the top of CLAUDE.md, and because this app was carrying a
+        Kotlin copy of all four. A fifth mood reaches a phone on
+        the next fetch now. The copy stays as the floor, for a
+        first run with no network. */
+    val routine: RoutineWords = RoutineWords(),
+
     /** The palette's index: every page of the site that is not
         private, with the title, the address and one line saying
         what it is. This is what the Ctrl+K palette searches on
@@ -147,6 +168,85 @@ data class LadderSchool(
     val href: String = "",
     val accent: String = "",
     val blurb: String = "",
+)
+
+/** The routine tool's vocabulary, out of `shared/routine.ts`. */
+@Serializable
+data class RoutineWords(
+    val moods: List<MoodWord> = emptyList(),
+    val seasons: List<SeasonWord> = emptyList(),
+    val garden: List<PlantWord> = emptyList(),
+    /** The two task ids: `{"birds": "brd", "plants": "pln"}`. */
+    val grown: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+data class MoodWord(
+    val id: String = "",
+    val bn: String = "",
+    val en: String = "",
+    /** A hex value, because it is data rather than a token: a
+        reader can change it and there is no stylesheet to edit. */
+    val colour: String = "",
+)
+
+@Serializable
+data class SeasonWord(
+    val id: String = "",
+    val bn: String = "",
+    val en: String = "",
+    /** When it starts: `[month, day]`.
+
+        The boundaries are DATA on the site, carried on each row
+        of `SEASONS`, which was a surprise worth acting on: the
+        first version of this reasoned that mid-December being
+        winter is a fact about Bangladesh's calendar and therefore
+        arithmetic, and the site had already decided otherwise. A
+        seventh season works with no app release because of this
+        field. */
+    val from: List<Int> = emptyList(),
+    val colour: String = "",
+)
+
+@Serializable
+data class PlantWord(
+    /** How many times the task has to have been marked. */
+    val at: Int = 0,
+    val bn: String = "",
+    val en: String = "",
+)
+
+/** The front door's words. `DOOR` in `shared/content.ts`. */
+@Serializable
+data class Door(
+    val eyebrow: String = "",
+    /** Keyed by audience id, plus `open` for a reader who has not
+        answered the switch. */
+    val copy: Map<String, DoorCopy> = emptyMap(),
+    val facts: List<DoorFact> = emptyList(),
+)
+
+@Serializable
+data class DoorCopy(
+    val headline: String = "",
+    /** The marked words, which the site guarantees are a
+        substring of `headline`: `check-content.ts` fails
+        otherwise, so nothing here has to cope with a mark that
+        is not in the sentence beyond not finding it. */
+    val mark: String = "",
+    val lede: String = "",
+    val lang: String = "bn",
+)
+
+@Serializable
+data class DoorFact(
+    /** Already in Bangla numerals, from the site's own `bnNum`. */
+    val n: String = "",
+    val label: String = "",
+    val en: String = "",
+    /** The key of `counts` this came from, so a client that wants
+        to redraw it from a fresher count can. */
+    val count: String = "",
 )
 
 @Serializable

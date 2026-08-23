@@ -1,0 +1,7142 @@
+{
+  "defaults": {
+    "price": 210,
+    "shares": 1200,
+    "high52": 246,
+    "low52": 168,
+    "ma50": 205,
+    "ma200": 198,
+    "turnover": 85,
+    "freeFloat": 38,
+    "category": "A",
+    "sector": "pharma",
+    "benchmark": "dsex",
+    "stockReturn12m": 12,
+    "indexReturn12m": 7,
+    "revenue": 95000,
+    "grossProfit": 45600,
+    "ebit": 20900,
+    "depreciation": 5200,
+    "interestExpense": 1300,
+    "netIncome": 14800,
+    "totalAssets": 132000,
+    "currentAssets": 52000,
+    "inventory": 21000,
+    "cash": 9500,
+    "currentLiabilities": 26000,
+    "totalDebt": 19000,
+    "equity": 92000,
+    "reserves": 80000,
+    "cfo": 19500,
+    "capex": 11000,
+    "dps": 4.5,
+    "divTax": 10,
+    "yearsPaid": 12,
+    "revenuePrev": 84000,
+    "grossProfitPrev": 39500,
+    "netIncomePrev": 12900,
+    "totalAssetsPrev": 121000,
+    "currentAssetsPrev": 47500,
+    "currentLiabilitiesPrev": 25000,
+    "totalDebtPrev": 21000,
+    "cfoPrev": 17200,
+    "sharesPrev": 1200,
+    "netIncome3y": 9600,
+    "car": 0,
+    "npl": 0,
+    "provisionCover": 0,
+    "costIncome": 0,
+    "adr": 0,
+    "sectorPE": 16,
+    "sectorPB": 2.6,
+    "sectorROE": 15,
+    "sectorMargin": 13,
+    "marketPE": 12.5,
+    "riskFree": 11.04,
+    "fdr": 8.5,
+    "inflation": 9.7,
+    "nonCompliantIncome": 3
+  },
+  "formats": {
+    "en": {
+      "num0:0": "0",
+      "num1:0": "0.0",
+      "num2:0": "0.00",
+      "int:0": "0",
+      "tk:0": "৳0.00",
+      "lakh:0": "৳0 lakh",
+      "value:x:0": "0.00×",
+      "value:%:0": "0.0%",
+      "value:pp:0": "0.0 pp",
+      "value:lakh:0": "0",
+      "value:n:0": "0.00",
+      "num0:1": "1",
+      "num1:1": "1.0",
+      "num2:1": "1.00",
+      "int:1": "1",
+      "tk:1": "৳1.00",
+      "lakh:1": "৳1 lakh",
+      "value:x:1": "1.00×",
+      "value:%:1": "1.0%",
+      "value:pp:1": "+1.0 pp",
+      "value:lakh:1": "1",
+      "value:n:1": "1.00",
+      "num0:1.5": "2",
+      "num1:1.5": "1.5",
+      "num2:1.5": "1.50",
+      "int:1.5": "2",
+      "tk:1.5": "৳1.50",
+      "lakh:1.5": "৳2 lakh",
+      "value:x:1.5": "1.50×",
+      "value:%:1.5": "1.5%",
+      "value:pp:1.5": "+1.5 pp",
+      "value:lakh:1.5": "2",
+      "value:n:1.5": "1.50",
+      "num0:-1.5": "-2",
+      "num1:-1.5": "-1.5",
+      "num2:-1.5": "-1.50",
+      "int:-1.5": "-2",
+      "tk:-1.5": "৳-1.50",
+      "lakh:-1.5": "৳-2 lakh",
+      "value:x:-1.5": "-1.50×",
+      "value:%:-1.5": "-1.5%",
+      "value:pp:-1.5": "-1.5 pp",
+      "value:lakh:-1.5": "-2",
+      "value:n:-1.5": "-1.50",
+      "num0:4.25": "4",
+      "num1:4.25": "4.3",
+      "num2:4.25": "4.25",
+      "int:4.25": "4",
+      "tk:4.25": "৳4.25",
+      "lakh:4.25": "৳4 lakh",
+      "value:x:4.25": "4.25×",
+      "value:%:4.25": "4.3%",
+      "value:pp:4.25": "+4.3 pp",
+      "value:lakh:4.25": "4",
+      "value:n:4.25": "4.25",
+      "num0:-4.25": "-4",
+      "num1:-4.25": "-4.3",
+      "num2:-4.25": "-4.25",
+      "int:-4.25": "-4",
+      "tk:-4.25": "৳-4.25",
+      "lakh:-4.25": "৳-4 lakh",
+      "value:x:-4.25": "-4.25×",
+      "value:%:-4.25": "-4.3%",
+      "value:pp:-4.25": "-4.3 pp",
+      "value:lakh:-4.25": "-4",
+      "value:n:-4.25": "-4.25",
+      "num0:0.005": "0",
+      "num1:0.005": "0.0",
+      "num2:0.005": "0.01",
+      "int:0.005": "0",
+      "tk:0.005": "৳0.01",
+      "lakh:0.005": "৳0 lakh",
+      "value:x:0.005": "0.01×",
+      "value:%:0.005": "0.0%",
+      "value:pp:0.005": "+0.0 pp",
+      "value:lakh:0.005": "0",
+      "value:n:0.005": "0.01",
+      "num0:9.995": "10",
+      "num1:9.995": "10.0",
+      "num2:9.995": "10.00",
+      "int:9.995": "10",
+      "tk:9.995": "৳10.00",
+      "lakh:9.995": "৳10 lakh",
+      "value:x:9.995": "10.00×",
+      "value:%:9.995": "10.0%",
+      "value:pp:9.995": "+10.0 pp",
+      "value:lakh:9.995": "10",
+      "value:n:9.995": "10.00",
+      "num0:99": "99",
+      "num1:99": "99.0",
+      "num2:99": "99.00",
+      "int:99": "99",
+      "tk:99": "৳99.00",
+      "lakh:99": "৳99 lakh",
+      "value:x:99": "99.00×",
+      "value:%:99": "99.0%",
+      "value:pp:99": "+99.0 pp",
+      "value:lakh:99": "99",
+      "value:n:99": "99.00",
+      "num0:99.5": "100",
+      "num1:99.5": "99.5",
+      "num2:99.5": "99.50",
+      "int:99.5": "100",
+      "tk:99.5": "৳99.50",
+      "lakh:99.5": "৳100 lakh",
+      "value:x:99.5": "99.50×",
+      "value:%:99.5": "99.5%",
+      "value:pp:99.5": "+99.5 pp",
+      "value:lakh:99.5": "100",
+      "value:n:99.5": "99.50",
+      "num0:100": "100",
+      "num1:100": "100.0",
+      "num2:100": "100.00",
+      "int:100": "100",
+      "tk:100": "৳100.00",
+      "lakh:100": "৳1.0 crore",
+      "value:x:100": "100.00×",
+      "value:%:100": "100.0%",
+      "value:pp:100": "+100.0 pp",
+      "value:lakh:100": "100",
+      "value:n:100": "100.00",
+      "num0:100.5": "101",
+      "num1:100.5": "100.5",
+      "num2:100.5": "100.50",
+      "int:100.5": "101",
+      "tk:100.5": "৳100.50",
+      "lakh:100.5": "৳1.0 crore",
+      "value:x:100.5": "100.50×",
+      "value:%:100.5": "100.5%",
+      "value:pp:100.5": "+100.5 pp",
+      "value:lakh:100.5": "101",
+      "value:n:100.5": "100.50",
+      "num0:999": "999",
+      "num1:999": "999.0",
+      "num2:999": "999.00",
+      "int:999": "999",
+      "tk:999": "৳999.00",
+      "lakh:999": "৳10.0 crore",
+      "value:x:999": "999.00×",
+      "value:%:999": "999.0%",
+      "value:pp:999": "+999.0 pp",
+      "value:lakh:999": "999",
+      "value:n:999": "999.00",
+      "num0:1000": "1,000",
+      "num1:1000": "1,000.0",
+      "num2:1000": "1,000.00",
+      "int:1000": "1,000",
+      "tk:1000": "৳1,000.00",
+      "lakh:1000": "৳10.0 crore",
+      "value:x:1000": "1,000.00×",
+      "value:%:1000": "1,000.0%",
+      "value:pp:1000": "+1,000.0 pp",
+      "value:lakh:1000": "1,000",
+      "value:n:1000": "1,000.00",
+      "num0:1234.5": "1,235",
+      "num1:1234.5": "1,234.5",
+      "num2:1234.5": "1,234.50",
+      "int:1234.5": "1,235",
+      "tk:1234.5": "৳1,234.50",
+      "lakh:1234.5": "৳12.3 crore",
+      "value:x:1234.5": "1,234.50×",
+      "value:%:1234.5": "1,234.5%",
+      "value:pp:1234.5": "+1,234.5 pp",
+      "value:lakh:1234.5": "1,235",
+      "value:n:1234.5": "1,234.50",
+      "num0:12345": "12,345",
+      "num1:12345": "12,345.0",
+      "num2:12345": "12,345.00",
+      "int:12345": "12,345",
+      "tk:12345": "৳12,345.00",
+      "lakh:12345": "৳123 crore",
+      "value:x:12345": "12,345.00×",
+      "value:%:12345": "12,345.0%",
+      "value:pp:12345": "+12,345.0 pp",
+      "value:lakh:12345": "12,345",
+      "value:n:12345": "12,345.00",
+      "num0:99999": "99,999",
+      "num1:99999": "99,999.0",
+      "num2:99999": "99,999.00",
+      "int:99999": "99,999",
+      "tk:99999": "৳99,999.00",
+      "lakh:99999": "৳1,000 crore",
+      "value:x:99999": "99,999.00×",
+      "value:%:99999": "99,999.0%",
+      "value:pp:99999": "+99,999.0 pp",
+      "value:lakh:99999": "99,999",
+      "value:n:99999": "99,999.00",
+      "num0:100000": "100,000",
+      "num1:100000": "100,000.0",
+      "num2:100000": "100,000.00",
+      "int:100000": "100,000",
+      "tk:100000": "৳100,000.00",
+      "lakh:100000": "৳1,000 crore",
+      "value:x:100000": "100,000.00×",
+      "value:%:100000": "100,000.0%",
+      "value:pp:100000": "+100,000.0 pp",
+      "value:lakh:100000": "100,000",
+      "value:n:100000": "100,000.00",
+      "num0:1000000": "1,000,000",
+      "num1:1000000": "1,000,000.0",
+      "num2:1000000": "1,000,000.00",
+      "int:1000000": "1,000,000",
+      "tk:1000000": "৳1,000,000.00",
+      "lakh:1000000": "৳10,000 crore",
+      "value:x:1000000": "1,000,000.00×",
+      "value:%:1000000": "1,000,000.0%",
+      "value:pp:1000000": "+1,000,000.0 pp",
+      "value:lakh:1000000": "1,000,000",
+      "value:n:1000000": "1,000,000.00",
+      "num0:12345678": "12,345,678",
+      "num1:12345678": "12,345,678.0",
+      "num2:12345678": "12,345,678.00",
+      "int:12345678": "12,345,678",
+      "tk:12345678": "৳12,345,678.00",
+      "lakh:12345678": "৳123,457 crore",
+      "value:x:12345678": "12,345,678.00×",
+      "value:%:12345678": "12,345,678.0%",
+      "value:pp:12345678": "+12,345,678.0 pp",
+      "value:lakh:12345678": "12,345,678",
+      "value:n:12345678": "12,345,678.00",
+      "num0:-0.4": "-0",
+      "num1:-0.4": "-0.4",
+      "num2:-0.4": "-0.40",
+      "int:-0.4": "-0",
+      "tk:-0.4": "৳-0.40",
+      "lakh:-0.4": "৳-0 lakh",
+      "value:x:-0.4": "-0.40×",
+      "value:%:-0.4": "-0.4%",
+      "value:pp:-0.4": "-0.4 pp",
+      "value:lakh:-0.4": "-0",
+      "value:n:-0.4": "-0.40",
+      "num0:-12345.678": "-12,346",
+      "num1:-12345.678": "-12,345.7",
+      "num2:-12345.678": "-12,345.68",
+      "int:-12345.678": "-12,346",
+      "tk:-12345.678": "৳-12,345.68",
+      "lakh:-12345.678": "৳-123 crore",
+      "value:x:-12345.678": "-12,345.68×",
+      "value:%:-12345.678": "-12,345.7%",
+      "value:pp:-12345.678": "-12,345.7 pp",
+      "value:lakh:-12345.678": "-12,346",
+      "value:n:-12345.678": "-12,345.68",
+      "num0:1000000000": "1,000,000,000",
+      "num1:1000000000": "1,000,000,000.0",
+      "num2:1000000000": "1,000,000,000.00",
+      "int:1000000000": "1,000,000,000",
+      "tk:1000000000": "৳1,000,000,000.00",
+      "lakh:1000000000": "৳10,000,000 crore",
+      "value:x:1000000000": "1,000,000,000.00×",
+      "value:%:1000000000": "1,000,000,000.0%",
+      "value:pp:1000000000": "+1,000,000,000.0 pp",
+      "value:lakh:1000000000": "1,000,000,000",
+      "value:n:1000000000": "1,000,000,000.00",
+      "num0:0.0001": "0",
+      "num1:0.0001": "0.0",
+      "num2:0.0001": "0.00",
+      "int:0.0001": "0",
+      "tk:0.0001": "৳0.00",
+      "lakh:0.0001": "৳0 lakh",
+      "value:x:0.0001": "0.00×",
+      "value:%:0.0001": "0.0%",
+      "value:pp:0.0001": "+0.0 pp",
+      "value:lakh:0.0001": "0",
+      "value:n:0.0001": "0.00",
+      "num2:nan": "–",
+      "int:nan": "–",
+      "tk:nan": "–",
+      "lakh:nan": "–",
+      "value:x:nan": "–"
+    },
+    "bn": {
+      "num0:0": "০",
+      "num1:0": "০.০",
+      "num2:0": "০.০০",
+      "int:0": "০",
+      "tk:0": "৳০.০০",
+      "lakh:0": "৳০ লাখ",
+      "value:x:0": "০.০০×",
+      "value:%:0": "০.০%",
+      "value:pp:0": "০.০ pp",
+      "value:lakh:0": "০",
+      "value:n:0": "০.০০",
+      "num0:1": "১",
+      "num1:1": "১.০",
+      "num2:1": "১.০০",
+      "int:1": "১",
+      "tk:1": "৳১.০০",
+      "lakh:1": "৳১ লাখ",
+      "value:x:1": "১.০০×",
+      "value:%:1": "১.০%",
+      "value:pp:1": "+১.০ pp",
+      "value:lakh:1": "১",
+      "value:n:1": "১.০০",
+      "num0:1.5": "২",
+      "num1:1.5": "১.৫",
+      "num2:1.5": "১.৫০",
+      "int:1.5": "২",
+      "tk:1.5": "৳১.৫০",
+      "lakh:1.5": "৳২ লাখ",
+      "value:x:1.5": "১.৫০×",
+      "value:%:1.5": "১.৫%",
+      "value:pp:1.5": "+১.৫ pp",
+      "value:lakh:1.5": "২",
+      "value:n:1.5": "১.৫০",
+      "num0:-1.5": "-২",
+      "num1:-1.5": "-১.৫",
+      "num2:-1.5": "-১.৫০",
+      "int:-1.5": "-২",
+      "tk:-1.5": "৳-১.৫০",
+      "lakh:-1.5": "৳-২ লাখ",
+      "value:x:-1.5": "-১.৫০×",
+      "value:%:-1.5": "-১.৫%",
+      "value:pp:-1.5": "-১.৫ pp",
+      "value:lakh:-1.5": "-২",
+      "value:n:-1.5": "-১.৫০",
+      "num0:4.25": "৪",
+      "num1:4.25": "৪.৩",
+      "num2:4.25": "৪.২৫",
+      "int:4.25": "৪",
+      "tk:4.25": "৳৪.২৫",
+      "lakh:4.25": "৳৪ লাখ",
+      "value:x:4.25": "৪.২৫×",
+      "value:%:4.25": "৪.৩%",
+      "value:pp:4.25": "+৪.৩ pp",
+      "value:lakh:4.25": "৪",
+      "value:n:4.25": "৪.২৫",
+      "num0:-4.25": "-৪",
+      "num1:-4.25": "-৪.৩",
+      "num2:-4.25": "-৪.২৫",
+      "int:-4.25": "-৪",
+      "tk:-4.25": "৳-৪.২৫",
+      "lakh:-4.25": "৳-৪ লাখ",
+      "value:x:-4.25": "-৪.২৫×",
+      "value:%:-4.25": "-৪.৩%",
+      "value:pp:-4.25": "-৪.৩ pp",
+      "value:lakh:-4.25": "-৪",
+      "value:n:-4.25": "-৪.২৫",
+      "num0:0.005": "০",
+      "num1:0.005": "০.০",
+      "num2:0.005": "০.০১",
+      "int:0.005": "০",
+      "tk:0.005": "৳০.০১",
+      "lakh:0.005": "৳০ লাখ",
+      "value:x:0.005": "০.০১×",
+      "value:%:0.005": "০.০%",
+      "value:pp:0.005": "+০.০ pp",
+      "value:lakh:0.005": "০",
+      "value:n:0.005": "০.০১",
+      "num0:9.995": "১০",
+      "num1:9.995": "১০.০",
+      "num2:9.995": "১০.০০",
+      "int:9.995": "১০",
+      "tk:9.995": "৳১০.০০",
+      "lakh:9.995": "৳১০ লাখ",
+      "value:x:9.995": "১০.০০×",
+      "value:%:9.995": "১০.০%",
+      "value:pp:9.995": "+১০.০ pp",
+      "value:lakh:9.995": "১০",
+      "value:n:9.995": "১০.০০",
+      "num0:99": "৯৯",
+      "num1:99": "৯৯.০",
+      "num2:99": "৯৯.০০",
+      "int:99": "৯৯",
+      "tk:99": "৳৯৯.০০",
+      "lakh:99": "৳৯৯ লাখ",
+      "value:x:99": "৯৯.০০×",
+      "value:%:99": "৯৯.০%",
+      "value:pp:99": "+৯৯.০ pp",
+      "value:lakh:99": "৯৯",
+      "value:n:99": "৯৯.০০",
+      "num0:99.5": "১০০",
+      "num1:99.5": "৯৯.৫",
+      "num2:99.5": "৯৯.৫০",
+      "int:99.5": "১০০",
+      "tk:99.5": "৳৯৯.৫০",
+      "lakh:99.5": "৳১০০ লাখ",
+      "value:x:99.5": "৯৯.৫০×",
+      "value:%:99.5": "৯৯.৫%",
+      "value:pp:99.5": "+৯৯.৫ pp",
+      "value:lakh:99.5": "১০০",
+      "value:n:99.5": "৯৯.৫০",
+      "num0:100": "১০০",
+      "num1:100": "১০০.০",
+      "num2:100": "১০০.০০",
+      "int:100": "১০০",
+      "tk:100": "৳১০০.০০",
+      "lakh:100": "৳১.০ কোটি",
+      "value:x:100": "১০০.০০×",
+      "value:%:100": "১০০.০%",
+      "value:pp:100": "+১০০.০ pp",
+      "value:lakh:100": "১০০",
+      "value:n:100": "১০০.০০",
+      "num0:100.5": "১০১",
+      "num1:100.5": "১০০.৫",
+      "num2:100.5": "১০০.৫০",
+      "int:100.5": "১০১",
+      "tk:100.5": "৳১০০.৫০",
+      "lakh:100.5": "৳১.০ কোটি",
+      "value:x:100.5": "১০০.৫০×",
+      "value:%:100.5": "১০০.৫%",
+      "value:pp:100.5": "+১০০.৫ pp",
+      "value:lakh:100.5": "১০১",
+      "value:n:100.5": "১০০.৫০",
+      "num0:999": "৯৯৯",
+      "num1:999": "৯৯৯.০",
+      "num2:999": "৯৯৯.০০",
+      "int:999": "৯৯৯",
+      "tk:999": "৳৯৯৯.০০",
+      "lakh:999": "৳১০.০ কোটি",
+      "value:x:999": "৯৯৯.০০×",
+      "value:%:999": "৯৯৯.০%",
+      "value:pp:999": "+৯৯৯.০ pp",
+      "value:lakh:999": "৯৯৯",
+      "value:n:999": "৯৯৯.০০",
+      "num0:1000": "১,০০০",
+      "num1:1000": "১,০০০.০",
+      "num2:1000": "১,০০০.০০",
+      "int:1000": "১,০০০",
+      "tk:1000": "৳১,০০০.০০",
+      "lakh:1000": "৳১০.০ কোটি",
+      "value:x:1000": "১,০০০.০০×",
+      "value:%:1000": "১,০০০.০%",
+      "value:pp:1000": "+১,০০০.০ pp",
+      "value:lakh:1000": "১,০০০",
+      "value:n:1000": "১,০০০.০০",
+      "num0:1234.5": "১,২৩৫",
+      "num1:1234.5": "১,২৩৪.৫",
+      "num2:1234.5": "১,২৩৪.৫০",
+      "int:1234.5": "১,২৩৫",
+      "tk:1234.5": "৳১,২৩৪.৫০",
+      "lakh:1234.5": "৳১২.৩ কোটি",
+      "value:x:1234.5": "১,২৩৪.৫০×",
+      "value:%:1234.5": "১,২৩৪.৫%",
+      "value:pp:1234.5": "+১,২৩৪.৫ pp",
+      "value:lakh:1234.5": "১,২৩৫",
+      "value:n:1234.5": "১,২৩৪.৫০",
+      "num0:12345": "১২,৩৪৫",
+      "num1:12345": "১২,৩৪৫.০",
+      "num2:12345": "১২,৩৪৫.০০",
+      "int:12345": "১২,৩৪৫",
+      "tk:12345": "৳১২,৩৪৫.০০",
+      "lakh:12345": "৳১২৩ কোটি",
+      "value:x:12345": "১২,৩৪৫.০০×",
+      "value:%:12345": "১২,৩৪৫.০%",
+      "value:pp:12345": "+১২,৩৪৫.০ pp",
+      "value:lakh:12345": "১২,৩৪৫",
+      "value:n:12345": "১২,৩৪৫.০০",
+      "num0:99999": "৯৯,৯৯৯",
+      "num1:99999": "৯৯,৯৯৯.০",
+      "num2:99999": "৯৯,৯৯৯.০০",
+      "int:99999": "৯৯,৯৯৯",
+      "tk:99999": "৳৯৯,৯৯৯.০০",
+      "lakh:99999": "৳১,০০০ কোটি",
+      "value:x:99999": "৯৯,৯৯৯.০০×",
+      "value:%:99999": "৯৯,৯৯৯.০%",
+      "value:pp:99999": "+৯৯,৯৯৯.০ pp",
+      "value:lakh:99999": "৯৯,৯৯৯",
+      "value:n:99999": "৯৯,৯৯৯.০০",
+      "num0:100000": "১,০০,০০০",
+      "num1:100000": "১,০০,০০০.০",
+      "num2:100000": "১,০০,০০০.০০",
+      "int:100000": "১,০০,০০০",
+      "tk:100000": "৳১,০০,০০০.০০",
+      "lakh:100000": "৳১,০০০ কোটি",
+      "value:x:100000": "১,০০,০০০.০০×",
+      "value:%:100000": "১,০০,০০০.০%",
+      "value:pp:100000": "+১,০০,০০০.০ pp",
+      "value:lakh:100000": "১,০০,০০০",
+      "value:n:100000": "১,০০,০০০.০০",
+      "num0:1000000": "১০,০০,০০০",
+      "num1:1000000": "১০,০০,০০০.০",
+      "num2:1000000": "১০,০০,০০০.০০",
+      "int:1000000": "১০,০০,০০০",
+      "tk:1000000": "৳১০,০০,০০০.০০",
+      "lakh:1000000": "৳১০,০০০ কোটি",
+      "value:x:1000000": "১০,০০,০০০.০০×",
+      "value:%:1000000": "১০,০০,০০০.০%",
+      "value:pp:1000000": "+১০,০০,০০০.০ pp",
+      "value:lakh:1000000": "১০,০০,০০০",
+      "value:n:1000000": "১০,০০,০০০.০০",
+      "num0:12345678": "১,২৩,৪৫,৬৭৮",
+      "num1:12345678": "১,২৩,৪৫,৬৭৮.০",
+      "num2:12345678": "১,২৩,৪৫,৬৭৮.০০",
+      "int:12345678": "১,২৩,৪৫,৬৭৮",
+      "tk:12345678": "৳১,২৩,৪৫,৬৭৮.০০",
+      "lakh:12345678": "৳১,২৩,৪৫৭ কোটি",
+      "value:x:12345678": "১,২৩,৪৫,৬৭৮.০০×",
+      "value:%:12345678": "১,২৩,৪৫,৬৭৮.০%",
+      "value:pp:12345678": "+১,২৩,৪৫,৬৭৮.০ pp",
+      "value:lakh:12345678": "১,২৩,৪৫,৬৭৮",
+      "value:n:12345678": "১,২৩,৪৫,৬৭৮.০০",
+      "num0:-0.4": "-০",
+      "num1:-0.4": "-০.৪",
+      "num2:-0.4": "-০.৪০",
+      "int:-0.4": "-০",
+      "tk:-0.4": "৳-০.৪০",
+      "lakh:-0.4": "৳-০ লাখ",
+      "value:x:-0.4": "-০.৪০×",
+      "value:%:-0.4": "-০.৪%",
+      "value:pp:-0.4": "-০.৪ pp",
+      "value:lakh:-0.4": "-০",
+      "value:n:-0.4": "-০.৪০",
+      "num0:-12345.678": "-১২,৩৪৬",
+      "num1:-12345.678": "-১২,৩৪৫.৭",
+      "num2:-12345.678": "-১২,৩৪৫.৬৮",
+      "int:-12345.678": "-১২,৩৪৬",
+      "tk:-12345.678": "৳-১২,৩৪৫.৬৮",
+      "lakh:-12345.678": "৳-১২৩ কোটি",
+      "value:x:-12345.678": "-১২,৩৪৫.৬৮×",
+      "value:%:-12345.678": "-১২,৩৪৫.৭%",
+      "value:pp:-12345.678": "-১২,৩৪৫.৭ pp",
+      "value:lakh:-12345.678": "-১২,৩৪৬",
+      "value:n:-12345.678": "-১২,৩৪৫.৬৮",
+      "num0:1000000000": "১,০০,০০,০০,০০০",
+      "num1:1000000000": "১,০০,০০,০০,০০০.০",
+      "num2:1000000000": "১,০০,০০,০০,০০০.০০",
+      "int:1000000000": "১,০০,০০,০০,০০০",
+      "tk:1000000000": "৳১,০০,০০,০০,০০০.০০",
+      "lakh:1000000000": "৳১,০০,০০,০০০ কোটি",
+      "value:x:1000000000": "১,০০,০০,০০,০০০.০০×",
+      "value:%:1000000000": "১,০০,০০,০০,০০০.০%",
+      "value:pp:1000000000": "+১,০০,০০,০০,০০০.০ pp",
+      "value:lakh:1000000000": "১,০০,০০,০০,০০০",
+      "value:n:1000000000": "১,০০,০০,০০,০০০.০০",
+      "num0:0.0001": "০",
+      "num1:0.0001": "০.০",
+      "num2:0.0001": "০.০০",
+      "int:0.0001": "০",
+      "tk:0.0001": "৳০.০০",
+      "lakh:0.0001": "৳০ লাখ",
+      "value:x:0.0001": "০.০০×",
+      "value:%:0.0001": "০.০%",
+      "value:pp:0.0001": "+০.০ pp",
+      "value:lakh:0.0001": "০",
+      "value:n:0.0001": "০.০০",
+      "num2:nan": "–",
+      "int:nan": "–",
+      "tk:nan": "–",
+      "lakh:nan": "–",
+      "value:x:nan": "–"
+    }
+  },
+  "stringKeys": [
+    "a.collapseAll",
+    "a.copied",
+    "a.copyLink",
+    "a.download",
+    "a.expandAll",
+    "a.open",
+    "a.print",
+    "a.remove",
+    "a.reset",
+    "a.save",
+    "a.saveFailed",
+    "a.saveLabel",
+    "a.saveNamed",
+    "a.saved",
+    "a.savedOnes",
+    "calc.ahead",
+    "calc.chart.now",
+    "calc.chart.year",
+    "calc.compounding.f.monthly",
+    "calc.compounding.f.rate",
+    "calc.compounding.f.start",
+    "calc.compounding.f.years",
+    "calc.compounding.final",
+    "calc.compounding.final.note",
+    "calc.compounding.flat",
+    "calc.compounding.grows",
+    "calc.compounding.growth",
+    "calc.compounding.growth.note",
+    "calc.compounding.line.contributed",
+    "calc.compounding.line.totals",
+    "calc.compounding.paid",
+    "calc.compounding.paid.note",
+    "calc.compounding.short",
+    "calc.disclaimer",
+    "calc.emi.emi",
+    "calc.emi.emi.note",
+    "calc.emi.f.principal",
+    "calc.emi.f.rate",
+    "calc.emi.f.years",
+    "calc.emi.interest",
+    "calc.emi.interest.note",
+    "calc.emi.line.balances",
+    "calc.emi.line.paidInterest",
+    "calc.emi.plain",
+    "calc.emi.short",
+    "calc.emi.shorter",
+    "calc.emi.total",
+    "calc.emi.total.note",
+    "calc.eyebrow",
+    "calc.inflation.beats",
+    "calc.inflation.f.amount",
+    "calc.inflation.f.inflation",
+    "calc.inflation.f.nominal",
+    "calc.inflation.f.years",
+    "calc.inflation.line.nominalSeries",
+    "calc.inflation.line.realSeries",
+    "calc.inflation.loses",
+    "calc.inflation.lost",
+    "calc.inflation.lost.note",
+    "calc.inflation.real",
+    "calc.inflation.real.note",
+    "calc.inflation.real.note.losing",
+    "calc.inflation.short",
+    "calc.inflation.worth",
+    "calc.inflation.worth.note",
+    "calc.part.gross",
+    "calc.part.net",
+    "calc.part.paidTax",
+    "calc.part.total",
+    "calc.position.cost",
+    "calc.position.cost.note",
+    "calc.position.cost.note.over",
+    "calc.position.f.capital",
+    "calc.position.f.entry",
+    "calc.position.f.risk",
+    "calc.position.f.stop",
+    "calc.position.fits",
+    "calc.position.noStop",
+    "calc.position.riskTaka",
+    "calc.position.riskTaka.note",
+    "calc.position.shares",
+    "calc.position.shares.note",
+    "calc.position.short",
+    "calc.position.tooBig",
+    "calc.sanchayapatra.close",
+    "calc.sanchayapatra.f.amount",
+    "calc.sanchayapatra.f.frate",
+    "calc.sanchayapatra.f.ftax",
+    "calc.sanchayapatra.f.srate",
+    "calc.sanchayapatra.f.stax",
+    "calc.sanchayapatra.f.years",
+    "calc.sanchayapatra.fTotal",
+    "calc.sanchayapatra.fTotal.note",
+    "calc.sanchayapatra.fdr",
+    "calc.sanchayapatra.gap",
+    "calc.sanchayapatra.gap.note.f",
+    "calc.sanchayapatra.gap.note.s",
+    "calc.sanchayapatra.sTotal",
+    "calc.sanchayapatra.sTotal.note",
+    "calc.sanchayapatra.sanchayapatra",
+    "calc.sanchayapatra.short",
+    "disc.body",
+    "disc.title",
+    "disc.units",
+    "f.accrualGap",
+    "f.altmanDistress",
+    "f.cannotCoverInterest",
+    "f.categoryB",
+    "f.categoryN",
+    "f.debtHeavy",
+    "f.dividendFromDebt",
+    "f.fallingKnife",
+    "f.illiquid",
+    "f.loss",
+    "f.noDividend",
+    "f.nplHigh",
+    "f.payingForNothing",
+    "f.payoutOver",
+    "f.profitNoCash",
+    "f.thinFloat",
+    "f.vetoBurn",
+    "f.vetoEquity",
+    "f.vetoZ",
+    "fv.ddm",
+    "fv.earningsPower",
+    "fv.graham",
+    "fv.highest",
+    "fv.lowest",
+    "fv.median",
+    "fv.mos",
+    "fv.mosOver",
+    "fv.none",
+    "fv.price",
+    "fv.range",
+    "fv.sectorPb",
+    "fv.sectorPe",
+    "fv.wide",
+    "g.balance",
+    "g.bank",
+    "g.bankNote",
+    "g.benchmarks",
+    "g.benchmarksNote",
+    "g.cash",
+    "g.company",
+    "g.dividend",
+    "g.income",
+    "g.prior",
+    "g.priorNote",
+    "g.weights",
+    "g.weightsNote",
+    "grade.fair",
+    "grade.good",
+    "grade.na",
+    "grade.poor",
+    "grade.strong",
+    "grade.weak",
+    "i.adr",
+    "i.benchmark",
+    "i.capex",
+    "i.car",
+    "i.cash",
+    "i.category",
+    "i.cfo",
+    "i.cfoPrev",
+    "i.costIncome",
+    "i.currentAssets",
+    "i.currentAssetsPrev",
+    "i.currentLiabilities",
+    "i.currentLiabilitiesPrev",
+    "i.depreciation",
+    "i.divTax",
+    "i.dps",
+    "i.ebit",
+    "i.equity",
+    "i.fdr",
+    "i.freeFloat",
+    "i.grossProfit",
+    "i.grossProfitPrev",
+    "i.high52",
+    "i.indexReturn12m",
+    "i.inflation",
+    "i.interestExpense",
+    "i.inventory",
+    "i.low52",
+    "i.ma200",
+    "i.ma50",
+    "i.marketPE",
+    "i.netIncome",
+    "i.netIncome3y",
+    "i.netIncomePrev",
+    "i.nonCompliantIncome",
+    "i.npl",
+    "i.price",
+    "i.provisionCover",
+    "i.reserves",
+    "i.revenue",
+    "i.revenuePrev",
+    "i.riskFree",
+    "i.sector",
+    "i.sectorMargin",
+    "i.sectorPB",
+    "i.sectorPE",
+    "i.sectorROE",
+    "i.shares",
+    "i.sharesPrev",
+    "i.stockReturn12m",
+    "i.totalAssets",
+    "i.totalAssetsPrev",
+    "i.totalDebt",
+    "i.totalDebtPrev",
+    "i.turnover",
+    "i.yearsPaid",
+    "m.accruals",
+    "m.accruals.why",
+    "m.adr",
+    "m.adr.why",
+    "m.altmanZ",
+    "m.altmanZ.why",
+    "m.assetTurnover",
+    "m.assetTurnover.why",
+    "m.car",
+    "m.car.why",
+    "m.cashConversion",
+    "m.cashConversion.why",
+    "m.cfoGrowth",
+    "m.cfoGrowth.why",
+    "m.costIncome",
+    "m.costIncome.why",
+    "m.currentRatio",
+    "m.currentRatio.why",
+    "m.debtEquity",
+    "m.debtEquity.why",
+    "m.divCover",
+    "m.divCover.why",
+    "m.divYears",
+    "m.divYears.why",
+    "m.earningsYieldSpread",
+    "m.earningsYieldSpread.why",
+    "m.epsCagr3y",
+    "m.epsCagr3y.why",
+    "m.evEbitda",
+    "m.evEbitda.why",
+    "m.fScore",
+    "m.fScore.why",
+    "m.fcfCoverDiv",
+    "m.fcfCoverDiv.why",
+    "m.fcfYield",
+    "m.fcfYield.why",
+    "m.freeFloat",
+    "m.freeFloat.why",
+    "m.grossMargin",
+    "m.grossMargin.why",
+    "m.interestCover",
+    "m.interestCover.why",
+    "m.liquidity",
+    "m.liquidity.why",
+    "m.maCross",
+    "m.maCross.why",
+    "m.marginRel",
+    "m.marginRel.why",
+    "m.marginTrend",
+    "m.marginTrend.why",
+    "m.netDebtEbitda",
+    "m.netDebtEbitda.why",
+    "m.niGrowth",
+    "m.niGrowth.why",
+    "m.npl",
+    "m.npl.why",
+    "m.payout",
+    "m.payout.why",
+    "m.pbRel",
+    "m.pbRel.why",
+    "m.peRel",
+    "m.peRel.why",
+    "m.peVsMarket",
+    "m.peVsMarket.why",
+    "m.peg",
+    "m.peg.why",
+    "m.provisionCover",
+    "m.provisionCover.why",
+    "m.ps",
+    "m.ps.why",
+    "m.quickRatio",
+    "m.quickRatio.why",
+    "m.range52",
+    "m.range52.why",
+    "m.relStrength",
+    "m.relStrength.why",
+    "m.revGrowth",
+    "m.revGrowth.why",
+    "m.roce",
+    "m.roce.why",
+    "m.roe",
+    "m.roe.why",
+    "m.roeRel",
+    "m.roeRel.why",
+    "m.vsMa200",
+    "m.vsMa200.why",
+    "m.yieldSpread",
+    "m.yieldSpread.why",
+    "na.reason",
+    "p.accrual",
+    "p.cfo",
+    "p.dilution",
+    "p.leverage",
+    "p.liquidity",
+    "p.margin",
+    "p.profit",
+    "p.roaUp",
+    "p.skipped",
+    "p.turnover",
+    "page.eyebrow",
+    "page.h1",
+    "page.langLabel",
+    "page.lede",
+    "pillar.gives",
+    "pillar.growth",
+    "pillar.growth.why",
+    "pillar.health",
+    "pillar.health.why",
+    "pillar.income",
+    "pillar.income.why",
+    "pillar.momentum",
+    "pillar.momentum.why",
+    "pillar.notCounted",
+    "pillar.quality",
+    "pillar.quality.why",
+    "pillar.total",
+    "pillar.value",
+    "pillar.value.why",
+    "preset.bank",
+    "preset.cement",
+    "preset.it",
+    "preset.label",
+    "preset.note",
+    "preset.pharma",
+    "preset.power",
+    "preset.shell",
+    "preset.textile",
+    "s.balanceSheetStress",
+    "s.balanceSheetStress.why",
+    "s.beatsSafe",
+    "s.beatsSafe.why",
+    "s.borrowedReturn",
+    "s.borrowedReturn.why",
+    "s.capitalHungry",
+    "s.capitalHungry.why",
+    "s.cheapForReason",
+    "s.cheapForReason.why",
+    "s.dividendAtRisk",
+    "s.dividendAtRisk.why",
+    "s.earningsQualityGap",
+    "s.earningsQualityGap.why",
+    "s.fallingWithReason",
+    "s.fallingWithReason.why",
+    "s.growthPricedIn",
+    "s.growthPricedIn.why",
+    "s.losesToSafe",
+    "s.losesToSafe.why",
+    "s.momentumVsFundamentals",
+    "s.momentumVsFundamentals.why",
+    "s.qualityFairPrice",
+    "s.qualityFairPrice.why",
+    "s.thinlyTraded",
+    "s.thinlyTraded.why",
+    "s.turnaround",
+    "s.turnaround.why",
+    "s.valueTrap",
+    "s.valueTrap.why",
+    "sec.drags",
+    "sec.dragsNote",
+    "sec.dupont",
+    "sec.dupontNote",
+    "sec.fair",
+    "sec.fairNote",
+    "sec.flags",
+    "sec.flagsNote",
+    "sec.market",
+    "sec.pillars",
+    "sec.pillarsNote",
+    "sec.piotroski",
+    "sec.piotroskiNote",
+    "sec.scorecard",
+    "sec.scorecardNote",
+    "sec.shariah",
+    "sec.shariahNote",
+    "sec.signals",
+    "sec.signalsNote",
+    "sector.bank",
+    "sector.cement",
+    "sector.ceramics",
+    "sector.engineering",
+    "sector.food",
+    "sector.fuel",
+    "sector.insurance",
+    "sector.it",
+    "sector.nbfi",
+    "sector.other",
+    "sector.pharma",
+    "sector.telecom",
+    "sector.textile",
+    "sh.cash",
+    "sh.caveat",
+    "sh.debt",
+    "sh.fail",
+    "sh.income",
+    "sh.pass",
+    "style.balanced",
+    "style.growth",
+    "style.income",
+    "style.value",
+    "t.altman",
+    "t.crore",
+    "t.divYield",
+    "t.eps",
+    "t.fScore",
+    "t.mcap",
+    "t.mos",
+    "t.netDebt",
+    "t.notMeaningful",
+    "t.ofTested",
+    "t.pb",
+    "t.pe",
+    "t.roe",
+    "t.vsRiskFree",
+    "t.vsSector",
+    "th.cost",
+    "th.metric",
+    "th.pillar",
+    "th.score",
+    "th.value",
+    "th.weight",
+    "verdict.accumulate",
+    "verdict.accumulate.why",
+    "verdict.avoid",
+    "verdict.avoid.why",
+    "verdict.buy",
+    "verdict.buy.why",
+    "verdict.buyBelow",
+    "verdict.capped",
+    "verdict.cappedWhy",
+    "verdict.headroom",
+    "verdict.hold",
+    "verdict.hold.why",
+    "verdict.noBuyBelow",
+    "verdict.outOf",
+    "verdict.score",
+    "verdict.title",
+    "verdict.trim",
+    "verdict.trim.why",
+    "verdict.vetoed",
+    "verdict.vetoedWhy"
+  ],
+  "cases": [
+    {
+      "name": "healthy-pharma",
+      "why": "the defaults: everything present, nothing extreme",
+      "input": {},
+      "out": {
+        "ratios": {
+          "isFinancial": false,
+          "mcap": 252000,
+          "eps": 12.333333333333334,
+          "epsPrev": 10.75,
+          "bvps": 76.66666666666667,
+          "ebitda": 26100,
+          "netDebt": 9500,
+          "ev": 261500,
+          "fcf": 8500,
+          "paidUp": 12000,
+          "pe": 17.027027027027025,
+          "pb": 2.7391304347826084,
+          "ps": 2.6526315789473682,
+          "evEbitda": 10.019157088122606,
+          "earningsYield": 5.8730158730158735,
+          "fcfYield": 3.373015873015873,
+          "divYield": 2.142857142857143,
+          "divYieldNet": 1.9285714285714286,
+          "peRel": 1.064189189189189,
+          "pbRel": 1.0535117056856187,
+          "peVsMarket": 1.362162162162162,
+          "revGrowth": 13.095238095238097,
+          "epsGrowth": 14.728682170542642,
+          "niGrowth": 14.728682170542637,
+          "epsCagr3y": 15.521679473813489,
+          "cfoGrowth": 13.372093023255813,
+          "peg": 1.096983548446107,
+          "avgAssets": 126500,
+          "roe": 16.08695652173913,
+          "roa": 11.699604743083004,
+          "capitalEmployed": 106000,
+          "roce": 19.716981132075475,
+          "grossMargin": 48,
+          "opMargin": 22,
+          "netMargin": 15.578947368421053,
+          "netMarginPrev": 15.357142857142858,
+          "marginTrend": 0.22180451127819545,
+          "marginRel": 1.1983805668016194,
+          "roeRel": 1.072463768115942,
+          "assetTurnover": 0.7509881422924901,
+          "dupontMargin": 15.578947368421053,
+          "dupontTurnover": 0.7509881422924901,
+          "dupontLeverage": 1.375,
+          "dupontRoe": 16.086956521739133,
+          "cashConversion": 1.3175675675675675,
+          "accruals": -0.03715415019762846,
+          "debtEquity": 0.20652173913043478,
+          "netDebtEbitda": 0.36398467432950193,
+          "interestCover": 16.076923076923077,
+          "currentRatio": 2,
+          "quickRatio": 1.1923076923076923,
+          "payout": 36.486486486486484,
+          "divCover": 2.740740740740741,
+          "divTotal": 5400,
+          "fcfCoverDiv": 1.5740740740740742,
+          "yieldSpread": -8.897142857142857,
+          "yieldVsFdr": -6.357142857142858,
+          "realYield": -7.557142857142857,
+          "earningsYieldSpread": -5.166984126984126,
+          "range52": 53.84615384615385,
+          "vsHigh": -14.634146341463413,
+          "vsMa50": 2.4390243902439024,
+          "vsMa200": 6.0606060606060606,
+          "maCross": 1.0353535353535352,
+          "relStrength": 5,
+          "altmanZ": 9.996878787878789,
+          "fScore": 9,
+          "fTested": 9,
+          "fChecks": [
+            {
+              "id": "profit",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "accrual",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "liquidity",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "dilution",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "margin",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "turnover",
+              "pass": true,
+              "testable": true
+            }
+          ]
+        },
+        "scored": {
+          "peRel": {
+            "id": "peRel",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.064189189189189,
+            "raw": 17.027027027027025,
+            "score": 55.988175675675684,
+            "grade": "fair",
+            "na": false
+          },
+          "pbRel": {
+            "id": "pbRel",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.0535117056856187,
+            "raw": 2.7391304347826084,
+            "score": 57.324414715719065,
+            "grade": "fair",
+            "na": false
+          },
+          "evEbitda": {
+            "id": "evEbitda",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 10.019157088122606,
+            "raw": 10.019157088122606,
+            "score": 45.865900383141756,
+            "grade": "fair",
+            "na": false
+          },
+          "earningsYieldSpread": {
+            "id": "earningsYieldSpread",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": -5.166984126984126,
+            "raw": -5.166984126984126,
+            "score": 11.332063492063497,
+            "grade": "poor",
+            "na": false
+          },
+          "fcfYield": {
+            "id": "fcfYield",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 3.373015873015873,
+            "raw": 3.373015873015873,
+            "score": 53.10846560846561,
+            "grade": "fair",
+            "na": false
+          },
+          "peg": {
+            "id": "peg",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.096983548446107,
+            "raw": 1.096983548446107,
+            "score": 70.15082257769465,
+            "grade": "good",
+            "na": false
+          },
+          "peVsMarket": {
+            "id": "peVsMarket",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.362162162162162,
+            "raw": 17.027027027027025,
+            "score": 42.44324324324325,
+            "grade": "weak",
+            "na": false
+          },
+          "ps": {
+            "id": "ps",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": 2.6526315789473682,
+            "raw": 2.6526315789473682,
+            "score": 38.021052631578954,
+            "grade": "weak",
+            "na": false
+          },
+          "roe": {
+            "id": "roe",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 16.08695652173913,
+            "raw": 16.08695652173913,
+            "score": 62.028985507246375,
+            "grade": "good",
+            "na": false
+          },
+          "roce": {
+            "id": "roce",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 19.716981132075475,
+            "raw": 19.716981132075475,
+            "score": 83.47708894878707,
+            "grade": "strong",
+            "na": false
+          },
+          "marginRel": {
+            "id": "marginRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.1983805668016194,
+            "raw": 15.578947368421053,
+            "score": 69.91902834008097,
+            "grade": "good",
+            "na": false
+          },
+          "roeRel": {
+            "id": "roeRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.072463768115942,
+            "raw": 16.08695652173913,
+            "score": 63.985507246376805,
+            "grade": "good",
+            "na": false
+          },
+          "grossMargin": {
+            "id": "grossMargin",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "%",
+            "hi": true,
+            "value": 48,
+            "raw": 48,
+            "score": 90.66666666666667,
+            "grade": "strong",
+            "na": false
+          },
+          "cashConversion": {
+            "id": "cashConversion",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.3175675675675675,
+            "raw": 1.3175675675675675,
+            "score": 90.25096525096525,
+            "grade": "strong",
+            "na": false
+          },
+          "accruals": {
+            "id": "accruals",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": -0.03715415019762846,
+            "raw": -0.03715415019762846,
+            "score": 96.14624505928853,
+            "grade": "strong",
+            "na": false
+          },
+          "assetTurnover": {
+            "id": "assetTurnover",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "x",
+            "hi": true,
+            "value": 0.7509881422924901,
+            "raw": 0.7509881422924901,
+            "score": 58.39920948616601,
+            "grade": "fair",
+            "na": false
+          },
+          "revGrowth": {
+            "id": "revGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 13.095238095238097,
+            "raw": 13.095238095238097,
+            "score": 69.5578231292517,
+            "grade": "good",
+            "na": false
+          },
+          "niGrowth": {
+            "id": "niGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 14.728682170542637,
+            "raw": 14.728682170542637,
+            "score": 69.45736434108528,
+            "grade": "good",
+            "na": false
+          },
+          "epsCagr3y": {
+            "id": "epsCagr3y",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 15.521679473813489,
+            "raw": 15.521679473813489,
+            "score": 75.18461855298709,
+            "grade": "good",
+            "na": false
+          },
+          "cfoGrowth": {
+            "id": "cfoGrowth",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 13.372093023255813,
+            "raw": 13.372093023255813,
+            "score": 67.17054263565892,
+            "grade": "good",
+            "na": false
+          },
+          "marginTrend": {
+            "id": "marginTrend",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "pp",
+            "hi": true,
+            "value": 0.22180451127819545,
+            "raw": 0.22180451127819545,
+            "score": 54.43609022556391,
+            "grade": "fair",
+            "na": false
+          },
+          "debtEquity": {
+            "id": "debtEquity",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.20652173913043478,
+            "raw": 0.20652173913043478,
+            "score": 89.67391304347827,
+            "grade": "strong",
+            "na": false
+          },
+          "netDebtEbitda": {
+            "id": "netDebtEbitda",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.36398467432950193,
+            "raw": 0.36398467432950193,
+            "score": 86.90421455938697,
+            "grade": "strong",
+            "na": false
+          },
+          "interestCover": {
+            "id": "interestCover",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": 16.076923076923077,
+            "raw": 16.076923076923077,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "currentRatio": {
+            "id": "currentRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 2,
+            "raw": 2,
+            "score": 90,
+            "grade": "strong",
+            "na": false
+          },
+          "quickRatio": {
+            "id": "quickRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.1923076923076923,
+            "raw": 1.1923076923076923,
+            "score": 73.84615384615384,
+            "grade": "good",
+            "na": false
+          },
+          "altmanZ": {
+            "id": "altmanZ",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "n",
+            "hi": true,
+            "value": 9.996878787878789,
+            "raw": 9.996878787878789,
+            "score": 99.98127272727274,
+            "grade": "strong",
+            "na": false
+          },
+          "fScore": {
+            "id": "fScore",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "n",
+            "hi": true,
+            "value": 9,
+            "raw": 9,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "car": {
+            "id": "car",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "npl": {
+            "id": "npl",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "provisionCover": {
+            "id": "provisionCover",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "costIncome": {
+            "id": "costIncome",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "adr": {
+            "id": "adr",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "yieldSpread": {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "w": 6,
+            "fmt": "pp",
+            "hi": true,
+            "value": -8.897142857142857,
+            "raw": -8.897142857142857,
+            "score": 7.570285714285716,
+            "grade": "poor",
+            "na": false
+          },
+          "payout": {
+            "id": "payout",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 36.486486486486484,
+            "raw": 36.486486486486484,
+            "score": 79.72972972972973,
+            "grade": "good",
+            "na": false
+          },
+          "divCover": {
+            "id": "divCover",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 2.740740740740741,
+            "raw": 2.740740740740741,
+            "score": 95.80246913580247,
+            "grade": "strong",
+            "na": false
+          },
+          "fcfCoverDiv": {
+            "id": "fcfCoverDiv",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.5740740740740742,
+            "raw": 1.5740740740740742,
+            "score": 83.33333333333333,
+            "grade": "strong",
+            "na": false
+          },
+          "divYears": {
+            "id": "divYears",
+            "pillar": "income",
+            "w": 1,
+            "fmt": "n",
+            "hi": true,
+            "value": 12,
+            "raw": 12,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "range52": {
+            "id": "range52",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 53.84615384615385,
+            "raw": 53.84615384615385,
+            "score": 68.07692307692308,
+            "grade": "good",
+            "na": false
+          },
+          "vsMa200": {
+            "id": "vsMa200",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 6.0606060606060606,
+            "raw": 6.0606060606060606,
+            "score": 76.06060606060606,
+            "grade": "good",
+            "na": false
+          },
+          "maCross": {
+            "id": "maCross",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.0353535353535352,
+            "raw": 1.0353535353535352,
+            "score": 72.67676767676761,
+            "grade": "good",
+            "na": false
+          },
+          "relStrength": {
+            "id": "relStrength",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": 5,
+            "raw": 5,
+            "score": 63.33333333333333,
+            "grade": "good",
+            "na": false
+          },
+          "liquidity": {
+            "id": "liquidity",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "lakh",
+            "hi": true,
+            "value": 85,
+            "raw": 85,
+            "score": 83.57142857142857,
+            "grade": "strong",
+            "na": false
+          },
+          "freeFloat": {
+            "id": "freeFloat",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 38,
+            "raw": 38,
+            "score": 68.33333333333333,
+            "grade": "good",
+            "na": false
+          }
+        },
+        "pillars": {
+          "value": {
+            "score": 45.95776374675513,
+            "n": 8,
+            "of": 8
+          },
+          "quality": {
+            "score": 77.06009172603339,
+            "n": 8,
+            "of": 8
+          },
+          "growth": {
+            "score": 68.13943721480138,
+            "n": 5,
+            "of": 5
+          },
+          "health": {
+            "score": 92.0761393712623,
+            "n": 7,
+            "of": 12
+          },
+          "income": {
+            "score": 51.011752206418876,
+            "n": 5,
+            "of": 5
+          },
+          "momentum": {
+            "score": 72.47134347134347,
+            "n": 6,
+            "of": 6
+          }
+        },
+        "score": 68.13861172912755,
+        "grade": "good",
+        "band": {
+          "id": "accumulate",
+          "min": 62
+        },
+        "flags": [],
+        "signals": [
+          {
+            "id": "losesToSafe",
+            "tone": "warn"
+          }
+        ],
+        "altman": 9.996878787878789,
+        "piotroski": {
+          "checks": [
+            {
+              "id": "profit",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "accrual",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "liquidity",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "dilution",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "margin",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "turnover",
+              "pass": true,
+              "testable": true
+            }
+          ],
+          "tested": 9,
+          "score": 9
+        },
+        "fairValue": {
+          "anchors": [
+            {
+              "id": "sectorPe",
+              "value": 197.33333333333334
+            },
+            {
+              "id": "sectorPb",
+              "value": 199.33333333333334
+            },
+            {
+              "id": "graham",
+              "value": 145.8595214581482
+            },
+            {
+              "id": "ddm",
+              "value": 252.08999999999997
+            },
+            {
+              "id": "earningsPower",
+              "value": 87.84425451092119
+            }
+          ],
+          "low": 87.84425451092119,
+          "mid": 197.33333333333334,
+          "high": 252.08999999999997,
+          "marginOfSafety": -6.418918918918914,
+          "spread": 2.8697380540540536
+        },
+        "shariah": {
+          "tests": [
+            {
+              "id": "debt",
+              "value": 7.5396825396825395,
+              "limit": 33,
+              "pass": true
+            },
+            {
+              "id": "cash",
+              "value": 3.7698412698412698,
+              "limit": 33,
+              "pass": true
+            },
+            {
+              "id": "income",
+              "value": 3,
+              "limit": 5,
+              "pass": true
+            }
+          ],
+          "pass": true,
+          "tested": 3
+        },
+        "drags": [
+          {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "score": 7.570285714285716,
+            "cost": 6.39898021978022,
+            "share": 0.06923076923076923
+          },
+          {
+            "id": "earningsYieldSpread",
+            "pillar": "value",
+            "score": 11.332063492063497,
+            "cost": 3.3250476190476195,
+            "share": 0.037500000000000006
+          },
+          {
+            "id": "peRel",
+            "pillar": "value",
+            "score": 55.988175675675684,
+            "cost": 1.650443412162162,
+            "share": 0.037500000000000006
+          },
+          {
+            "id": "roe",
+            "pillar": "quality",
+            "score": 62.028985507246375,
+            "cost": 1.4239130434782612,
+            "share": 0.037500000000000006
+          },
+          {
+            "id": "evEbitda",
+            "pillar": "value",
+            "score": 45.865900383141756,
+            "cost": 1.3533524904214562,
+            "share": 0.025
+          },
+          {
+            "id": "fcfYield",
+            "pillar": "value",
+            "score": 53.10846560846561,
+            "cost": 1.1722883597883598,
+            "share": 0.025
+          }
+        ],
+        "priceCap": null
+      }
+    },
+    {
+      "name": "bank",
+      "why": "the financial path, where half the ordinary ratios do not apply and the sector extras take over",
+      "input": {
+        "sector": "bank",
+        "car": 13.5,
+        "npl": 4.2,
+        "provisionCover": 85,
+        "costIncome": 52,
+        "adr": 78,
+        "revenue": 42000,
+        "grossProfit": 42000,
+        "inventory": 0,
+        "capex": 900
+      },
+      "out": {
+        "ratios": {
+          "isFinancial": true,
+          "mcap": 252000,
+          "eps": 12.333333333333334,
+          "epsPrev": 10.75,
+          "bvps": 76.66666666666667,
+          "ebitda": 26100,
+          "netDebt": 9500,
+          "ev": 261500,
+          "fcf": 18600,
+          "paidUp": 12000,
+          "pe": 17.027027027027025,
+          "pb": 2.7391304347826084,
+          "ps": 6,
+          "evEbitda": 10.019157088122606,
+          "earningsYield": 5.8730158730158735,
+          "fcfYield": 7.380952380952381,
+          "divYield": 2.142857142857143,
+          "divYieldNet": 1.9285714285714286,
+          "peRel": 1.064189189189189,
+          "pbRel": 1.0535117056856187,
+          "peVsMarket": 1.362162162162162,
+          "revGrowth": -50,
+          "epsGrowth": 14.728682170542642,
+          "niGrowth": 14.728682170542637,
+          "epsCagr3y": 15.521679473813489,
+          "cfoGrowth": 13.372093023255813,
+          "peg": 1.096983548446107,
+          "avgAssets": 126500,
+          "roe": 16.08695652173913,
+          "roa": 11.699604743083004,
+          "capitalEmployed": 106000,
+          "roce": null,
+          "grossMargin": 100,
+          "opMargin": 49.76190476190476,
+          "netMargin": 35.23809523809524,
+          "netMarginPrev": 15.357142857142858,
+          "marginTrend": 19.880952380952383,
+          "marginRel": 2.7106227106227108,
+          "roeRel": 1.072463768115942,
+          "assetTurnover": null,
+          "dupontMargin": 35.23809523809524,
+          "dupontTurnover": 0.33201581027667987,
+          "dupontLeverage": 1.375,
+          "dupontRoe": 16.086956521739133,
+          "cashConversion": 1.3175675675675675,
+          "accruals": -0.03715415019762846,
+          "debtEquity": 0.20652173913043478,
+          "netDebtEbitda": 0.36398467432950193,
+          "interestCover": 16.076923076923077,
+          "currentRatio": null,
+          "quickRatio": null,
+          "payout": 36.486486486486484,
+          "divCover": 2.740740740740741,
+          "divTotal": 5400,
+          "fcfCoverDiv": 3.4444444444444446,
+          "yieldSpread": -8.897142857142857,
+          "yieldVsFdr": -6.357142857142858,
+          "realYield": -7.557142857142857,
+          "earningsYieldSpread": -5.166984126984126,
+          "range52": 53.84615384615385,
+          "vsHigh": -14.634146341463413,
+          "vsMa50": 2.4390243902439024,
+          "vsMa200": 6.0606060606060606,
+          "maCross": 1.0353535353535352,
+          "relStrength": 5,
+          "altmanZ": null,
+          "fScore": 8,
+          "fTested": 9,
+          "fChecks": [
+            {
+              "id": "profit",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "accrual",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "liquidity",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "dilution",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "margin",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "turnover",
+              "pass": false,
+              "testable": true
+            }
+          ]
+        },
+        "scored": {
+          "peRel": {
+            "id": "peRel",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.064189189189189,
+            "raw": 17.027027027027025,
+            "score": 55.988175675675684,
+            "grade": "fair",
+            "na": false
+          },
+          "pbRel": {
+            "id": "pbRel",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.0535117056856187,
+            "raw": 2.7391304347826084,
+            "score": 57.324414715719065,
+            "grade": "fair",
+            "na": false
+          },
+          "evEbitda": {
+            "id": "evEbitda",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "earningsYieldSpread": {
+            "id": "earningsYieldSpread",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": -5.166984126984126,
+            "raw": -5.166984126984126,
+            "score": 11.332063492063497,
+            "grade": "poor",
+            "na": false
+          },
+          "fcfYield": {
+            "id": "fcfYield",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 7.380952380952381,
+            "raw": 7.380952380952381,
+            "score": 80.86904761904762,
+            "grade": "strong",
+            "na": false
+          },
+          "peg": {
+            "id": "peg",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.096983548446107,
+            "raw": 1.096983548446107,
+            "score": 70.15082257769465,
+            "grade": "good",
+            "na": false
+          },
+          "peVsMarket": {
+            "id": "peVsMarket",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.362162162162162,
+            "raw": 17.027027027027025,
+            "score": 42.44324324324325,
+            "grade": "weak",
+            "na": false
+          },
+          "ps": {
+            "id": "ps",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "roe": {
+            "id": "roe",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 16.08695652173913,
+            "raw": 16.08695652173913,
+            "score": 62.028985507246375,
+            "grade": "good",
+            "na": false
+          },
+          "roce": {
+            "id": "roce",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "marginRel": {
+            "id": "marginRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 2.7106227106227108,
+            "raw": 35.23809523809524,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "roeRel": {
+            "id": "roeRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.072463768115942,
+            "raw": 16.08695652173913,
+            "score": 63.985507246376805,
+            "grade": "good",
+            "na": false
+          },
+          "grossMargin": {
+            "id": "grossMargin",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "cashConversion": {
+            "id": "cashConversion",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.3175675675675675,
+            "raw": 1.3175675675675675,
+            "score": 90.25096525096525,
+            "grade": "strong",
+            "na": false
+          },
+          "accruals": {
+            "id": "accruals",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": -0.03715415019762846,
+            "raw": -0.03715415019762846,
+            "score": 96.14624505928853,
+            "grade": "strong",
+            "na": false
+          },
+          "assetTurnover": {
+            "id": "assetTurnover",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "x",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "revGrowth": {
+            "id": "revGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": -50,
+            "raw": -50,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "niGrowth": {
+            "id": "niGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 14.728682170542637,
+            "raw": 14.728682170542637,
+            "score": 69.45736434108528,
+            "grade": "good",
+            "na": false
+          },
+          "epsCagr3y": {
+            "id": "epsCagr3y",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 15.521679473813489,
+            "raw": 15.521679473813489,
+            "score": 75.18461855298709,
+            "grade": "good",
+            "na": false
+          },
+          "cfoGrowth": {
+            "id": "cfoGrowth",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 13.372093023255813,
+            "raw": 13.372093023255813,
+            "score": 67.17054263565892,
+            "grade": "good",
+            "na": false
+          },
+          "marginTrend": {
+            "id": "marginTrend",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "pp",
+            "hi": true,
+            "value": 19.880952380952383,
+            "raw": 19.880952380952383,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "debtEquity": {
+            "id": "debtEquity",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "netDebtEbitda": {
+            "id": "netDebtEbitda",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "interestCover": {
+            "id": "interestCover",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "currentRatio": {
+            "id": "currentRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "quickRatio": {
+            "id": "quickRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "altmanZ": {
+            "id": "altmanZ",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "n",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "fScore": {
+            "id": "fScore",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "n",
+            "hi": true,
+            "value": 8,
+            "raw": 8,
+            "score": 92,
+            "grade": "strong",
+            "na": false
+          },
+          "car": {
+            "id": "car",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 13.5,
+            "raw": 13.5,
+            "score": 70,
+            "grade": "good",
+            "na": false
+          },
+          "npl": {
+            "id": "npl",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": false,
+            "value": 4.2,
+            "raw": 4.2,
+            "score": 66.8,
+            "grade": "good",
+            "na": false
+          },
+          "provisionCover": {
+            "id": "provisionCover",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 85,
+            "raw": 85,
+            "score": 61.25,
+            "grade": "fair",
+            "na": false
+          },
+          "costIncome": {
+            "id": "costIncome",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": 52,
+            "raw": 52,
+            "score": 55.6,
+            "grade": "fair",
+            "na": false
+          },
+          "adr": {
+            "id": "adr",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": 78,
+            "raw": 78,
+            "score": 80.28571428571429,
+            "grade": "strong",
+            "na": false
+          },
+          "yieldSpread": {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "w": 6,
+            "fmt": "pp",
+            "hi": true,
+            "value": -8.897142857142857,
+            "raw": -8.897142857142857,
+            "score": 7.570285714285716,
+            "grade": "poor",
+            "na": false
+          },
+          "payout": {
+            "id": "payout",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 36.486486486486484,
+            "raw": 36.486486486486484,
+            "score": 79.72972972972973,
+            "grade": "good",
+            "na": false
+          },
+          "divCover": {
+            "id": "divCover",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 2.740740740740741,
+            "raw": 2.740740740740741,
+            "score": 95.80246913580247,
+            "grade": "strong",
+            "na": false
+          },
+          "fcfCoverDiv": {
+            "id": "fcfCoverDiv",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 3.4444444444444446,
+            "raw": 3.4444444444444446,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "divYears": {
+            "id": "divYears",
+            "pillar": "income",
+            "w": 1,
+            "fmt": "n",
+            "hi": true,
+            "value": 12,
+            "raw": 12,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "range52": {
+            "id": "range52",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 53.84615384615385,
+            "raw": 53.84615384615385,
+            "score": 68.07692307692308,
+            "grade": "good",
+            "na": false
+          },
+          "vsMa200": {
+            "id": "vsMa200",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 6.0606060606060606,
+            "raw": 6.0606060606060606,
+            "score": 76.06060606060606,
+            "grade": "good",
+            "na": false
+          },
+          "maCross": {
+            "id": "maCross",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.0353535353535352,
+            "raw": 1.0353535353535352,
+            "score": 72.67676767676761,
+            "grade": "good",
+            "na": false
+          },
+          "relStrength": {
+            "id": "relStrength",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": 5,
+            "raw": 5,
+            "score": 63.33333333333333,
+            "grade": "good",
+            "na": false
+          },
+          "liquidity": {
+            "id": "liquidity",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "lakh",
+            "hi": true,
+            "value": 85,
+            "raw": 85,
+            "score": 83.57142857142857,
+            "grade": "strong",
+            "na": false
+          },
+          "freeFloat": {
+            "id": "freeFloat",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 38,
+            "raw": 38,
+            "score": 68.33333333333333,
+            "grade": "good",
+            "na": false
+          }
+        },
+        "pillars": {
+          "value": {
+            "score": 50.85327158241411,
+            "n": 6,
+            "of": 8
+          },
+          "quality": {
+            "score": 81.42527974049712,
+            "n": 5,
+            "of": 8
+          },
+          "growth": {
+            "score": 59.09746415027192,
+            "n": 5,
+            "of": 5
+          },
+          "health": {
+            "score": 70.61938775510204,
+            "n": 6,
+            "of": 12
+          },
+          "income": {
+            "score": 53.57585477052143,
+            "n": 5,
+            "of": 5
+          },
+          "momentum": {
+            "score": 72.47134347134347,
+            "n": 6,
+            "of": 6
+          }
+        },
+        "score": 64.72772000085601,
+        "grade": "good",
+        "band": {
+          "id": "accumulate",
+          "min": 62
+        },
+        "flags": [],
+        "signals": [
+          {
+            "id": "losesToSafe",
+            "tone": "warn"
+          }
+        ],
+        "altman": 9.996878787878789,
+        "piotroski": {
+          "checks": [
+            {
+              "id": "profit",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "accrual",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "liquidity",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "dilution",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "margin",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "turnover",
+              "pass": false,
+              "testable": true
+            }
+          ],
+          "tested": 9,
+          "score": 8
+        },
+        "fairValue": {
+          "anchors": [
+            {
+              "id": "sectorPe",
+              "value": 197.33333333333334
+            },
+            {
+              "id": "sectorPb",
+              "value": 199.33333333333334
+            },
+            {
+              "id": "graham",
+              "value": 145.8595214581482
+            },
+            {
+              "id": "ddm",
+              "value": 252.08999999999997
+            },
+            {
+              "id": "earningsPower",
+              "value": 87.84425451092119
+            }
+          ],
+          "low": 87.84425451092119,
+          "mid": 197.33333333333334,
+          "high": 252.08999999999997,
+          "marginOfSafety": -6.418918918918914,
+          "spread": 2.8697380540540536
+        },
+        "shariah": {
+          "tests": [
+            {
+              "id": "debt",
+              "value": 7.5396825396825395,
+              "limit": 33,
+              "pass": true
+            },
+            {
+              "id": "cash",
+              "value": 3.7698412698412698,
+              "limit": 33,
+              "pass": true
+            },
+            {
+              "id": "income",
+              "value": 3,
+              "limit": 5,
+              "pass": true
+            }
+          ],
+          "pass": true,
+          "tested": 3
+        },
+        "drags": [
+          {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "score": 7.570285714285716,
+            "cost": 6.39898021978022,
+            "share": 0.06923076923076923
+          },
+          {
+            "id": "earningsYieldSpread",
+            "pillar": "value",
+            "score": 11.332063492063497,
+            "cost": 4.0923663003663,
+            "share": 0.046153846153846156
+          },
+          {
+            "id": "revGrowth",
+            "pillar": "growth",
+            "score": 0,
+            "cost": 3.4615384615384617,
+            "share": 0.03461538461538462
+          },
+          {
+            "id": "peRel",
+            "pillar": "value",
+            "score": 55.988175675675684,
+            "cost": 2.0313149688149683,
+            "share": 0.046153846153846156
+          },
+          {
+            "id": "roe",
+            "pillar": "quality",
+            "score": 62.028985507246375,
+            "cost": 1.8985507246376814,
+            "share": 0.05
+          },
+          {
+            "id": "npl",
+            "pillar": "health",
+            "score": 66.8,
+            "cost": 1.422857142857143,
+            "share": 0.04285714285714286
+          }
+        ],
+        "priceCap": null
+      }
+    },
+    {
+      "name": "no-prior-year",
+      "why": "every trend metric and the whole Piotroski score must report NOT TESTABLE rather than scoring a zero, which is the difference between 'we cannot tell' and 'it is bad'",
+      "input": {
+        "revenuePrev": 0,
+        "grossProfitPrev": 0,
+        "netIncomePrev": 0,
+        "totalAssetsPrev": 0,
+        "currentAssetsPrev": 0,
+        "currentLiabilitiesPrev": 0,
+        "totalDebtPrev": 0,
+        "cfoPrev": 0,
+        "sharesPrev": 0,
+        "netIncome3y": 0
+      },
+      "out": {
+        "ratios": {
+          "isFinancial": false,
+          "mcap": 252000,
+          "eps": 12.333333333333334,
+          "epsPrev": 0,
+          "bvps": 76.66666666666667,
+          "ebitda": 26100,
+          "netDebt": 9500,
+          "ev": 261500,
+          "fcf": 8500,
+          "paidUp": 12000,
+          "pe": 17.027027027027025,
+          "pb": 2.7391304347826084,
+          "ps": 2.6526315789473682,
+          "evEbitda": 10.019157088122606,
+          "earningsYield": 5.8730158730158735,
+          "fcfYield": 3.373015873015873,
+          "divYield": 2.142857142857143,
+          "divYieldNet": 1.9285714285714286,
+          "peRel": 1.064189189189189,
+          "pbRel": 1.0535117056856187,
+          "peVsMarket": 1.362162162162162,
+          "revGrowth": null,
+          "epsGrowth": null,
+          "niGrowth": null,
+          "epsCagr3y": null,
+          "cfoGrowth": null,
+          "peg": null,
+          "avgAssets": 132000,
+          "roe": 16.08695652173913,
+          "roa": 11.212121212121213,
+          "capitalEmployed": 106000,
+          "roce": 19.716981132075475,
+          "grossMargin": 48,
+          "opMargin": 22,
+          "netMargin": 15.578947368421053,
+          "netMarginPrev": null,
+          "marginTrend": null,
+          "marginRel": 1.1983805668016194,
+          "roeRel": 1.072463768115942,
+          "assetTurnover": 0.7196969696969697,
+          "dupontMargin": 15.578947368421053,
+          "dupontTurnover": 0.7196969696969697,
+          "dupontLeverage": 1.434782608695652,
+          "dupontRoe": 16.086956521739133,
+          "cashConversion": 1.3175675675675675,
+          "accruals": -0.035606060606060606,
+          "debtEquity": 0.20652173913043478,
+          "netDebtEbitda": 0.36398467432950193,
+          "interestCover": 16.076923076923077,
+          "currentRatio": 2,
+          "quickRatio": 1.1923076923076923,
+          "payout": 36.486486486486484,
+          "divCover": 2.740740740740741,
+          "divTotal": 5400,
+          "fcfCoverDiv": 1.5740740740740742,
+          "yieldSpread": -8.897142857142857,
+          "yieldVsFdr": -6.357142857142858,
+          "realYield": -7.557142857142857,
+          "earningsYieldSpread": -5.166984126984126,
+          "range52": 53.84615384615385,
+          "vsHigh": -14.634146341463413,
+          "vsMa50": 2.4390243902439024,
+          "vsMa200": 6.0606060606060606,
+          "maCross": 1.0353535353535352,
+          "relStrength": 5,
+          "altmanZ": 9.996878787878789,
+          "fScore": 3,
+          "fTested": 3,
+          "fChecks": [
+            {
+              "id": "profit",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": null,
+              "testable": false
+            },
+            {
+              "id": "accrual",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": null,
+              "testable": false
+            },
+            {
+              "id": "liquidity",
+              "pass": null,
+              "testable": false
+            },
+            {
+              "id": "dilution",
+              "pass": null,
+              "testable": false
+            },
+            {
+              "id": "margin",
+              "pass": null,
+              "testable": false
+            },
+            {
+              "id": "turnover",
+              "pass": null,
+              "testable": false
+            }
+          ]
+        },
+        "scored": {
+          "peRel": {
+            "id": "peRel",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.064189189189189,
+            "raw": 17.027027027027025,
+            "score": 55.988175675675684,
+            "grade": "fair",
+            "na": false
+          },
+          "pbRel": {
+            "id": "pbRel",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.0535117056856187,
+            "raw": 2.7391304347826084,
+            "score": 57.324414715719065,
+            "grade": "fair",
+            "na": false
+          },
+          "evEbitda": {
+            "id": "evEbitda",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 10.019157088122606,
+            "raw": 10.019157088122606,
+            "score": 45.865900383141756,
+            "grade": "fair",
+            "na": false
+          },
+          "earningsYieldSpread": {
+            "id": "earningsYieldSpread",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": -5.166984126984126,
+            "raw": -5.166984126984126,
+            "score": 11.332063492063497,
+            "grade": "poor",
+            "na": false
+          },
+          "fcfYield": {
+            "id": "fcfYield",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 3.373015873015873,
+            "raw": 3.373015873015873,
+            "score": 53.10846560846561,
+            "grade": "fair",
+            "na": false
+          },
+          "peg": {
+            "id": "peg",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "peVsMarket": {
+            "id": "peVsMarket",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.362162162162162,
+            "raw": 17.027027027027025,
+            "score": 42.44324324324325,
+            "grade": "weak",
+            "na": false
+          },
+          "ps": {
+            "id": "ps",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": 2.6526315789473682,
+            "raw": 2.6526315789473682,
+            "score": 38.021052631578954,
+            "grade": "weak",
+            "na": false
+          },
+          "roe": {
+            "id": "roe",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 16.08695652173913,
+            "raw": 16.08695652173913,
+            "score": 62.028985507246375,
+            "grade": "good",
+            "na": false
+          },
+          "roce": {
+            "id": "roce",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 19.716981132075475,
+            "raw": 19.716981132075475,
+            "score": 83.47708894878707,
+            "grade": "strong",
+            "na": false
+          },
+          "marginRel": {
+            "id": "marginRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.1983805668016194,
+            "raw": 15.578947368421053,
+            "score": 69.91902834008097,
+            "grade": "good",
+            "na": false
+          },
+          "roeRel": {
+            "id": "roeRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.072463768115942,
+            "raw": 16.08695652173913,
+            "score": 63.985507246376805,
+            "grade": "good",
+            "na": false
+          },
+          "grossMargin": {
+            "id": "grossMargin",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "%",
+            "hi": true,
+            "value": 48,
+            "raw": 48,
+            "score": 90.66666666666667,
+            "grade": "strong",
+            "na": false
+          },
+          "cashConversion": {
+            "id": "cashConversion",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.3175675675675675,
+            "raw": 1.3175675675675675,
+            "score": 90.25096525096525,
+            "grade": "strong",
+            "na": false
+          },
+          "accruals": {
+            "id": "accruals",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": -0.035606060606060606,
+            "raw": -0.035606060606060606,
+            "score": 95.68181818181819,
+            "grade": "strong",
+            "na": false
+          },
+          "assetTurnover": {
+            "id": "assetTurnover",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "x",
+            "hi": true,
+            "value": 0.7196969696969697,
+            "raw": 0.7196969696969697,
+            "score": 56.313131313131315,
+            "grade": "fair",
+            "na": false
+          },
+          "revGrowth": {
+            "id": "revGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "niGrowth": {
+            "id": "niGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "epsCagr3y": {
+            "id": "epsCagr3y",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "cfoGrowth": {
+            "id": "cfoGrowth",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "marginTrend": {
+            "id": "marginTrend",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "pp",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "debtEquity": {
+            "id": "debtEquity",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.20652173913043478,
+            "raw": 0.20652173913043478,
+            "score": 89.67391304347827,
+            "grade": "strong",
+            "na": false
+          },
+          "netDebtEbitda": {
+            "id": "netDebtEbitda",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.36398467432950193,
+            "raw": 0.36398467432950193,
+            "score": 86.90421455938697,
+            "grade": "strong",
+            "na": false
+          },
+          "interestCover": {
+            "id": "interestCover",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": 16.076923076923077,
+            "raw": 16.076923076923077,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "currentRatio": {
+            "id": "currentRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 2,
+            "raw": 2,
+            "score": 90,
+            "grade": "strong",
+            "na": false
+          },
+          "quickRatio": {
+            "id": "quickRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.1923076923076923,
+            "raw": 1.1923076923076923,
+            "score": 73.84615384615384,
+            "grade": "good",
+            "na": false
+          },
+          "altmanZ": {
+            "id": "altmanZ",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "n",
+            "hi": true,
+            "value": 9.996878787878789,
+            "raw": 9.996878787878789,
+            "score": 99.98127272727274,
+            "grade": "strong",
+            "na": false
+          },
+          "fScore": {
+            "id": "fScore",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "n",
+            "hi": true,
+            "value": null,
+            "raw": 3,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "car": {
+            "id": "car",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "npl": {
+            "id": "npl",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "provisionCover": {
+            "id": "provisionCover",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "costIncome": {
+            "id": "costIncome",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "adr": {
+            "id": "adr",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "yieldSpread": {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "w": 6,
+            "fmt": "pp",
+            "hi": true,
+            "value": -8.897142857142857,
+            "raw": -8.897142857142857,
+            "score": 7.570285714285716,
+            "grade": "poor",
+            "na": false
+          },
+          "payout": {
+            "id": "payout",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 36.486486486486484,
+            "raw": 36.486486486486484,
+            "score": 79.72972972972973,
+            "grade": "good",
+            "na": false
+          },
+          "divCover": {
+            "id": "divCover",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 2.740740740740741,
+            "raw": 2.740740740740741,
+            "score": 95.80246913580247,
+            "grade": "strong",
+            "na": false
+          },
+          "fcfCoverDiv": {
+            "id": "fcfCoverDiv",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.5740740740740742,
+            "raw": 1.5740740740740742,
+            "score": 83.33333333333333,
+            "grade": "strong",
+            "na": false
+          },
+          "divYears": {
+            "id": "divYears",
+            "pillar": "income",
+            "w": 1,
+            "fmt": "n",
+            "hi": true,
+            "value": 12,
+            "raw": 12,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "range52": {
+            "id": "range52",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 53.84615384615385,
+            "raw": 53.84615384615385,
+            "score": 68.07692307692308,
+            "grade": "good",
+            "na": false
+          },
+          "vsMa200": {
+            "id": "vsMa200",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 6.0606060606060606,
+            "raw": 6.0606060606060606,
+            "score": 76.06060606060606,
+            "grade": "good",
+            "na": false
+          },
+          "maCross": {
+            "id": "maCross",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.0353535353535352,
+            "raw": 1.0353535353535352,
+            "score": 72.67676767676761,
+            "grade": "good",
+            "na": false
+          },
+          "relStrength": {
+            "id": "relStrength",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": 5,
+            "raw": 5,
+            "score": 63.33333333333333,
+            "grade": "good",
+            "na": false
+          },
+          "liquidity": {
+            "id": "liquidity",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "lakh",
+            "hi": true,
+            "value": 85,
+            "raw": 85,
+            "score": 83.57142857142857,
+            "grade": "strong",
+            "na": false
+          },
+          "freeFloat": {
+            "id": "freeFloat",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 38,
+            "raw": 38,
+            "score": 68.33333333333333,
+            "grade": "good",
+            "na": false
+          }
+        },
+        "pillars": {
+          "value": {
+            "score": 42.50161248519233,
+            "n": 7,
+            "of": 8
+          },
+          "quality": {
+            "score": 76.87165848053495,
+            "n": 8,
+            "of": 8
+          },
+          "growth": {
+            "score": null,
+            "n": 0,
+            "of": 5
+          },
+          "health": {
+            "score": 91.0856567926701,
+            "n": 6,
+            "of": 12
+          },
+          "income": {
+            "score": 51.011752206418876,
+            "n": 5,
+            "of": 5
+          },
+          "momentum": {
+            "score": 72.47134347134347,
+            "n": 6,
+            "of": 6
+          }
+        },
+        "score": 67.04786203503136,
+        "grade": "good",
+        "band": {
+          "id": "accumulate",
+          "min": 62
+        },
+        "flags": [],
+        "signals": [
+          {
+            "id": "losesToSafe",
+            "tone": "warn"
+          }
+        ],
+        "altman": 9.996878787878789,
+        "piotroski": {
+          "checks": [
+            {
+              "id": "profit",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": null,
+              "testable": false
+            },
+            {
+              "id": "accrual",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": null,
+              "testable": false
+            },
+            {
+              "id": "liquidity",
+              "pass": null,
+              "testable": false
+            },
+            {
+              "id": "dilution",
+              "pass": null,
+              "testable": false
+            },
+            {
+              "id": "margin",
+              "pass": null,
+              "testable": false
+            },
+            {
+              "id": "turnover",
+              "pass": null,
+              "testable": false
+            }
+          ],
+          "tested": 3,
+          "score": 3
+        },
+        "fairValue": {
+          "anchors": [
+            {
+              "id": "sectorPe",
+              "value": 197.33333333333334
+            },
+            {
+              "id": "sectorPb",
+              "value": 199.33333333333334
+            },
+            {
+              "id": "graham",
+              "value": 145.8595214581482
+            },
+            {
+              "id": "ddm",
+              "value": 32.05128205128205
+            },
+            {
+              "id": "earningsPower",
+              "value": 87.84425451092119
+            }
+          ],
+          "low": 32.05128205128205,
+          "mid": 145.8595214581482,
+          "high": 199.33333333333334,
+          "marginOfSafety": -43.97414574012281,
+          "spread": 6.219200000000001
+        },
+        "shariah": {
+          "tests": [
+            {
+              "id": "debt",
+              "value": 7.5396825396825395,
+              "limit": 33,
+              "pass": true
+            },
+            {
+              "id": "cash",
+              "value": 3.7698412698412698,
+              "limit": 33,
+              "pass": true
+            },
+            {
+              "id": "income",
+              "value": 3,
+              "limit": 5,
+              "pass": true
+            }
+          ],
+          "pass": true,
+          "tested": 3
+        },
+        "drags": [
+          {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "score": 7.570285714285716,
+            "cost": 7.528212023270848,
+            "share": 0.081447963800905
+          },
+          {
+            "id": "earningsYieldSpread",
+            "pillar": "value",
+            "score": 11.332063492063497,
+            "cost": 4.470652260904361,
+            "share": 0.050420168067226885
+          },
+          {
+            "id": "peRel",
+            "pillar": "value",
+            "score": 55.988175675675684,
+            "cost": 2.2190835793776964,
+            "share": 0.050420168067226885
+          },
+          {
+            "id": "evEbitda",
+            "pillar": "value",
+            "score": 45.865900383141756,
+            "cost": 1.8196336005666636,
+            "share": 0.03361344537815126
+          },
+          {
+            "id": "roe",
+            "pillar": "quality",
+            "score": 62.028985507246375,
+            "cost": 1.6751918158567773,
+            "share": 0.044117647058823525
+          },
+          {
+            "id": "fcfYield",
+            "pillar": "value",
+            "score": 53.10846560846561,
+            "cost": 1.5761860299675425,
+            "share": 0.03361344537815126
+          }
+        ],
+        "priceCap": null
+      }
+    },
+    {
+      "name": "loss-maker",
+      "why": "a negative bottom line, where a P/E is meaningless and several ratios divide by something that is not there",
+      "input": {
+        "netIncome": -4200,
+        "ebit": -1800,
+        "netIncomePrev": 900,
+        "cfo": -600,
+        "dps": 0,
+        "yearsPaid": 0
+      },
+      "out": {
+        "ratios": {
+          "isFinancial": false,
+          "mcap": 252000,
+          "eps": -3.5,
+          "epsPrev": 0.75,
+          "bvps": 76.66666666666667,
+          "ebitda": 3400,
+          "netDebt": 9500,
+          "ev": 261500,
+          "fcf": -11600,
+          "paidUp": 12000,
+          "pe": null,
+          "pb": 2.7391304347826084,
+          "ps": 2.6526315789473682,
+          "evEbitda": 76.91176470588235,
+          "earningsYield": null,
+          "fcfYield": -4.603174603174604,
+          "divYield": 0,
+          "divYieldNet": 0,
+          "peRel": null,
+          "pbRel": 1.0535117056856187,
+          "peVsMarket": null,
+          "revGrowth": 13.095238095238097,
+          "epsGrowth": -566.6666666666667,
+          "niGrowth": -566.6666666666667,
+          "epsCagr3y": null,
+          "cfoGrowth": -103.48837209302326,
+          "peg": null,
+          "avgAssets": 126500,
+          "roe": -4.565217391304348,
+          "roa": -3.320158102766799,
+          "capitalEmployed": 106000,
+          "roce": -1.6981132075471699,
+          "grossMargin": 48,
+          "opMargin": -1.8947368421052633,
+          "netMargin": -4.421052631578947,
+          "netMarginPrev": 1.0714285714285714,
+          "marginTrend": -5.492481203007518,
+          "marginRel": -0.340080971659919,
+          "roeRel": null,
+          "assetTurnover": 0.7509881422924901,
+          "dupontMargin": -4.421052631578947,
+          "dupontTurnover": 0.7509881422924901,
+          "dupontLeverage": 1.375,
+          "dupontRoe": -4.565217391304347,
+          "cashConversion": null,
+          "accruals": -0.028458498023715414,
+          "debtEquity": 0.20652173913043478,
+          "netDebtEbitda": 2.7941176470588234,
+          "interestCover": -1.3846153846153846,
+          "currentRatio": 2,
+          "quickRatio": 1.1923076923076923,
+          "payout": null,
+          "divCover": null,
+          "divTotal": 0,
+          "fcfCoverDiv": null,
+          "yieldSpread": -11.04,
+          "yieldVsFdr": -8.5,
+          "realYield": -9.7,
+          "earningsYieldSpread": null,
+          "range52": 53.84615384615385,
+          "vsHigh": -14.634146341463413,
+          "vsMa50": 2.4390243902439024,
+          "vsMa200": 6.0606060606060606,
+          "maCross": 1.0353535353535352,
+          "relStrength": 5,
+          "altmanZ": 8.841242424242424,
+          "fScore": 6,
+          "fTested": 9,
+          "fChecks": [
+            {
+              "id": "profit",
+              "pass": false,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": false,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": false,
+              "testable": true
+            },
+            {
+              "id": "accrual",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "liquidity",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "dilution",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "margin",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "turnover",
+              "pass": true,
+              "testable": true
+            }
+          ]
+        },
+        "scored": {
+          "peRel": {
+            "id": "peRel",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "pbRel": {
+            "id": "pbRel",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.0535117056856187,
+            "raw": 2.7391304347826084,
+            "score": 57.324414715719065,
+            "grade": "fair",
+            "na": false
+          },
+          "evEbitda": {
+            "id": "evEbitda",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 76.91176470588235,
+            "raw": 76.91176470588235,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "earningsYieldSpread": {
+            "id": "earningsYieldSpread",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "fcfYield": {
+            "id": "fcfYield",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": -4.603174603174604,
+            "raw": -4.603174603174604,
+            "score": 1.9841269841269815,
+            "grade": "poor",
+            "na": false
+          },
+          "peg": {
+            "id": "peg",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "peVsMarket": {
+            "id": "peVsMarket",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "ps": {
+            "id": "ps",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": 2.6526315789473682,
+            "raw": 2.6526315789473682,
+            "score": 38.021052631578954,
+            "grade": "weak",
+            "na": false
+          },
+          "roe": {
+            "id": "roe",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": -4.565217391304348,
+            "raw": -4.565217391304348,
+            "score": 4.3478260869565215,
+            "grade": "poor",
+            "na": false
+          },
+          "roce": {
+            "id": "roce",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": -1.6981132075471699,
+            "raw": -1.6981132075471699,
+            "score": 5.283018867924528,
+            "grade": "poor",
+            "na": false
+          },
+          "marginRel": {
+            "id": "marginRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": null,
+            "raw": -4.421052631578947,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "roeRel": {
+            "id": "roeRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": null,
+            "raw": -4.565217391304348,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "grossMargin": {
+            "id": "grossMargin",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "%",
+            "hi": true,
+            "value": 48,
+            "raw": 48,
+            "score": 90.66666666666667,
+            "grade": "strong",
+            "na": false
+          },
+          "cashConversion": {
+            "id": "cashConversion",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "accruals": {
+            "id": "accruals",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": -0.028458498023715414,
+            "raw": -0.028458498023715414,
+            "score": 93.53754940711462,
+            "grade": "strong",
+            "na": false
+          },
+          "assetTurnover": {
+            "id": "assetTurnover",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "x",
+            "hi": true,
+            "value": 0.7509881422924901,
+            "raw": 0.7509881422924901,
+            "score": 58.39920948616601,
+            "grade": "fair",
+            "na": false
+          },
+          "revGrowth": {
+            "id": "revGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 13.095238095238097,
+            "raw": 13.095238095238097,
+            "score": 69.5578231292517,
+            "grade": "good",
+            "na": false
+          },
+          "niGrowth": {
+            "id": "niGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": -566.6666666666667,
+            "raw": -566.6666666666667,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "epsCagr3y": {
+            "id": "epsCagr3y",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "cfoGrowth": {
+            "id": "cfoGrowth",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": -103.48837209302326,
+            "raw": -103.48837209302326,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "marginTrend": {
+            "id": "marginTrend",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "pp",
+            "hi": true,
+            "value": -5.492481203007518,
+            "raw": -5.492481203007518,
+            "score": 3.0451127819548915,
+            "grade": "poor",
+            "na": false
+          },
+          "debtEquity": {
+            "id": "debtEquity",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.20652173913043478,
+            "raw": 0.20652173913043478,
+            "score": 89.67391304347827,
+            "grade": "strong",
+            "na": false
+          },
+          "netDebtEbitda": {
+            "id": "netDebtEbitda",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 2.7941176470588234,
+            "raw": 2.7941176470588234,
+            "score": 46.76470588235294,
+            "grade": "fair",
+            "na": false
+          },
+          "interestCover": {
+            "id": "interestCover",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": -1.3846153846153846,
+            "raw": -1.3846153846153846,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "currentRatio": {
+            "id": "currentRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 2,
+            "raw": 2,
+            "score": 90,
+            "grade": "strong",
+            "na": false
+          },
+          "quickRatio": {
+            "id": "quickRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.1923076923076923,
+            "raw": 1.1923076923076923,
+            "score": 73.84615384615384,
+            "grade": "good",
+            "na": false
+          },
+          "altmanZ": {
+            "id": "altmanZ",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "n",
+            "hi": true,
+            "value": 8.841242424242424,
+            "raw": 8.841242424242424,
+            "score": 93.04745454545454,
+            "grade": "strong",
+            "na": false
+          },
+          "fScore": {
+            "id": "fScore",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "n",
+            "hi": true,
+            "value": 6,
+            "raw": 6,
+            "score": 61.5,
+            "grade": "fair",
+            "na": false
+          },
+          "car": {
+            "id": "car",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "npl": {
+            "id": "npl",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "provisionCover": {
+            "id": "provisionCover",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "costIncome": {
+            "id": "costIncome",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "adr": {
+            "id": "adr",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "yieldSpread": {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "w": 6,
+            "fmt": "pp",
+            "hi": true,
+            "value": -11.04,
+            "raw": -11.04,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "payout": {
+            "id": "payout",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "divCover": {
+            "id": "divCover",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "fcfCoverDiv": {
+            "id": "fcfCoverDiv",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "divYears": {
+            "id": "divYears",
+            "pillar": "income",
+            "w": 1,
+            "fmt": "n",
+            "hi": true,
+            "value": 0,
+            "raw": 0,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "range52": {
+            "id": "range52",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 53.84615384615385,
+            "raw": 53.84615384615385,
+            "score": 68.07692307692308,
+            "grade": "good",
+            "na": false
+          },
+          "vsMa200": {
+            "id": "vsMa200",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 6.0606060606060606,
+            "raw": 6.0606060606060606,
+            "score": 76.06060606060606,
+            "grade": "good",
+            "na": false
+          },
+          "maCross": {
+            "id": "maCross",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.0353535353535352,
+            "raw": 1.0353535353535352,
+            "score": 72.67676767676761,
+            "grade": "good",
+            "na": false
+          },
+          "relStrength": {
+            "id": "relStrength",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": 5,
+            "raw": 5,
+            "score": 63.33333333333333,
+            "grade": "good",
+            "na": false
+          },
+          "liquidity": {
+            "id": "liquidity",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "lakh",
+            "hi": true,
+            "value": 85,
+            "raw": 85,
+            "score": 83.57142857142857,
+            "grade": "strong",
+            "na": false
+          },
+          "freeFloat": {
+            "id": "freeFloat",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 38,
+            "raw": 38,
+            "score": 68.33333333333333,
+            "grade": "good",
+            "na": false
+          }
+        },
+        "pillars": {
+          "value": {
+            "score": 22.376876575895864,
+            "n": 4,
+            "of": 8
+          },
+          "quality": {
+            "score": 39.97227677375339,
+            "n": 5,
+            "of": 8
+          },
+          "growth": {
+            "score": 21.476369495166487,
+            "n": 4,
+            "of": 5
+          },
+          "health": {
+            "score": 63.2861404503425,
+            "n": 7,
+            "of": 12
+          },
+          "income": {
+            "score": 0,
+            "n": 2,
+            "of": 5
+          },
+          "momentum": {
+            "score": 72.47134347134347,
+            "n": 6,
+            "of": 6
+          }
+        },
+        "score": 35.595648531407676,
+        "grade": "weak",
+        "band": {
+          "id": "trim",
+          "min": 35
+        },
+        "flags": [
+          {
+            "id": "vetoBurn",
+            "level": "veto",
+            "vars": {
+              "eps": -3.5,
+              "cfo": -600
+            }
+          },
+          {
+            "id": "cannotCoverInterest",
+            "level": "bad",
+            "vars": {
+              "cover": -1.3846153846153846
+            }
+          },
+          {
+            "id": "noDividend",
+            "level": "warn",
+            "vars": {}
+          }
+        ],
+        "signals": [],
+        "altman": 8.841242424242424,
+        "piotroski": {
+          "checks": [
+            {
+              "id": "profit",
+              "pass": false,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": false,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": false,
+              "testable": true
+            },
+            {
+              "id": "accrual",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "liquidity",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "dilution",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "margin",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "turnover",
+              "pass": true,
+              "testable": true
+            }
+          ],
+          "tested": 9,
+          "score": 6
+        },
+        "fairValue": {
+          "anchors": [
+            {
+              "id": "sectorPb",
+              "value": 199.33333333333334
+            }
+          ],
+          "low": 199.33333333333334,
+          "mid": 199.33333333333334,
+          "high": 199.33333333333334,
+          "marginOfSafety": -5.351170568561868,
+          "spread": 1
+        },
+        "shariah": {
+          "tests": [
+            {
+              "id": "debt",
+              "value": 7.5396825396825395,
+              "limit": 33,
+              "pass": true
+            },
+            {
+              "id": "cash",
+              "value": 3.7698412698412698,
+              "limit": 33,
+              "pass": true
+            },
+            {
+              "id": "income",
+              "value": 3,
+              "limit": 5,
+              "pass": true
+            }
+          ],
+          "pass": true,
+          "tested": 3
+        },
+        "drags": [
+          {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "score": 0,
+            "cost": 12.857142857142856,
+            "share": 0.12857142857142856
+          },
+          {
+            "id": "roe",
+            "pillar": "quality",
+            "score": 4.3478260869565215,
+            "cost": 6.3768115942028984,
+            "share": 0.06666666666666667
+          },
+          {
+            "id": "evEbitda",
+            "pillar": "value",
+            "score": 0,
+            "cost": 5.714285714285714,
+            "share": 0.05714285714285714
+          },
+          {
+            "id": "fcfYield",
+            "pillar": "value",
+            "score": 1.9841269841269815,
+            "cost": 5.600907029478457,
+            "share": 0.05714285714285714
+          },
+          {
+            "id": "niGrowth",
+            "pillar": "growth",
+            "score": 0,
+            "cost": 4.5,
+            "share": 0.045
+          },
+          {
+            "id": "roce",
+            "pillar": "quality",
+            "score": 5.283018867924528,
+            "cost": 4.2096436058700215,
+            "share": 0.044444444444444446
+          }
+        ],
+        "priceCap": "hold"
+      }
+    },
+    {
+      "name": "no-dividend",
+      "why": "the income pillar with nothing in it, which must not read as a failure on a company that has never claimed to pay one",
+      "input": {
+        "dps": 0,
+        "yearsPaid": 0,
+        "divTax": 0
+      },
+      "out": {
+        "ratios": {
+          "isFinancial": false,
+          "mcap": 252000,
+          "eps": 12.333333333333334,
+          "epsPrev": 10.75,
+          "bvps": 76.66666666666667,
+          "ebitda": 26100,
+          "netDebt": 9500,
+          "ev": 261500,
+          "fcf": 8500,
+          "paidUp": 12000,
+          "pe": 17.027027027027025,
+          "pb": 2.7391304347826084,
+          "ps": 2.6526315789473682,
+          "evEbitda": 10.019157088122606,
+          "earningsYield": 5.8730158730158735,
+          "fcfYield": 3.373015873015873,
+          "divYield": 0,
+          "divYieldNet": 0,
+          "peRel": 1.064189189189189,
+          "pbRel": 1.0535117056856187,
+          "peVsMarket": 1.362162162162162,
+          "revGrowth": 13.095238095238097,
+          "epsGrowth": 14.728682170542642,
+          "niGrowth": 14.728682170542637,
+          "epsCagr3y": 15.521679473813489,
+          "cfoGrowth": 13.372093023255813,
+          "peg": 1.096983548446107,
+          "avgAssets": 126500,
+          "roe": 16.08695652173913,
+          "roa": 11.699604743083004,
+          "capitalEmployed": 106000,
+          "roce": 19.716981132075475,
+          "grossMargin": 48,
+          "opMargin": 22,
+          "netMargin": 15.578947368421053,
+          "netMarginPrev": 15.357142857142858,
+          "marginTrend": 0.22180451127819545,
+          "marginRel": 1.1983805668016194,
+          "roeRel": 1.072463768115942,
+          "assetTurnover": 0.7509881422924901,
+          "dupontMargin": 15.578947368421053,
+          "dupontTurnover": 0.7509881422924901,
+          "dupontLeverage": 1.375,
+          "dupontRoe": 16.086956521739133,
+          "cashConversion": 1.3175675675675675,
+          "accruals": -0.03715415019762846,
+          "debtEquity": 0.20652173913043478,
+          "netDebtEbitda": 0.36398467432950193,
+          "interestCover": 16.076923076923077,
+          "currentRatio": 2,
+          "quickRatio": 1.1923076923076923,
+          "payout": 0,
+          "divCover": null,
+          "divTotal": 0,
+          "fcfCoverDiv": null,
+          "yieldSpread": -11.04,
+          "yieldVsFdr": -8.5,
+          "realYield": -9.7,
+          "earningsYieldSpread": -5.166984126984126,
+          "range52": 53.84615384615385,
+          "vsHigh": -14.634146341463413,
+          "vsMa50": 2.4390243902439024,
+          "vsMa200": 6.0606060606060606,
+          "maCross": 1.0353535353535352,
+          "relStrength": 5,
+          "altmanZ": 9.996878787878789,
+          "fScore": 9,
+          "fTested": 9,
+          "fChecks": [
+            {
+              "id": "profit",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "accrual",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "liquidity",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "dilution",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "margin",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "turnover",
+              "pass": true,
+              "testable": true
+            }
+          ]
+        },
+        "scored": {
+          "peRel": {
+            "id": "peRel",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.064189189189189,
+            "raw": 17.027027027027025,
+            "score": 55.988175675675684,
+            "grade": "fair",
+            "na": false
+          },
+          "pbRel": {
+            "id": "pbRel",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.0535117056856187,
+            "raw": 2.7391304347826084,
+            "score": 57.324414715719065,
+            "grade": "fair",
+            "na": false
+          },
+          "evEbitda": {
+            "id": "evEbitda",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 10.019157088122606,
+            "raw": 10.019157088122606,
+            "score": 45.865900383141756,
+            "grade": "fair",
+            "na": false
+          },
+          "earningsYieldSpread": {
+            "id": "earningsYieldSpread",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": -5.166984126984126,
+            "raw": -5.166984126984126,
+            "score": 11.332063492063497,
+            "grade": "poor",
+            "na": false
+          },
+          "fcfYield": {
+            "id": "fcfYield",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 3.373015873015873,
+            "raw": 3.373015873015873,
+            "score": 53.10846560846561,
+            "grade": "fair",
+            "na": false
+          },
+          "peg": {
+            "id": "peg",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.096983548446107,
+            "raw": 1.096983548446107,
+            "score": 70.15082257769465,
+            "grade": "good",
+            "na": false
+          },
+          "peVsMarket": {
+            "id": "peVsMarket",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.362162162162162,
+            "raw": 17.027027027027025,
+            "score": 42.44324324324325,
+            "grade": "weak",
+            "na": false
+          },
+          "ps": {
+            "id": "ps",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": 2.6526315789473682,
+            "raw": 2.6526315789473682,
+            "score": 38.021052631578954,
+            "grade": "weak",
+            "na": false
+          },
+          "roe": {
+            "id": "roe",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 16.08695652173913,
+            "raw": 16.08695652173913,
+            "score": 62.028985507246375,
+            "grade": "good",
+            "na": false
+          },
+          "roce": {
+            "id": "roce",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 19.716981132075475,
+            "raw": 19.716981132075475,
+            "score": 83.47708894878707,
+            "grade": "strong",
+            "na": false
+          },
+          "marginRel": {
+            "id": "marginRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.1983805668016194,
+            "raw": 15.578947368421053,
+            "score": 69.91902834008097,
+            "grade": "good",
+            "na": false
+          },
+          "roeRel": {
+            "id": "roeRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.072463768115942,
+            "raw": 16.08695652173913,
+            "score": 63.985507246376805,
+            "grade": "good",
+            "na": false
+          },
+          "grossMargin": {
+            "id": "grossMargin",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "%",
+            "hi": true,
+            "value": 48,
+            "raw": 48,
+            "score": 90.66666666666667,
+            "grade": "strong",
+            "na": false
+          },
+          "cashConversion": {
+            "id": "cashConversion",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.3175675675675675,
+            "raw": 1.3175675675675675,
+            "score": 90.25096525096525,
+            "grade": "strong",
+            "na": false
+          },
+          "accruals": {
+            "id": "accruals",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": -0.03715415019762846,
+            "raw": -0.03715415019762846,
+            "score": 96.14624505928853,
+            "grade": "strong",
+            "na": false
+          },
+          "assetTurnover": {
+            "id": "assetTurnover",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "x",
+            "hi": true,
+            "value": 0.7509881422924901,
+            "raw": 0.7509881422924901,
+            "score": 58.39920948616601,
+            "grade": "fair",
+            "na": false
+          },
+          "revGrowth": {
+            "id": "revGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 13.095238095238097,
+            "raw": 13.095238095238097,
+            "score": 69.5578231292517,
+            "grade": "good",
+            "na": false
+          },
+          "niGrowth": {
+            "id": "niGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 14.728682170542637,
+            "raw": 14.728682170542637,
+            "score": 69.45736434108528,
+            "grade": "good",
+            "na": false
+          },
+          "epsCagr3y": {
+            "id": "epsCagr3y",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 15.521679473813489,
+            "raw": 15.521679473813489,
+            "score": 75.18461855298709,
+            "grade": "good",
+            "na": false
+          },
+          "cfoGrowth": {
+            "id": "cfoGrowth",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 13.372093023255813,
+            "raw": 13.372093023255813,
+            "score": 67.17054263565892,
+            "grade": "good",
+            "na": false
+          },
+          "marginTrend": {
+            "id": "marginTrend",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "pp",
+            "hi": true,
+            "value": 0.22180451127819545,
+            "raw": 0.22180451127819545,
+            "score": 54.43609022556391,
+            "grade": "fair",
+            "na": false
+          },
+          "debtEquity": {
+            "id": "debtEquity",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.20652173913043478,
+            "raw": 0.20652173913043478,
+            "score": 89.67391304347827,
+            "grade": "strong",
+            "na": false
+          },
+          "netDebtEbitda": {
+            "id": "netDebtEbitda",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.36398467432950193,
+            "raw": 0.36398467432950193,
+            "score": 86.90421455938697,
+            "grade": "strong",
+            "na": false
+          },
+          "interestCover": {
+            "id": "interestCover",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": 16.076923076923077,
+            "raw": 16.076923076923077,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "currentRatio": {
+            "id": "currentRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 2,
+            "raw": 2,
+            "score": 90,
+            "grade": "strong",
+            "na": false
+          },
+          "quickRatio": {
+            "id": "quickRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.1923076923076923,
+            "raw": 1.1923076923076923,
+            "score": 73.84615384615384,
+            "grade": "good",
+            "na": false
+          },
+          "altmanZ": {
+            "id": "altmanZ",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "n",
+            "hi": true,
+            "value": 9.996878787878789,
+            "raw": 9.996878787878789,
+            "score": 99.98127272727274,
+            "grade": "strong",
+            "na": false
+          },
+          "fScore": {
+            "id": "fScore",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "n",
+            "hi": true,
+            "value": 9,
+            "raw": 9,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "car": {
+            "id": "car",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "npl": {
+            "id": "npl",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "provisionCover": {
+            "id": "provisionCover",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "costIncome": {
+            "id": "costIncome",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "adr": {
+            "id": "adr",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "yieldSpread": {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "w": 6,
+            "fmt": "pp",
+            "hi": true,
+            "value": -11.04,
+            "raw": -11.04,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "payout": {
+            "id": "payout",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 0,
+            "raw": 0,
+            "score": 20,
+            "grade": "poor",
+            "na": false
+          },
+          "divCover": {
+            "id": "divCover",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "fcfCoverDiv": {
+            "id": "fcfCoverDiv",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "divYears": {
+            "id": "divYears",
+            "pillar": "income",
+            "w": 1,
+            "fmt": "n",
+            "hi": true,
+            "value": 0,
+            "raw": 0,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "range52": {
+            "id": "range52",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 53.84615384615385,
+            "raw": 53.84615384615385,
+            "score": 68.07692307692308,
+            "grade": "good",
+            "na": false
+          },
+          "vsMa200": {
+            "id": "vsMa200",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 6.0606060606060606,
+            "raw": 6.0606060606060606,
+            "score": 76.06060606060606,
+            "grade": "good",
+            "na": false
+          },
+          "maCross": {
+            "id": "maCross",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.0353535353535352,
+            "raw": 1.0353535353535352,
+            "score": 72.67676767676761,
+            "grade": "good",
+            "na": false
+          },
+          "relStrength": {
+            "id": "relStrength",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": 5,
+            "raw": 5,
+            "score": 63.33333333333333,
+            "grade": "good",
+            "na": false
+          },
+          "liquidity": {
+            "id": "liquidity",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "lakh",
+            "hi": true,
+            "value": 85,
+            "raw": 85,
+            "score": 83.57142857142857,
+            "grade": "strong",
+            "na": false
+          },
+          "freeFloat": {
+            "id": "freeFloat",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 38,
+            "raw": 38,
+            "score": 68.33333333333333,
+            "grade": "good",
+            "na": false
+          }
+        },
+        "pillars": {
+          "value": {
+            "score": 45.95776374675513,
+            "n": 8,
+            "of": 8
+          },
+          "quality": {
+            "score": 77.06009172603339,
+            "n": 8,
+            "of": 8
+          },
+          "growth": {
+            "score": 68.13943721480138,
+            "n": 5,
+            "of": 5
+          },
+          "health": {
+            "score": 92.0761393712623,
+            "n": 7,
+            "of": 12
+          },
+          "income": {
+            "score": 4.444444444444445,
+            "n": 3,
+            "of": 5
+          },
+          "momentum": {
+            "score": 72.47134347134347,
+            "n": 6,
+            "of": 6
+          }
+        },
+        "score": 61.153515564831395,
+        "grade": "fair",
+        "band": {
+          "id": "hold",
+          "min": 48
+        },
+        "flags": [
+          {
+            "id": "noDividend",
+            "level": "warn",
+            "vars": {}
+          }
+        ],
+        "signals": [
+          {
+            "id": "losesToSafe",
+            "tone": "warn"
+          }
+        ],
+        "altman": 9.996878787878789,
+        "piotroski": {
+          "checks": [
+            {
+              "id": "profit",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "accrual",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "liquidity",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "dilution",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "margin",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "turnover",
+              "pass": true,
+              "testable": true
+            }
+          ],
+          "tested": 9,
+          "score": 9
+        },
+        "fairValue": {
+          "anchors": [
+            {
+              "id": "sectorPe",
+              "value": 197.33333333333334
+            },
+            {
+              "id": "sectorPb",
+              "value": 199.33333333333334
+            },
+            {
+              "id": "graham",
+              "value": 145.8595214581482
+            },
+            {
+              "id": "earningsPower",
+              "value": 87.84425451092119
+            }
+          ],
+          "low": 87.84425451092119,
+          "mid": 171.59642739574076,
+          "high": 199.33333333333334,
+          "marginOfSafety": -22.380170255929503,
+          "spread": 2.2691675675675675
+        },
+        "shariah": {
+          "tests": [
+            {
+              "id": "debt",
+              "value": 7.5396825396825395,
+              "limit": 33,
+              "pass": true
+            },
+            {
+              "id": "cash",
+              "value": 3.7698412698412698,
+              "limit": 33,
+              "pass": true
+            },
+            {
+              "id": "income",
+              "value": 3,
+              "limit": 5,
+              "pass": true
+            }
+          ],
+          "pass": true,
+          "tested": 3
+        },
+        "drags": [
+          {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "score": 0,
+            "cost": 10,
+            "share": 0.09999999999999999
+          },
+          {
+            "id": "earningsYieldSpread",
+            "pillar": "value",
+            "score": 11.332063492063497,
+            "cost": 3.3250476190476195,
+            "share": 0.037500000000000006
+          },
+          {
+            "id": "payout",
+            "pillar": "income",
+            "score": 20,
+            "cost": 2.6666666666666665,
+            "share": 0.03333333333333333
+          },
+          {
+            "id": "divYears",
+            "pillar": "income",
+            "score": 0,
+            "cost": 1.6666666666666667,
+            "share": 0.016666666666666666
+          },
+          {
+            "id": "peRel",
+            "pillar": "value",
+            "score": 55.988175675675684,
+            "cost": 1.650443412162162,
+            "share": 0.037500000000000006
+          },
+          {
+            "id": "roe",
+            "pillar": "quality",
+            "score": 62.028985507246375,
+            "cost": 1.4239130434782612,
+            "share": 0.037500000000000006
+          }
+        ],
+        "priceCap": null
+      }
+    },
+    {
+      "name": "heavily-indebted",
+      "why": "the vetoes and the flags, which is the half of this model that overrides a score rather than contributing to it",
+      "input": {
+        "totalDebt": 96000,
+        "equity": 21000,
+        "currentLiabilities": 61000,
+        "cash": 900,
+        "interestExpense": 9800,
+        "ebit": 8100,
+        "reserves": 4000,
+        "cfo": 2100
+      },
+      "out": {
+        "ratios": {
+          "isFinancial": false,
+          "mcap": 252000,
+          "eps": 12.333333333333334,
+          "epsPrev": 10.75,
+          "bvps": 17.5,
+          "ebitda": 13300,
+          "netDebt": 95100,
+          "ev": 347100,
+          "fcf": -8900,
+          "paidUp": 12000,
+          "pe": 17.027027027027025,
+          "pb": 12,
+          "ps": 2.6526315789473682,
+          "evEbitda": 26.097744360902254,
+          "earningsYield": 5.8730158730158735,
+          "fcfYield": -3.5317460317460316,
+          "divYield": 2.142857142857143,
+          "divYieldNet": 1.9285714285714286,
+          "peRel": 1.064189189189189,
+          "pbRel": 4.615384615384615,
+          "peVsMarket": 1.362162162162162,
+          "revGrowth": 13.095238095238097,
+          "epsGrowth": 14.728682170542642,
+          "niGrowth": 14.728682170542637,
+          "epsCagr3y": 15.521679473813489,
+          "cfoGrowth": -87.79069767441861,
+          "peg": 1.096983548446107,
+          "avgAssets": 126500,
+          "roe": 70.47619047619048,
+          "roa": 11.699604743083004,
+          "capitalEmployed": 71000,
+          "roce": 11.408450704225352,
+          "grossMargin": 48,
+          "opMargin": 8.526315789473685,
+          "netMargin": 15.578947368421053,
+          "netMarginPrev": 15.357142857142858,
+          "marginTrend": 0.22180451127819545,
+          "marginRel": 1.1983805668016194,
+          "roeRel": 4.698412698412699,
+          "assetTurnover": 0.7509881422924901,
+          "dupontMargin": 15.578947368421053,
+          "dupontTurnover": 0.7509881422924901,
+          "dupontLeverage": 6.023809523809524,
+          "dupontRoe": 70.47619047619048,
+          "cashConversion": 0.14189189189189189,
+          "accruals": 0.10039525691699605,
+          "debtEquity": 4.571428571428571,
+          "netDebtEbitda": 7.150375939849624,
+          "interestCover": 0.826530612244898,
+          "currentRatio": 0.8524590163934426,
+          "quickRatio": 0.5081967213114754,
+          "payout": 36.486486486486484,
+          "divCover": 2.740740740740741,
+          "divTotal": 5400,
+          "fcfCoverDiv": -1.6481481481481481,
+          "yieldSpread": -8.897142857142857,
+          "yieldVsFdr": -6.357142857142858,
+          "realYield": -7.557142857142857,
+          "earningsYieldSpread": -5.166984126984126,
+          "range52": 53.84615384615385,
+          "vsHigh": -14.634146341463413,
+          "vsMa50": 2.4390243902439024,
+          "vsMa200": 6.0606060606060606,
+          "maCross": 1.0353535353535352,
+          "relStrength": 5,
+          "altmanZ": 3.5125274365274364,
+          "fScore": 6,
+          "fTested": 9,
+          "fChecks": [
+            {
+              "id": "profit",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "accrual",
+              "pass": false,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": false,
+              "testable": true
+            },
+            {
+              "id": "liquidity",
+              "pass": false,
+              "testable": true
+            },
+            {
+              "id": "dilution",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "margin",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "turnover",
+              "pass": true,
+              "testable": true
+            }
+          ]
+        },
+        "scored": {
+          "peRel": {
+            "id": "peRel",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.064189189189189,
+            "raw": 17.027027027027025,
+            "score": 55.988175675675684,
+            "grade": "fair",
+            "na": false
+          },
+          "pbRel": {
+            "id": "pbRel",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 4.615384615384615,
+            "raw": 12,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "evEbitda": {
+            "id": "evEbitda",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 26.097744360902254,
+            "raw": 26.097744360902254,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "earningsYieldSpread": {
+            "id": "earningsYieldSpread",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": -5.166984126984126,
+            "raw": -5.166984126984126,
+            "score": 11.332063492063497,
+            "grade": "poor",
+            "na": false
+          },
+          "fcfYield": {
+            "id": "fcfYield",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": -3.5317460317460316,
+            "raw": -3.5317460317460316,
+            "score": 7.341269841269842,
+            "grade": "poor",
+            "na": false
+          },
+          "peg": {
+            "id": "peg",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.096983548446107,
+            "raw": 1.096983548446107,
+            "score": 70.15082257769465,
+            "grade": "good",
+            "na": false
+          },
+          "peVsMarket": {
+            "id": "peVsMarket",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": 1.362162162162162,
+            "raw": 17.027027027027025,
+            "score": 42.44324324324325,
+            "grade": "weak",
+            "na": false
+          },
+          "ps": {
+            "id": "ps",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": 2.6526315789473682,
+            "raw": 2.6526315789473682,
+            "score": 38.021052631578954,
+            "grade": "weak",
+            "na": false
+          },
+          "roe": {
+            "id": "roe",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 70.47619047619048,
+            "raw": 70.47619047619048,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "roce": {
+            "id": "roce",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 11.408450704225352,
+            "raw": 11.408450704225352,
+            "score": 52.04225352112676,
+            "grade": "fair",
+            "na": false
+          },
+          "marginRel": {
+            "id": "marginRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.1983805668016194,
+            "raw": 15.578947368421053,
+            "score": 69.91902834008097,
+            "grade": "good",
+            "na": false
+          },
+          "roeRel": {
+            "id": "roeRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 4.698412698412699,
+            "raw": 70.47619047619048,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "grossMargin": {
+            "id": "grossMargin",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "%",
+            "hi": true,
+            "value": 48,
+            "raw": 48,
+            "score": 90.66666666666667,
+            "grade": "strong",
+            "na": false
+          },
+          "cashConversion": {
+            "id": "cashConversion",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": 0.14189189189189189,
+            "raw": 0.14189189189189189,
+            "score": 12.256756756756756,
+            "grade": "poor",
+            "na": false
+          },
+          "accruals": {
+            "id": "accruals",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.10039525691699605,
+            "raw": 0.10039525691699605,
+            "score": 19.802371541501977,
+            "grade": "poor",
+            "na": false
+          },
+          "assetTurnover": {
+            "id": "assetTurnover",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "x",
+            "hi": true,
+            "value": 0.7509881422924901,
+            "raw": 0.7509881422924901,
+            "score": 58.39920948616601,
+            "grade": "fair",
+            "na": false
+          },
+          "revGrowth": {
+            "id": "revGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 13.095238095238097,
+            "raw": 13.095238095238097,
+            "score": 69.5578231292517,
+            "grade": "good",
+            "na": false
+          },
+          "niGrowth": {
+            "id": "niGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 14.728682170542637,
+            "raw": 14.728682170542637,
+            "score": 69.45736434108528,
+            "grade": "good",
+            "na": false
+          },
+          "epsCagr3y": {
+            "id": "epsCagr3y",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 15.521679473813489,
+            "raw": 15.521679473813489,
+            "score": 75.18461855298709,
+            "grade": "good",
+            "na": false
+          },
+          "cfoGrowth": {
+            "id": "cfoGrowth",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": -87.79069767441861,
+            "raw": -87.79069767441861,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "marginTrend": {
+            "id": "marginTrend",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "pp",
+            "hi": true,
+            "value": 0.22180451127819545,
+            "raw": 0.22180451127819545,
+            "score": 54.43609022556391,
+            "grade": "fair",
+            "na": false
+          },
+          "debtEquity": {
+            "id": "debtEquity",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 4.571428571428571,
+            "raw": 4.571428571428571,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "netDebtEbitda": {
+            "id": "netDebtEbitda",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 7.150375939849624,
+            "raw": 7.150375939849624,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "interestCover": {
+            "id": "interestCover",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": 0.826530612244898,
+            "raw": 0.826530612244898,
+            "score": 8.26530612244898,
+            "grade": "poor",
+            "na": false
+          },
+          "currentRatio": {
+            "id": "currentRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 0.8524590163934426,
+            "raw": 0.8524590163934426,
+            "score": 27.622950819672127,
+            "grade": "poor",
+            "na": false
+          },
+          "quickRatio": {
+            "id": "quickRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 0.5081967213114754,
+            "raw": 0.5081967213114754,
+            "score": 20.614754098360656,
+            "grade": "poor",
+            "na": false
+          },
+          "altmanZ": {
+            "id": "altmanZ",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "n",
+            "hi": true,
+            "value": 3.5125274365274364,
+            "raw": 3.5125274365274364,
+            "score": 18.941687838709115,
+            "grade": "poor",
+            "na": false
+          },
+          "fScore": {
+            "id": "fScore",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "n",
+            "hi": true,
+            "value": 6,
+            "raw": 6,
+            "score": 61.5,
+            "grade": "fair",
+            "na": false
+          },
+          "car": {
+            "id": "car",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "npl": {
+            "id": "npl",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "provisionCover": {
+            "id": "provisionCover",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "costIncome": {
+            "id": "costIncome",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "adr": {
+            "id": "adr",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "yieldSpread": {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "w": 6,
+            "fmt": "pp",
+            "hi": true,
+            "value": -8.897142857142857,
+            "raw": -8.897142857142857,
+            "score": 7.570285714285716,
+            "grade": "poor",
+            "na": false
+          },
+          "payout": {
+            "id": "payout",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 36.486486486486484,
+            "raw": 36.486486486486484,
+            "score": 79.72972972972973,
+            "grade": "good",
+            "na": false
+          },
+          "divCover": {
+            "id": "divCover",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 2.740740740740741,
+            "raw": 2.740740740740741,
+            "score": 95.80246913580247,
+            "grade": "strong",
+            "na": false
+          },
+          "fcfCoverDiv": {
+            "id": "fcfCoverDiv",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": -1.6481481481481481,
+            "raw": -1.6481481481481481,
+            "score": 0,
+            "grade": "poor",
+            "na": false
+          },
+          "divYears": {
+            "id": "divYears",
+            "pillar": "income",
+            "w": 1,
+            "fmt": "n",
+            "hi": true,
+            "value": 12,
+            "raw": 12,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "range52": {
+            "id": "range52",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 53.84615384615385,
+            "raw": 53.84615384615385,
+            "score": 68.07692307692308,
+            "grade": "good",
+            "na": false
+          },
+          "vsMa200": {
+            "id": "vsMa200",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 6.0606060606060606,
+            "raw": 6.0606060606060606,
+            "score": 76.06060606060606,
+            "grade": "good",
+            "na": false
+          },
+          "maCross": {
+            "id": "maCross",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.0353535353535352,
+            "raw": 1.0353535353535352,
+            "score": 72.67676767676761,
+            "grade": "good",
+            "na": false
+          },
+          "relStrength": {
+            "id": "relStrength",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": 5,
+            "raw": 5,
+            "score": 63.33333333333333,
+            "grade": "good",
+            "na": false
+          },
+          "liquidity": {
+            "id": "liquidity",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "lakh",
+            "hi": true,
+            "value": 85,
+            "raw": 85,
+            "score": 83.57142857142857,
+            "grade": "strong",
+            "na": false
+          },
+          "freeFloat": {
+            "id": "freeFloat",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 38,
+            "raw": 38,
+            "score": 68.33333333333333,
+            "grade": "good",
+            "na": false
+          }
+        },
+        "pillars": {
+          "value": {
+            "score": 27.33807488849805,
+            "n": 8,
+            "of": 8
+          },
+          "quality": {
+            "score": 60.58521582678265,
+            "n": 8,
+            "of": 8
+          },
+          "growth": {
+            "score": 57.80550757854616,
+            "n": 5,
+            "of": 5
+          },
+          "health": {
+            "score": 16.727577317752214,
+            "n": 7,
+            "of": 12
+          },
+          "income": {
+            "score": 38.19123938590605,
+            "n": 5,
+            "of": 5
+          },
+          "momentum": {
+            "score": 72.47134347134347,
+            "n": 6,
+            "of": 6
+          }
+        },
+        "score": 42.57681999840875,
+        "grade": "weak",
+        "band": {
+          "id": "trim",
+          "min": 35
+        },
+        "flags": [
+          {
+            "id": "cannotCoverInterest",
+            "level": "bad",
+            "vars": {
+              "cover": 0.826530612244898
+            }
+          },
+          {
+            "id": "debtHeavy",
+            "level": "bad",
+            "vars": {
+              "x": 7.150375939849624
+            }
+          },
+          {
+            "id": "altmanDistress",
+            "level": "bad",
+            "vars": {
+              "z": 3.5125274365274364
+            }
+          },
+          {
+            "id": "accrualGap",
+            "level": "warn",
+            "vars": {
+              "a": 0.10039525691699605
+            }
+          },
+          {
+            "id": "dividendFromDebt",
+            "level": "warn",
+            "vars": {
+              "x": -1.6481481481481481
+            }
+          }
+        ],
+        "signals": [
+          {
+            "id": "balanceSheetStress",
+            "tone": "bad"
+          },
+          {
+            "id": "earningsQualityGap",
+            "tone": "bad"
+          },
+          {
+            "id": "losesToSafe",
+            "tone": "warn"
+          },
+          {
+            "id": "borrowedReturn",
+            "tone": "warn"
+          }
+        ],
+        "altman": 3.5125274365274364,
+        "piotroski": {
+          "checks": [
+            {
+              "id": "profit",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "accrual",
+              "pass": false,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": false,
+              "testable": true
+            },
+            {
+              "id": "liquidity",
+              "pass": false,
+              "testable": true
+            },
+            {
+              "id": "dilution",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "margin",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "turnover",
+              "pass": true,
+              "testable": true
+            }
+          ],
+          "tested": 9,
+          "score": 6
+        },
+        "fairValue": {
+          "anchors": [
+            {
+              "id": "sectorPe",
+              "value": 197.33333333333334
+            },
+            {
+              "id": "sectorPb",
+              "value": 45.5
+            },
+            {
+              "id": "graham",
+              "value": 69.68679932383176
+            },
+            {
+              "id": "ddm",
+              "value": 252.08999999999997
+            },
+            {
+              "id": "earningsPower",
+              "value": 87.84425451092119
+            }
+          ],
+          "low": 45.5,
+          "mid": 87.84425451092119,
+          "high": 252.08999999999997,
+          "marginOfSafety": -139.05945945945945,
+          "spread": 5.54043956043956
+        },
+        "shariah": {
+          "tests": [
+            {
+              "id": "debt",
+              "value": 38.095238095238095,
+              "limit": 33,
+              "pass": false
+            },
+            {
+              "id": "cash",
+              "value": 0.35714285714285715,
+              "limit": 33,
+              "pass": true
+            },
+            {
+              "id": "income",
+              "value": 3,
+              "limit": 5,
+              "pass": true
+            }
+          ],
+          "pass": false,
+          "tested": 3
+        },
+        "drags": [
+          {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "score": 7.570285714285716,
+            "cost": 6.39898021978022,
+            "share": 0.06923076923076923
+          },
+          {
+            "id": "debtEquity",
+            "pillar": "health",
+            "score": 0,
+            "cost": 3.3333333333333335,
+            "share": 0.03333333333333333
+          },
+          {
+            "id": "netDebtEbitda",
+            "pillar": "health",
+            "score": 0,
+            "cost": 3.3333333333333335,
+            "share": 0.03333333333333333
+          },
+          {
+            "id": "earningsYieldSpread",
+            "pillar": "value",
+            "score": 11.332063492063497,
+            "cost": 3.3250476190476195,
+            "share": 0.037500000000000006
+          },
+          {
+            "id": "cashConversion",
+            "pillar": "quality",
+            "score": 12.256756756756756,
+            "cost": 3.290371621621622,
+            "share": 0.037500000000000006
+          },
+          {
+            "id": "interestCover",
+            "pillar": "health",
+            "score": 8.26530612244898,
+            "cost": 3.057823129251701,
+            "share": 0.03333333333333333
+          }
+        ],
+        "priceCap": "hold"
+      }
+    },
+    {
+      "name": "tiny-illiquid",
+      "why": "a Z category company nobody trades, where liquidity and float are the things that actually decide the answer",
+      "input": {
+        "category": "Z",
+        "turnover": 0.4,
+        "freeFloat": 6,
+        "shares": 90,
+        "price": 11,
+        "high52": 34,
+        "low52": 9,
+        "ma50": 12,
+        "ma200": 19,
+        "stockReturn12m": -46,
+        "indexReturn12m": 7
+      },
+      "out": {
+        "ratios": {
+          "isFinancial": false,
+          "mcap": 990,
+          "eps": 164.44444444444446,
+          "epsPrev": 10.75,
+          "bvps": 1022.2222222222222,
+          "ebitda": 26100,
+          "netDebt": 9500,
+          "ev": 10490,
+          "fcf": 8500,
+          "paidUp": 900,
+          "pe": 0.06689189189189189,
+          "pb": 0.010760869565217391,
+          "ps": 0.010421052631578947,
+          "evEbitda": 0.4019157088122605,
+          "earningsYield": 1494.949494949495,
+          "fcfYield": 858.5858585858587,
+          "divYield": 40.909090909090914,
+          "divYieldNet": 36.81818181818182,
+          "peRel": 0.004180743243243243,
+          "pbRel": 0.004138795986622074,
+          "peVsMarket": 0.0053513513513513515,
+          "revGrowth": 13.095238095238097,
+          "epsGrowth": 1429.7157622739019,
+          "niGrowth": 14.728682170542637,
+          "epsCagr3y": 15.521679473813489,
+          "cfoGrowth": 13.372093023255813,
+          "peg": 0.004309578226038278,
+          "avgAssets": 126500,
+          "roe": 16.08695652173913,
+          "roa": 11.699604743083004,
+          "capitalEmployed": 106000,
+          "roce": 19.716981132075475,
+          "grossMargin": 48,
+          "opMargin": 22,
+          "netMargin": 15.578947368421053,
+          "netMarginPrev": 15.357142857142858,
+          "marginTrend": 0.22180451127819545,
+          "marginRel": 1.1983805668016194,
+          "roeRel": 1.072463768115942,
+          "assetTurnover": 0.7509881422924901,
+          "dupontMargin": 15.578947368421053,
+          "dupontTurnover": 0.7509881422924901,
+          "dupontLeverage": 1.375,
+          "dupontRoe": 16.086956521739133,
+          "cashConversion": 1.3175675675675675,
+          "accruals": -0.03715415019762846,
+          "debtEquity": 0.20652173913043478,
+          "netDebtEbitda": 0.36398467432950193,
+          "interestCover": 16.076923076923077,
+          "currentRatio": 2,
+          "quickRatio": 1.1923076923076923,
+          "payout": 2.7364864864864864,
+          "divCover": 36.543209876543216,
+          "divTotal": 405,
+          "fcfCoverDiv": 20.987654320987655,
+          "yieldSpread": 29.869090909090914,
+          "yieldVsFdr": 32.409090909090914,
+          "realYield": 31.209090909090914,
+          "earningsYieldSpread": 1483.909494949495,
+          "range52": 8,
+          "vsHigh": -67.64705882352942,
+          "vsMa50": -8.333333333333332,
+          "vsMa200": -42.10526315789473,
+          "maCross": 0.631578947368421,
+          "relStrength": -53,
+          "altmanZ": 9.996878787878789,
+          "fScore": 9,
+          "fTested": 9,
+          "fChecks": [
+            {
+              "id": "profit",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "accrual",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "liquidity",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "dilution",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "margin",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "turnover",
+              "pass": true,
+              "testable": true
+            }
+          ]
+        },
+        "scored": {
+          "peRel": {
+            "id": "peRel",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.004180743243243243,
+            "raw": 0.06689189189189189,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "pbRel": {
+            "id": "pbRel",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.004138795986622074,
+            "raw": 0.010760869565217391,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "evEbitda": {
+            "id": "evEbitda",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.4019157088122605,
+            "raw": 0.4019157088122605,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "earningsYieldSpread": {
+            "id": "earningsYieldSpread",
+            "pillar": "value",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": 1483.909494949495,
+            "raw": 1483.909494949495,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "fcfYield": {
+            "id": "fcfYield",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 858.5858585858587,
+            "raw": 858.5858585858587,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "peg": {
+            "id": "peg",
+            "pillar": "value",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.004309578226038278,
+            "raw": 0.004309578226038278,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "peVsMarket": {
+            "id": "peVsMarket",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.0053513513513513515,
+            "raw": 0.06689189189189189,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "ps": {
+            "id": "ps",
+            "pillar": "value",
+            "w": 1,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.010421052631578947,
+            "raw": 0.010421052631578947,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "roe": {
+            "id": "roe",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 16.08695652173913,
+            "raw": 16.08695652173913,
+            "score": 62.028985507246375,
+            "grade": "good",
+            "na": false
+          },
+          "roce": {
+            "id": "roce",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 19.716981132075475,
+            "raw": 19.716981132075475,
+            "score": 83.47708894878707,
+            "grade": "strong",
+            "na": false
+          },
+          "marginRel": {
+            "id": "marginRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.1983805668016194,
+            "raw": 15.578947368421053,
+            "score": 69.91902834008097,
+            "grade": "good",
+            "na": false
+          },
+          "roeRel": {
+            "id": "roeRel",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.072463768115942,
+            "raw": 16.08695652173913,
+            "score": 63.985507246376805,
+            "grade": "good",
+            "na": false
+          },
+          "grossMargin": {
+            "id": "grossMargin",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "%",
+            "hi": true,
+            "value": 48,
+            "raw": 48,
+            "score": 90.66666666666667,
+            "grade": "strong",
+            "na": false
+          },
+          "cashConversion": {
+            "id": "cashConversion",
+            "pillar": "quality",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.3175675675675675,
+            "raw": 1.3175675675675675,
+            "score": 90.25096525096525,
+            "grade": "strong",
+            "na": false
+          },
+          "accruals": {
+            "id": "accruals",
+            "pillar": "quality",
+            "w": 2,
+            "fmt": "x",
+            "hi": false,
+            "value": -0.03715415019762846,
+            "raw": -0.03715415019762846,
+            "score": 96.14624505928853,
+            "grade": "strong",
+            "na": false
+          },
+          "assetTurnover": {
+            "id": "assetTurnover",
+            "pillar": "quality",
+            "w": 1,
+            "fmt": "x",
+            "hi": true,
+            "value": 0.7509881422924901,
+            "raw": 0.7509881422924901,
+            "score": 58.39920948616601,
+            "grade": "fair",
+            "na": false
+          },
+          "revGrowth": {
+            "id": "revGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 13.095238095238097,
+            "raw": 13.095238095238097,
+            "score": 69.5578231292517,
+            "grade": "good",
+            "na": false
+          },
+          "niGrowth": {
+            "id": "niGrowth",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 14.728682170542637,
+            "raw": 14.728682170542637,
+            "score": 69.45736434108528,
+            "grade": "good",
+            "na": false
+          },
+          "epsCagr3y": {
+            "id": "epsCagr3y",
+            "pillar": "growth",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": 15.521679473813489,
+            "raw": 15.521679473813489,
+            "score": 75.18461855298709,
+            "grade": "good",
+            "na": false
+          },
+          "cfoGrowth": {
+            "id": "cfoGrowth",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 13.372093023255813,
+            "raw": 13.372093023255813,
+            "score": 67.17054263565892,
+            "grade": "good",
+            "na": false
+          },
+          "marginTrend": {
+            "id": "marginTrend",
+            "pillar": "growth",
+            "w": 2,
+            "fmt": "pp",
+            "hi": true,
+            "value": 0.22180451127819545,
+            "raw": 0.22180451127819545,
+            "score": 54.43609022556391,
+            "grade": "fair",
+            "na": false
+          },
+          "debtEquity": {
+            "id": "debtEquity",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.20652173913043478,
+            "raw": 0.20652173913043478,
+            "score": 89.67391304347827,
+            "grade": "strong",
+            "na": false
+          },
+          "netDebtEbitda": {
+            "id": "netDebtEbitda",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": false,
+            "value": 0.36398467432950193,
+            "raw": 0.36398467432950193,
+            "score": 86.90421455938697,
+            "grade": "strong",
+            "na": false
+          },
+          "interestCover": {
+            "id": "interestCover",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "x",
+            "hi": true,
+            "value": 16.076923076923077,
+            "raw": 16.076923076923077,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "currentRatio": {
+            "id": "currentRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 2,
+            "raw": 2,
+            "score": 90,
+            "grade": "strong",
+            "na": false
+          },
+          "quickRatio": {
+            "id": "quickRatio",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 1.1923076923076923,
+            "raw": 1.1923076923076923,
+            "score": 73.84615384615384,
+            "grade": "good",
+            "na": false
+          },
+          "altmanZ": {
+            "id": "altmanZ",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "n",
+            "hi": true,
+            "value": 9.996878787878789,
+            "raw": 9.996878787878789,
+            "score": 99.98127272727274,
+            "grade": "strong",
+            "na": false
+          },
+          "fScore": {
+            "id": "fScore",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "n",
+            "hi": true,
+            "value": 9,
+            "raw": 9,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "car": {
+            "id": "car",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "npl": {
+            "id": "npl",
+            "pillar": "health",
+            "w": 3,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "provisionCover": {
+            "id": "provisionCover",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "costIncome": {
+            "id": "costIncome",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "adr": {
+            "id": "adr",
+            "pillar": "health",
+            "w": 2,
+            "fmt": "%",
+            "hi": false,
+            "value": null,
+            "raw": null,
+            "score": null,
+            "grade": "na",
+            "na": true
+          },
+          "yieldSpread": {
+            "id": "yieldSpread",
+            "pillar": "income",
+            "w": 6,
+            "fmt": "pp",
+            "hi": true,
+            "value": 29.869090909090914,
+            "raw": 29.869090909090914,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "payout": {
+            "id": "payout",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 2.7364864864864864,
+            "raw": 2.7364864864864864,
+            "score": 24.78885135135135,
+            "grade": "poor",
+            "na": false
+          },
+          "divCover": {
+            "id": "divCover",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 36.543209876543216,
+            "raw": 36.543209876543216,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "fcfCoverDiv": {
+            "id": "fcfCoverDiv",
+            "pillar": "income",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 20.987654320987655,
+            "raw": 20.987654320987655,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "divYears": {
+            "id": "divYears",
+            "pillar": "income",
+            "w": 1,
+            "fmt": "n",
+            "hi": true,
+            "value": 12,
+            "raw": 12,
+            "score": 100,
+            "grade": "strong",
+            "na": false
+          },
+          "range52": {
+            "id": "range52",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 8,
+            "raw": 8,
+            "score": 33,
+            "grade": "weak",
+            "na": false
+          },
+          "vsMa200": {
+            "id": "vsMa200",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "%",
+            "hi": true,
+            "value": -42.10526315789473,
+            "raw": -42.10526315789473,
+            "score": 5,
+            "grade": "poor",
+            "na": false
+          },
+          "maCross": {
+            "id": "maCross",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "x",
+            "hi": true,
+            "value": 0.631578947368421,
+            "raw": 0.631578947368421,
+            "score": 10,
+            "grade": "poor",
+            "na": false
+          },
+          "relStrength": {
+            "id": "relStrength",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "pp",
+            "hi": true,
+            "value": -53,
+            "raw": -53,
+            "score": 5,
+            "grade": "poor",
+            "na": false
+          },
+          "liquidity": {
+            "id": "liquidity",
+            "pillar": "momentum",
+            "w": 3,
+            "fmt": "lakh",
+            "hi": true,
+            "value": 0.4,
+            "raw": 0.4,
+            "score": 2,
+            "grade": "poor",
+            "na": false
+          },
+          "freeFloat": {
+            "id": "freeFloat",
+            "pillar": "momentum",
+            "w": 2,
+            "fmt": "%",
+            "hi": true,
+            "value": 6,
+            "raw": 6,
+            "score": 1,
+            "grade": "poor",
+            "na": false
+          }
+        },
+        "pillars": {
+          "value": {
+            "score": 100,
+            "n": 8,
+            "of": 8
+          },
+          "quality": {
+            "score": 77.06009172603339,
+            "n": 8,
+            "of": 8
+          },
+          "growth": {
+            "score": 68.13943721480138,
+            "n": 5,
+            "of": 5
+          },
+          "health": {
+            "score": 92.0761393712623,
+            "n": 7,
+            "of": 12
+          },
+          "income": {
+            "score": 88.42905405405405,
+            "n": 5,
+            "of": 5
+          },
+          "momentum": {
+            "score": 8.266666666666667,
+            "n": 6,
+            "of": 6
+          }
+        },
+        "score": 78.13918657645412,
+        "grade": "good",
+        "band": {
+          "id": "buy",
+          "min": 75
+        },
+        "flags": [
+          {
+            "id": "vetoZ",
+            "level": "veto",
+            "vars": {}
+          },
+          {
+            "id": "thinFloat",
+            "level": "warn",
+            "vars": {
+              "f": 6
+            }
+          },
+          {
+            "id": "illiquid",
+            "level": "warn",
+            "vars": {
+              "t": 0.4
+            }
+          },
+          {
+            "id": "fallingKnife",
+            "level": "warn",
+            "vars": {
+              "x": -42.10526315789473
+            }
+          }
+        ],
+        "signals": [
+          {
+            "id": "thinlyTraded",
+            "tone": "warn"
+          },
+          {
+            "id": "turnaround",
+            "tone": "good"
+          },
+          {
+            "id": "beatsSafe",
+            "tone": "good"
+          }
+        ],
+        "altman": 9.996878787878789,
+        "piotroski": {
+          "checks": [
+            {
+              "id": "profit",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "cfo",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "roaUp",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "accrual",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "leverage",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "liquidity",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "dilution",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "margin",
+              "pass": true,
+              "testable": true
+            },
+            {
+              "id": "turnover",
+              "pass": true,
+              "testable": true
+            }
+          ],
+          "tested": 9,
+          "score": 9
+        },
+        "fairValue": {
+          "anchors": [
+            {
+              "id": "sectorPe",
+              "value": 2631.1111111111113
+            },
+            {
+              "id": "sectorPb",
+              "value": 2657.777777777778
+            },
+            {
+              "id": "graham",
+              "value": 1944.7936194419763
+            },
+            {
+              "id": "ddm",
+              "value": 252.08999999999997
+            },
+            {
+              "id": "earningsPower",
+              "value": 1171.2567268122825
+            }
+          ],
+          "low": 252.08999999999997,
+          "mid": 1944.7936194419763,
+          "high": 2657.777777777778,
+          "marginOfSafety": 99.43438728459238,
+          "spread": 10.542971866308772
+        },
+        "shariah": {
+          "tests": [
+            {
+              "id": "debt",
+              "value": 1919.191919191919,
+              "limit": 33,
+              "pass": false
+            },
+            {
+              "id": "cash",
+              "value": 959.5959595959595,
+              "limit": 33,
+              "pass": false
+            },
+            {
+              "id": "income",
+              "value": 3,
+              "limit": 5,
+              "pass": true
+            }
+          ],
+          "pass": false,
+          "tested": 3
+        },
+        "drags": [
+          {
+            "id": "liquidity",
+            "pillar": "momentum",
+            "score": 2,
+            "cost": 1.9600000000000004,
+            "share": 0.020000000000000004
+          },
+          {
+            "id": "vsMa200",
+            "pillar": "momentum",
+            "score": 5,
+            "cost": 1.9000000000000004,
+            "share": 0.020000000000000004
+          },
+          {
+            "id": "relStrength",
+            "pillar": "momentum",
+            "score": 5,
+            "cost": 1.9000000000000004,
+            "share": 0.020000000000000004
+          },
+          {
+            "id": "payout",
+            "pillar": "income",
+            "score": 24.78885135135135,
+            "cost": 1.7356418918918919,
+            "share": 0.023076923076923078
+          },
+          {
+            "id": "roe",
+            "pillar": "quality",
+            "score": 62.028985507246375,
+            "cost": 1.4239130434782612,
+            "share": 0.037500000000000006
+          },
+          {
+            "id": "freeFloat",
+            "pillar": "momentum",
+            "score": 1,
+            "cost": 1.32,
+            "share": 0.013333333333333334
+          }
+        ],
+        "priceCap": null
+      }
+    }
+  ]
+}

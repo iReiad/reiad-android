@@ -12,7 +12,9 @@ import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.builtins.ListSerializer
@@ -24,10 +26,12 @@ import uk.co.reiad.library.core.LessonResponse
 import uk.co.reiad.library.core.AUDIENCE_KEY
 import uk.co.reiad.library.core.PREFS_KEY
 import uk.co.reiad.library.core.Prefs
+import uk.co.reiad.library.core.Bookmark
 import uk.co.reiad.library.core.BookKeyResponse
 import uk.co.reiad.library.core.BookResponse
 import uk.co.reiad.library.core.PieceResponse
 import uk.co.reiad.library.core.PiecesResponse
+import uk.co.reiad.library.core.stock.ToolWords
 import uk.co.reiad.library.core.ProgressKeys
 import uk.co.reiad.library.core.THEME_KEY
 import uk.co.reiad.library.core.TOOL_LANG_KEY
@@ -36,6 +40,7 @@ import uk.co.reiad.library.core.Theme
 import uk.co.reiad.library.core.School
 import uk.co.reiad.library.core.SITE_ORIGIN
 import uk.co.reiad.library.core.SiteManifest
+import uk.co.reiad.library.core.SyncKeys
 
 /* ============================================================
    Talking to the site, and remembering what the reader did.
@@ -67,9 +72,23 @@ import uk.co.reiad.library.core.SiteManifest
    line eighty further down.)
    ============================================================ */
 
-private val Context.store by preferencesDataStore(name = "reiad")
+/** The one store. `internal` rather than private because
+    `Shelf.kt` reads the same file: two `preferencesDataStore`
+    declarations over one name give two objects and DataStore
+    throws on the second read. */
+internal val Context.store by preferencesDataStore(name = "reiad")
 
 class Reiad(private val context: Context) {
+
+    /** The one store, shared with `Sync`.
+
+        Exposed rather than reached for a second time, because
+        `preferencesDataStore(name = "reiad")` declared twice
+        gives two objects over one file and DataStore throws on
+        the second read. A tick written through one and looked for
+        through the other would be a tick that vanished. */
+    val store: androidx.datastore.core.DataStore<androidx.datastore.preferences.core.Preferences>
+        get() = context.store
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -96,6 +115,21 @@ class Reiad(private val context: Context) {
         app release. */
     suspend fun manifest(): Cached<SiteManifest> =
         fetch("$SITE_ORIGIN/api/site", "cache:site", SiteManifest.serializer())
+
+    /** Every word the calculators say, in both languages.
+
+        Fetched rather than bundled, and that is the contract at
+        the top of CLAUDE.md rather than a preference: the stock
+        check's MODEL is here in Kotlin and needed this release,
+        its 366 phrases are data and must not. An edited Bangla
+        sentence reaches a phone on the next fetch.
+
+        Cached like everything else, so the tool works on a train,
+        and the screen renders nothing until this has answered:
+        the alternative is a page of key names that turns into
+        words a second later. */
+    suspend fun toolWords(): Cached<ToolWords> =
+        fetch("$SITE_ORIGIN/api/tools", "cache:tools", ToolWords.serializer())
 
     suspend fun ladder(school: String): Cached<LadderResponse> =
         fetch("$SITE_ORIGIN/api/schools/$school", "cache:ladder:$school", LadderResponse.serializer())
@@ -144,24 +178,40 @@ class Reiad(private val context: Context) {
         edited in the Studio and a reader with a connection should
         get the current words. The stored copy is the answer to no
         network, not a way to avoid asking. */
+    /**
+     * Network first, and the last good answer when that fails.
+     *
+     * **On IO, and that is not a formality.** Every caller is a
+     * `viewModelScope.launch`, which is the MAIN dispatcher: the
+     * `http.get` suspends and costs nothing there, but the JSON
+     * decode does not suspend and neither does the DataStore
+     * write. The site manifest is a hundred kilobytes of pages,
+     * terms, nav and sections, and decoding it on the main thread
+     * is a hitch at exactly the moment the first screen is trying
+     * to draw.
+     *
+     * Nothing about the shape of the code said so, which is why
+     * it was written this way: `suspend` reads as "this is off
+     * the main thread" and means no such thing.
+     */
     private suspend fun <T> fetch(
         url: String,
         cacheKey: String,
         serializer: DeserializationStrategy<T>,
-    ): Cached<T> {
+    ): Cached<T> = withContext(Dispatchers.IO) {
         val live = runCatching { http.get(url).bodyAsText() }
         if (live.isSuccess) {
             val text = live.getOrThrow()
             val parsed = runCatching { json.decodeFromString(serializer, text) }
             if (parsed.isSuccess) {
                 context.store.edit { it[stringPreferencesKey(cacheKey)] = text }
-                return Cached(parsed.getOrThrow(), stale = false)
+                return@withContext Cached(parsed.getOrThrow(), stale = false)
             }
         }
         val saved = context.store.data.first()[stringPreferencesKey(cacheKey)]
-            ?: return Cached(null, stale = false, failed = live.exceptionOrNull())
+            ?: return@withContext Cached(null, stale = false, failed = live.exceptionOrNull())
         val fromCache = runCatching { json.decodeFromString(serializer, saved) }
-        return Cached(fromCache.getOrNull(), stale = true, failed = live.exceptionOrNull())
+        Cached(fromCache.getOrNull(), stale = true, failed = live.exceptionOrNull())
     }
 
     /* ---------- what the reader did ----------
@@ -247,16 +297,26 @@ class Reiad(private val context: Context) {
 
     val prefs: Flow<Prefs> = context.store.data.map { stored ->
         val raw = stored[key(PREFS_KEY)]
-        if (raw.isNullOrBlank()) Prefs()
+        val record = if (raw.isNullOrBlank()) Prefs()
         else runCatching { json.decodeFromString(Prefs.serializer(), raw) }.getOrDefault(Prefs())
+        /* The theme comes from its OWN key, because that is where
+           the site keeps it: the record deliberately has no theme
+           field, so a device reading one out of it would read
+           nothing. Absent means "follow the system", which is
+           what removing the key means on the site too. */
+        record.copy(theme = stored[key(THEME_KEY)] ?: Theme.SYSTEM.id)
     }
 
     suspend fun savePrefs(change: (Prefs) -> Prefs) {
         context.store.edit { stored ->
             val raw = stored[key(PREFS_KEY)]
-            val now = if (raw.isNullOrBlank()) Prefs()
-            else runCatching { json.decodeFromString(Prefs.serializer(), raw) }.getOrDefault(Prefs())
-            val next = change(now)
+            val now = (if (raw.isNullOrBlank()) Prefs()
+            else runCatching { json.decodeFromString(Prefs.serializer(), raw) }.getOrDefault(Prefs()))
+                .copy(theme = stored[key(THEME_KEY)] ?: Theme.SYSTEM.id)
+            /* Stamped on every save. `reader-prefs` reconciles
+               on the `ts` inside its value, so a record written
+               without a fresh one loses the exchange. */
+            val next = change(now).copy(ts = System.currentTimeMillis())
             stored[key(PREFS_KEY)] = json.encodeToString(Prefs.serializer(), next)
 
             /* The site writes `theme` and `tool-lang` BESIDE the
@@ -289,6 +349,26 @@ class Reiad(private val context: Context) {
         }
     }
 
+    /** Which days this reader turned up.
+
+        A SET, for the obvious reason the site gives: a phone on
+        the bus and a laptop at a desk are the same Tuesday, and
+        either one alone under-counts. */
+    suspend fun daysActive(): Set<String> =
+        decode(context.store.data.first()[key(ProgressKeys.DAYS_ACTIVE)])
+
+    /** Every synced value this device holds, raw, for the export.
+
+        Raw rather than parsed because the export writes them out
+        as they are: a copy of somebody's record should be what
+        the record says, not this app's reading of it. */
+    suspend fun everything(): Map<String, String> {
+        val prefs = context.store.data.first()
+        return SyncKeys.ALL.keys.mapNotNull { name ->
+            prefs[key(name)]?.let { name to it }
+        }.toMap()
+    }
+
     /* ---------- the bookmark ----------
 
        Where a reader last WAS, under `<school>-last`. Not where
@@ -300,11 +380,24 @@ class Reiad(private val context: Context) {
        a URL, so a lesson that moved took the bookmark with it and
        the resume card pointed at a page that was not there. */
 
-    fun bookmark(school: School): Flow<String?> =
-        context.store.data.map { it[key(ProgressKeys.last(school))] }
+    fun bookmark(school: School): Flow<Bookmark?> =
+        context.store.data.map { stored ->
+            val raw = stored[key(ProgressKeys.last(school))] ?: return@map null
+            runCatching { json.decodeFromString(Bookmark.serializer(), raw) }.getOrNull()
+        }
 
-    suspend fun remember(school: School, lessonId: String) {
-        context.store.edit { it[key(ProgressKeys.last(school))] = lessonId }
+    suspend fun remember(school: School, mark: Bookmark) {
+        context.store.edit {
+            /* Stamped here rather than by the caller, so a
+               bookmark cannot be written without one: the key is
+               a MARK and a value with no `ts` loses every
+               exchange it is in. */
+            it[key(ProgressKeys.last(school))] =
+                json.encodeToString(
+                    Bookmark.serializer(),
+                    mark.copy(ts = System.currentTimeMillis()),
+                )
+        }
     }
 
     /* ---------- checkpoints, which are the ticks inside a lesson ----------
@@ -390,4 +483,29 @@ data class Cached<T>(
     val value: T?,
     val stale: Boolean,
     val failed: Throwable? = null,
-)
+) {
+    /** What went wrong, in a sentence a reader can act on.
+
+        Null when nothing went wrong OR when a saved copy
+        answered, because a reader looking at their own ladder
+        does not need to be told the network was busy. It is a
+        problem only when there is nothing to show. */
+    val problem: String?
+        get() {
+            if (value != null) return null
+            val why = failed ?: return null
+            return when (why) {
+                is java.net.UnknownHostException ->
+                    "No connection, and this phone has not saved a copy yet."
+                is java.net.SocketTimeoutException,
+                is io.ktor.client.plugins.HttpRequestTimeoutException ->
+                    "The site took too long to answer."
+                is io.ktor.client.plugins.ClientRequestException ->
+                    "The site answered ${why.response.status.value}. " +
+                        "That address may not be live yet."
+                is io.ktor.client.plugins.ServerResponseException ->
+                    "The site answered ${why.response.status.value}."
+                else -> why.message ?: why::class.simpleName ?: "Something went wrong."
+            }
+        }
+}

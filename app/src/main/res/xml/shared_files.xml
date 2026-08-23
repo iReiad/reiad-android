@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- What the app is willing to hand out through a content URI.
+
+     ONE directory, and it is the cache. The export is a copy of
+     somebody's whole account, so it should live exactly as long
+     as it takes them to put it where they want it, and a
+     FileProvider pointed at a wider root is a provider that can
+     be talked into handing out more than it meant to. -->
+<paths>
+    <cache-path name="exports" path="exports/" />
+</paths>

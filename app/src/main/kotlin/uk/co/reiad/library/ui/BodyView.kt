@@ -19,6 +19,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.SpanStyle
@@ -30,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.dp
 import uk.co.reiad.library.core.Block
 import uk.co.reiad.library.core.CalloutKind
@@ -93,7 +96,17 @@ fun BodyView(
     Column(modifier) {
         for ((index, block) in blocks.withIndex()) {
             BlockView(block, checkpoints, if (path.isEmpty()) "$index" else "$path.$index")
-            Spacer(Modifier.height(Gap.s7))
+            /* A heading opens a section, so the air belongs ABOVE
+               it rather than under the paragraph it follows.
+
+               One gap between every pair of blocks put a
+               subheading the same distance from the prose it
+               ends and the prose it introduces, which reads as
+               another line of the paragraph above rather than as
+               a new section. The site says the same with
+               `margin-block: 28px 10px` on an article's h2. */
+            val nextIsHeading = blocks.getOrNull(index + 1) is Block.Heading
+            Spacer(Modifier.height(if (nextIsHeading) Gap.s10 else Gap.s7))
         }
     }
 }
@@ -106,15 +119,27 @@ private fun BlockView(
 ) {
     val c = LocalReiad.current
     when (block) {
+        /* A heading is bigger than the prose under it and it is
+           SPACED, both of which the site does and neither of
+           which this did: `BanglaHeading` is 20sp against 17sp
+           body, which at Bengali's leading is a line of prose in
+           bold. An article's h2 there is 1.6rem, which is 27 of
+           the site's pixels against a 17px body. */
         is Block.Heading -> Text(
             block.inlines.annotated(c.accent),
             style = when {
                 isBangla(block.inlines.plain()) ->
-                    if (block.level <= 2) BanglaHeading else BanglaTitle
-                block.level <= 2 -> MaterialTheme.typography.headlineSmall
+                    if (block.level <= 2) {
+                        BanglaHeading.copy(fontSize = 25.sp, lineHeight = 36.sp)
+                    } else {
+                        BanglaTitle
+                    }
+                block.level <= 2 ->
+                    MaterialTheme.typography.headlineSmall.copy(fontSize = 25.sp, lineHeight = 31.sp)
                 else -> MaterialTheme.typography.titleMedium
             },
             color = c.ink,
+            modifier = Modifier.semantics { heading() },
         )
 
         /* Asked of the words rather than of the piece, because a

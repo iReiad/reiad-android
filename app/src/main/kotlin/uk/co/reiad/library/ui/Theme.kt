@@ -70,6 +70,11 @@ data class ReiadColours(
     val accentSoft: Color,
     val accentLine: Color,
     val danger: Color,
+    /** The site's `--gold`, which is what a warning is drawn in
+        there. A third tone rather than a paler danger, because
+        "worth knowing" and "this is wrong" are different claims
+        and the stock check makes both on the same list. */
+    val gold: Color,
     val isDark: Boolean,
 
     /* ---- the material's own three ----
@@ -116,6 +121,7 @@ fun coloursOf(accent: Accent, dark: Boolean): ReiadColours {
         accentSoft = s.accentSoft.compose(),
         accentLine = s.accentLine.compose(),
         danger = (if (dark) Accents.DANGER.dark else Accents.DANGER.light).compose(),
+        gold = (if (dark) Accents.GOLD.dark else Accents.GOLD.light).compose(),
         isDark = dark,
         paneTop = s.paneTop.compose(),
         glassFace = s.glassFace.compose(),
@@ -256,6 +262,21 @@ val BanglaTitle: TextStyle
     character in it is enough, because a line with any Bangla in
     it is a line that needs the taller leading. */
 fun isBangla(text: String): Boolean = text.any { it.code in 0x0980..0x09FF }
+
+/* The two above, chosen per string. A screen whose words arrive
+   from `/api/tools` in whichever language the reader picked
+   cannot decide this at the call site the way a hard-coded label
+   can, so it asks the string. */
+
+@Composable
+@ReadOnlyComposable
+fun bodyStyle(text: String): TextStyle =
+    if (isBangla(text)) BanglaBody else MaterialTheme.typography.bodyLarge
+
+@Composable
+@ReadOnlyComposable
+fun headingStyle(text: String): TextStyle =
+    if (isBangla(text)) BanglaHeading else MaterialTheme.typography.headlineSmall
 
 @Composable
 fun ReiadTheme(

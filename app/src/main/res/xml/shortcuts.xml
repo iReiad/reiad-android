@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The three the PWA already declares, in the same order and with
+  the same names: `aab/site.webmanifest`.
+
+  Same three deliberately. A reader who long-presses the icon
+  should meet what long-pressing the installed website gives them,
+  and a fourth here would be the app quietly disagreeing with the
+  site about what it is for.
+
+  Each is a VIEW on the site's own address rather than a private
+  extra, so `Address.kt` routes them exactly as it routes a link
+  somebody shared. That is what stops a shortcut going stale: it
+  goes through the same function every deep link does.
+-->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:shortcutId="tools"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_tools"
+        android:shortcutShortLabel="@string/shortcut_tools_short"
+        android:shortcutLongLabel="@string/shortcut_tools_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="https://reiad.co.uk/tools"
+            android:targetPackage="uk.co.reiad.library"
+            android:targetClass="uk.co.reiad.library.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="money"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_learn"
+        android:shortcutShortLabel="@string/shortcut_learn_short"
+        android:shortcutLongLabel="@string/shortcut_learn_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="https://reiad.co.uk/money"
+            android:targetPackage="uk.co.reiad.library"
+            android:targetClass="uk.co.reiad.library.MainActivity" />
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="insights"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_insights"
+        android:shortcutShortLabel="@string/shortcut_insights_short"
+        android:shortcutLongLabel="@string/shortcut_insights_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="https://reiad.co.uk/insights"
+            android:targetPackage="uk.co.reiad.library"
+            android:targetClass="uk.co.reiad.library.MainActivity" />
+    </shortcut>
+</shortcuts>

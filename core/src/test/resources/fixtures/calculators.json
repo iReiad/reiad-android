@@ -1,0 +1,1589 @@
+{
+  "formats": {
+    "final": "money",
+    "paid": "money",
+    "growth": "money",
+    "growthPct": "percent",
+    "doubles": "count",
+    "sGross": "money",
+    "sPaidTax": "money",
+    "sNet": "money",
+    "sTotal": "money",
+    "fGross": "money",
+    "fPaidTax": "money",
+    "fNet": "money",
+    "fTotal": "money",
+    "gap": "money",
+    "gapPct": "percent",
+    "worth": "money",
+    "lost": "money",
+    "lostPct": "percent",
+    "real": "percent",
+    "grown": "money",
+    "grownReal": "money",
+    "emi": "money",
+    "interest": "money",
+    "total": "money",
+    "interestPct": "percent",
+    "shorterEmi": "money",
+    "saved": "money",
+    "shorter": "years",
+    "shares": "count",
+    "cost": "money",
+    "riskTaka": "money",
+    "exposure": "percent",
+    "after20": "money",
+    "amount": "money",
+    "years": "years",
+    "rate": "percent",
+    "nominal": "percent",
+    "inflation": "percent",
+    "principal": "money",
+    "capital": "money",
+    "risk": "percent",
+    "entry": "price",
+    "stop": "price",
+    "srate": "percent",
+    "frate": "percent"
+  },
+  "calculators": [
+    {
+      "id": "compounding",
+      "fields": [
+        {
+          "name": "start",
+          "min": 0,
+          "max": 1000000,
+          "step": 5000,
+          "value": 50000
+        },
+        {
+          "name": "monthly",
+          "min": 0,
+          "max": 100000,
+          "step": 500,
+          "value": 5000
+        },
+        {
+          "name": "rate",
+          "min": 0,
+          "max": 25,
+          "step": 0.5,
+          "value": 10
+        },
+        {
+          "name": "years",
+          "min": 1,
+          "max": 40,
+          "step": 1,
+          "value": 20
+        }
+      ],
+      "figures": [
+        "final",
+        "paid",
+        "growth"
+      ],
+      "lines": [
+        "totals",
+        "contributed"
+      ],
+      "cases": [
+        {
+          "name": "default",
+          "why": "the ordinary path: a habit, a rate and twenty years",
+          "input": {
+            "start": 50000,
+            "monthly": 5000,
+            "rate": 10,
+            "years": 20
+          },
+          "out": {
+            "values": {
+              "final": 4163247.861612306,
+              "paid": 1250000,
+              "growth": 2913247.861612306,
+              "growthPct": 233.05982892898447,
+              "doubles": 7.2,
+              "rate": 10,
+              "years": 20
+            },
+            "series": {
+              "totals": [
+                50000,
+                118063.49383684318,
+                193254.12489411404,
+                276318.1975722385,
+                368080.1640946562,
+                469450.80760608177,
+                581436.2821480869,
+                705148.0992382547,
+                841814.1601746707,
+                992790.9435668581,
+                1159576.9690604615,
+                1343827.6708898428,
+                1547371.8288859895,
+                1772229.7200256693,
+                2020633.1706849663,
+                2295047.708625801,
+                2598197.034584907,
+                2933090.0563579523,
+                3303050.753705539,
+                3711751.1705051125,
+                4163247.861612306
+              ],
+              "contributed": [
+                50000,
+                110000,
+                170000,
+                230000,
+                290000,
+                350000,
+                410000,
+                470000,
+                530000,
+                590000,
+                650000,
+                710000,
+                770000,
+                830000,
+                890000,
+                950000,
+                1010000,
+                1070000,
+                1130000,
+                1190000,
+                1250000
+              ]
+            },
+            "notes": {
+              "final": "calc.compounding.final.note",
+              "paid": "calc.compounding.paid.note",
+              "growth": "calc.compounding.growth.note"
+            },
+            "verdict": "grows"
+          }
+        },
+        {
+          "name": "no-rate",
+          "why": "nothing compounds, so the verdict has to stop claiming it does and the rule of 72 has to refuse rather than divide by nought",
+          "input": {
+            "start": 50000,
+            "monthly": 5000,
+            "rate": 0,
+            "years": 20
+          },
+          "out": {
+            "values": {
+              "final": 1250000,
+              "paid": 1250000,
+              "growth": 0,
+              "growthPct": 0,
+              "doubles": null,
+              "rate": 0,
+              "years": 20
+            },
+            "series": {
+              "totals": [
+                50000,
+                110000,
+                170000,
+                230000,
+                290000,
+                350000,
+                410000,
+                470000,
+                530000,
+                590000,
+                650000,
+                710000,
+                770000,
+                830000,
+                890000,
+                950000,
+                1010000,
+                1070000,
+                1130000,
+                1190000,
+                1250000
+              ],
+              "contributed": [
+                50000,
+                110000,
+                170000,
+                230000,
+                290000,
+                350000,
+                410000,
+                470000,
+                530000,
+                590000,
+                650000,
+                710000,
+                770000,
+                830000,
+                890000,
+                950000,
+                1010000,
+                1070000,
+                1130000,
+                1190000,
+                1250000
+              ]
+            },
+            "notes": {
+              "final": "calc.compounding.final.note",
+              "paid": "calc.compounding.paid.note",
+              "growth": "calc.compounding.growth.note"
+            },
+            "verdict": "flat"
+          }
+        },
+        {
+          "name": "nothing-in",
+          "why": "no starting sum and no habit, where the growth percentage would divide by zero if it were not guarded",
+          "input": {
+            "start": 0,
+            "monthly": 0,
+            "rate": 10,
+            "years": 20
+          },
+          "out": {
+            "values": {
+              "final": 0,
+              "paid": 0,
+              "growth": 0,
+              "growthPct": 0,
+              "doubles": 7.2,
+              "rate": 10,
+              "years": 20
+            },
+            "series": {
+              "totals": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "contributed": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ]
+            },
+            "notes": {
+              "final": "calc.compounding.final.note",
+              "paid": "calc.compounding.paid.note",
+              "growth": ""
+            },
+            "verdict": "grows"
+          }
+        },
+        {
+          "name": "one-year",
+          "why": "the shortest term, where the series is two points and an off-by-one in the month loop shows up as a whole year",
+          "input": {
+            "start": 50000,
+            "monthly": 5000,
+            "rate": 10,
+            "years": 1
+          },
+          "out": {
+            "values": {
+              "final": 118063.49383684318,
+              "paid": 110000,
+              "growth": 8063.493836843176,
+              "growthPct": 7.330448942584705,
+              "doubles": 7.2,
+              "rate": 10,
+              "years": 1
+            },
+            "series": {
+              "totals": [
+                50000,
+                118063.49383684318
+              ],
+              "contributed": [
+                50000,
+                110000
+              ]
+            },
+            "notes": {
+              "final": "calc.compounding.final.note",
+              "paid": "calc.compounding.paid.note",
+              "growth": "calc.compounding.growth.note"
+            },
+            "verdict": "grows"
+          }
+        },
+        {
+          "name": "forty-years",
+          "why": "the longest, where a compounding error has room to grow into something visible",
+          "input": {
+            "start": 50000,
+            "monthly": 5000,
+            "rate": 25,
+            "years": 40
+          },
+          "out": {
+            "values": {
+              "final": 5763740080.757485,
+              "paid": 2450000,
+              "growth": 5761290080.757485,
+              "growthPct": 235154.6971737749,
+              "doubles": 2.88,
+              "rate": 25,
+              "years": 40
+            },
+            "series": {
+              "totals": [
+                50000,
+                131412.15259056562,
+                235679.2658343364,
+                369217.4485042438,
+                540244.0136023901,
+                759283.1332343658,
+                1039813.4467655882,
+                1399097.4730260626,
+                1859243.8646978142,
+                2448567.87103432,
+                3203333.7254023803,
+                4169986.175997893,
+                5408008.477662115,
+                6993582.712200857,
+                9024277.67613938,
+                11625052.806522923,
+                14955947.59817727,
+                19221929.68307742,
+                24685507.57640691,
+                31682884.218502533,
+                40644645.325839356,
+                52122255.615075134,
+                66821993.353422314,
+                85648411.4083061,
+                109759999.18532085,
+                140640470.62889808,
+                180190065.01465848,
+                230842478.7556896,
+                295714623.65729064,
+                378798427.0402929,
+                485206476.21233493,
+                621486623.0949241,
+                796024908.2984445,
+                1019561598.7015666,
+                1305852093.065685,
+                1672513364.7139416,
+                2142108027.384538,
+                2743532732.5829053,
+                3513796333.8893595,
+                4500297238.10795,
+                5763740080.757485
+              ],
+              "contributed": [
+                50000,
+                110000,
+                170000,
+                230000,
+                290000,
+                350000,
+                410000,
+                470000,
+                530000,
+                590000,
+                650000,
+                710000,
+                770000,
+                830000,
+                890000,
+                950000,
+                1010000,
+                1070000,
+                1130000,
+                1190000,
+                1250000,
+                1310000,
+                1370000,
+                1430000,
+                1490000,
+                1550000,
+                1610000,
+                1670000,
+                1730000,
+                1790000,
+                1850000,
+                1910000,
+                1970000,
+                2030000,
+                2090000,
+                2150000,
+                2210000,
+                2270000,
+                2330000,
+                2390000,
+                2450000
+              ]
+            },
+            "notes": {
+              "final": "calc.compounding.final.note",
+              "paid": "calc.compounding.paid.note",
+              "growth": "calc.compounding.growth.note"
+            },
+            "verdict": "grows"
+          }
+        }
+      ]
+    },
+    {
+      "id": "sanchayapatra",
+      "fields": [
+        {
+          "name": "amount",
+          "min": 50000,
+          "max": 5000000,
+          "step": 50000,
+          "value": 1000000
+        },
+        {
+          "name": "years",
+          "min": 1,
+          "max": 10,
+          "step": 1,
+          "value": 5
+        },
+        {
+          "name": "srate",
+          "min": 5,
+          "max": 15,
+          "step": 0.01,
+          "value": 11.04
+        },
+        {
+          "name": "stax",
+          "min": 0,
+          "max": 20,
+          "step": 1,
+          "value": 10
+        },
+        {
+          "name": "frate",
+          "min": 3,
+          "max": 15,
+          "step": 0.01,
+          "value": 9
+        },
+        {
+          "name": "ftax",
+          "min": 0,
+          "max": 20,
+          "step": 1,
+          "value": 10
+        }
+      ],
+      "figures": [
+        "sTotal",
+        "fTotal",
+        "gap"
+      ],
+      "lines": [],
+      "cases": [
+        {
+          "name": "default",
+          "why": "sanchayapatra ahead, which is the usual answer at these rates",
+          "input": {
+            "amount": 1000000,
+            "years": 5,
+            "srate": 11.04,
+            "stax": 10,
+            "frate": 9,
+            "ftax": 10
+          },
+          "out": {
+            "values": {
+              "sGross": 552000,
+              "sPaidTax": 55200,
+              "sNet": 496800,
+              "sTotal": 1496800,
+              "fGross": 538623.9549000007,
+              "fPaidTax": 53862.39549000008,
+              "fNet": 484761.5594100006,
+              "fTotal": 1484761.5594100007,
+              "gap": 12038.440589999314,
+              "gapPct": 1.2038440589999315,
+              "amount": 1000000,
+              "years": 5
+            },
+            "series": {},
+            "notes": {
+              "sTotal": "calc.sanchayapatra.sTotal.note",
+              "fTotal": "calc.sanchayapatra.fTotal.note",
+              "gap": "calc.sanchayapatra.gap.note.s"
+            },
+            "verdict": "sanchayapatra"
+          }
+        },
+        {
+          "name": "fdr-ahead",
+          "why": "the other branch, where compounding overtakes a paid-out profit",
+          "input": {
+            "amount": 1000000,
+            "years": 5,
+            "srate": 11.04,
+            "stax": 10,
+            "frate": 15,
+            "ftax": 10
+          },
+          "out": {
+            "values": {
+              "sGross": 552000,
+              "sPaidTax": 55200,
+              "sNet": 496800,
+              "sTotal": 1496800,
+              "fGross": 1011357.1874999994,
+              "fPaidTax": 101135.71874999988,
+              "fNet": 910221.4687499995,
+              "fTotal": 1910221.4687499995,
+              "gap": 413421.46874999953,
+              "gapPct": 41.342146874999955,
+              "amount": 1000000,
+              "years": 5
+            },
+            "series": {},
+            "notes": {
+              "sTotal": "calc.sanchayapatra.sTotal.note",
+              "fTotal": "calc.sanchayapatra.fTotal.note",
+              "gap": "calc.sanchayapatra.gap.note.f"
+            },
+            "verdict": "fdr"
+          }
+        },
+        {
+          "name": "too-close",
+          "why": "within half a per cent of the principal, where the tool has to stop picking a winner and say the rules matter more than the rate. A simple 10.7% against a compounding 9% is that tie over five years",
+          "input": {
+            "amount": 1000000,
+            "years": 5,
+            "srate": 10.7,
+            "stax": 10,
+            "frate": 9,
+            "ftax": 10
+          },
+          "out": {
+            "values": {
+              "sGross": 535000,
+              "sPaidTax": 53500,
+              "sNet": 481500,
+              "sTotal": 1481500,
+              "fGross": 538623.9549000007,
+              "fPaidTax": 53862.39549000008,
+              "fNet": 484761.5594100006,
+              "fTotal": 1484761.5594100007,
+              "gap": 3261.5594100006856,
+              "gapPct": 0.32615594100006856,
+              "amount": 1000000,
+              "years": 5
+            },
+            "series": {},
+            "notes": {
+              "sTotal": "calc.sanchayapatra.sTotal.note",
+              "fTotal": "calc.sanchayapatra.fTotal.note",
+              "gap": "calc.sanchayapatra.gap.note.f"
+            },
+            "verdict": "close"
+          }
+        },
+        {
+          "name": "no-tax",
+          "why": "one side taxed and the other not, which is the pair of subtractions most easily written the wrong way round",
+          "input": {
+            "amount": 1000000,
+            "years": 5,
+            "srate": 11.04,
+            "stax": 0,
+            "frate": 9,
+            "ftax": 20
+          },
+          "out": {
+            "values": {
+              "sGross": 552000,
+              "sPaidTax": 0,
+              "sNet": 552000,
+              "sTotal": 1552000,
+              "fGross": 538623.9549000007,
+              "fPaidTax": 107724.7909800001,
+              "fNet": 430899.1639200006,
+              "fTotal": 1430899.1639200007,
+              "gap": 121100.83607999934,
+              "gapPct": 12.110083607999934,
+              "amount": 1000000,
+              "years": 5
+            },
+            "series": {},
+            "notes": {
+              "sTotal": "calc.sanchayapatra.sTotal.note",
+              "fTotal": "calc.sanchayapatra.fTotal.note",
+              "gap": "calc.sanchayapatra.gap.note.s"
+            },
+            "verdict": "sanchayapatra"
+          }
+        },
+        {
+          "name": "ten-years",
+          "why": "the longest term, where compounding has the most room",
+          "input": {
+            "amount": 1000000,
+            "years": 10,
+            "srate": 11.04,
+            "stax": 10,
+            "frate": 9,
+            "ftax": 10
+          },
+          "out": {
+            "values": {
+              "sGross": 1104000,
+              "sPaidTax": 110400,
+              "sNet": 993600,
+              "sTotal": 1993600,
+              "fGross": 1367363.6745921192,
+              "fPaidTax": 136736.36745921196,
+              "fNet": 1230627.3071329072,
+              "fTotal": 2230627.307132907,
+              "gap": 237027.3071329072,
+              "gapPct": 23.70273071329072,
+              "amount": 1000000,
+              "years": 10
+            },
+            "series": {},
+            "notes": {
+              "sTotal": "calc.sanchayapatra.sTotal.note",
+              "fTotal": "calc.sanchayapatra.fTotal.note",
+              "gap": "calc.sanchayapatra.gap.note.f"
+            },
+            "verdict": "fdr"
+          }
+        }
+      ]
+    },
+    {
+      "id": "inflation",
+      "fields": [
+        {
+          "name": "amount",
+          "min": 10000,
+          "max": 10000000,
+          "step": 10000,
+          "value": 500000
+        },
+        {
+          "name": "inflation",
+          "min": 0,
+          "max": 20,
+          "step": 0.25,
+          "value": 9
+        },
+        {
+          "name": "nominal",
+          "min": 0,
+          "max": 25,
+          "step": 0.25,
+          "value": 9
+        },
+        {
+          "name": "years",
+          "min": 1,
+          "max": 30,
+          "step": 1,
+          "value": 10
+        }
+      ],
+      "figures": [
+        "worth",
+        "lost",
+        "real"
+      ],
+      "lines": [
+        "nominalSeries",
+        "realSeries"
+      ],
+      "cases": [
+        {
+          "name": "default",
+          "why": "a return exactly equal to inflation, where Fisher gives nought and subtraction happens to agree",
+          "input": {
+            "amount": 500000,
+            "inflation": 9,
+            "nominal": 9,
+            "years": 10
+          },
+          "out": {
+            "values": {
+              "worth": 211205.4034478444,
+              "lost": 288794.59655215556,
+              "lostPct": 57.75891931043111,
+              "real": 0,
+              "grown": 1183681.8372960596,
+              "grownReal": 500000,
+              "amount": 500000,
+              "years": 10,
+              "nominal": 9,
+              "inflation": 9
+            },
+            "series": {
+              "nominalSeries": [
+                500000,
+                545000,
+                594050.0000000001,
+                647514.5000000002,
+                705790.8050000003,
+                769311.9774500004,
+                838550.0554205003,
+                914019.5604083454,
+                996281.3208450967,
+                1085946.6397211554,
+                1183681.8372960596
+              ],
+              "realSeries": [
+                500000,
+                499999.99999999994,
+                500000.00000000006,
+                500000,
+                500000,
+                500000,
+                500000,
+                500000,
+                500000,
+                500000,
+                500000
+              ]
+            },
+            "notes": {
+              "worth": "calc.inflation.worth.note",
+              "lost": "calc.inflation.lost.note",
+              "real": "calc.inflation.real.note"
+            },
+            "verdict": "beats"
+          }
+        },
+        {
+          "name": "beats",
+          "why": "a real return above nought",
+          "input": {
+            "amount": 500000,
+            "inflation": 9,
+            "nominal": 15,
+            "years": 10
+          },
+          "out": {
+            "values": {
+              "worth": 211205.4034478444,
+              "lost": 288794.59655215556,
+              "lostPct": 57.75891931043111,
+              "real": 5.504587155963292,
+              "grown": 2022778.8678539533,
+              "grownReal": 854443.6537417363,
+              "amount": 500000,
+              "years": 10,
+              "nominal": 15,
+              "inflation": 9
+            },
+            "series": {
+              "nominalSeries": [
+                500000,
+                575000,
+                661249.9999999999,
+                760437.4999999999,
+                874503.1249999998,
+                1005678.5937499997,
+                1156530.3828124995,
+                1330009.9402343743,
+                1529511.4312695302,
+                1758938.1459599598,
+                2022778.8678539533
+              ],
+              "realSeries": [
+                500000,
+                527522.9357798165,
+                556560.8955475127,
+                587197.2751189353,
+                619520.0609052986,
+                653622.0826065076,
+                689601.2798142052,
+                727560.9832902164,
+                767610.2117282097,
+                809863.9848508635,
+                854443.6537417363
+              ]
+            },
+            "notes": {
+              "worth": "calc.inflation.worth.note",
+              "lost": "calc.inflation.lost.note",
+              "real": "calc.inflation.real.note"
+            },
+            "verdict": "beats"
+          }
+        },
+        {
+          "name": "loses",
+          "why": "the quiet way safe savings lose money, which is the whole point of this calculator and a different sentence",
+          "input": {
+            "amount": 500000,
+            "inflation": 9,
+            "nominal": 3,
+            "years": 10
+          },
+          "out": {
+            "values": {
+              "worth": 211205.4034478444,
+              "lost": 288794.59655215556,
+              "lostPct": 57.75891931043111,
+              "real": -5.5045871559633035,
+              "grown": 671958.1896720611,
+              "grownReal": 283842.4010995417,
+              "amount": 500000,
+              "years": 10,
+              "nominal": 3,
+              "inflation": 9
+            },
+            "series": {
+              "nominalSeries": [
+                500000,
+                515000,
+                530450,
+                546363.5,
+                562754.405,
+                579637.03715,
+                597026.1482645001,
+                614936.9327124351,
+                633385.0406938082,
+                652386.5919146225,
+                671958.1896720611
+              ],
+              "realSeries": [
+                500000,
+                472477.06422018347,
+                446469.15242824674,
+                421892.86880834313,
+                398669.408139994,
+                376724.3031047649,
+                355987.18550266785,
+                336391.56061261275,
+                317874.5939733863,
+                300376.90990145673,
+                283842.4010995417
+              ]
+            },
+            "notes": {
+              "worth": "calc.inflation.worth.note",
+              "lost": "calc.inflation.lost.note",
+              "real": "calc.inflation.real.note.losing"
+            },
+            "verdict": "loses"
+          }
+        },
+        {
+          "name": "no-inflation",
+          "why": "where the two methods must agree exactly",
+          "input": {
+            "amount": 500000,
+            "inflation": 0,
+            "nominal": 9,
+            "years": 10
+          },
+          "out": {
+            "values": {
+              "worth": 500000,
+              "lost": 0,
+              "lostPct": 0,
+              "real": 9.000000000000007,
+              "grown": 1183681.8372960596,
+              "grownReal": 1183681.8372960596,
+              "amount": 500000,
+              "years": 10,
+              "nominal": 9,
+              "inflation": 0
+            },
+            "series": {
+              "nominalSeries": [
+                500000,
+                545000,
+                594050.0000000001,
+                647514.5000000002,
+                705790.8050000003,
+                769311.9774500004,
+                838550.0554205003,
+                914019.5604083454,
+                996281.3208450967,
+                1085946.6397211554,
+                1183681.8372960596
+              ],
+              "realSeries": [
+                500000,
+                545000,
+                594050.0000000001,
+                647514.5000000002,
+                705790.8050000003,
+                769311.9774500004,
+                838550.0554205003,
+                914019.5604083454,
+                996281.3208450967,
+                1085946.6397211554,
+                1183681.8372960596
+              ]
+            },
+            "notes": {
+              "worth": "calc.inflation.worth.note",
+              "lost": "calc.inflation.lost.note",
+              "real": "calc.inflation.real.note"
+            },
+            "verdict": "beats"
+          }
+        },
+        {
+          "name": "thirty-years",
+          "why": "the longest horizon, where the two series diverge most",
+          "input": {
+            "amount": 500000,
+            "inflation": 6,
+            "nominal": 12,
+            "years": 30
+          },
+          "out": {
+            "values": {
+              "worth": 87055.06545531715,
+              "lost": 412944.93454468285,
+              "lostPct": 82.58898690893656,
+              "real": 5.660377358490565,
+              "grown": 14979961.06045558,
+              "grownReal": 2608162.981272125,
+              "amount": 500000,
+              "years": 30,
+              "nominal": 12,
+              "inflation": 6
+            },
+            "series": {
+              "nominalSeries": [
+                500000,
+                560000,
+                627200.0000000001,
+                702464.0000000002,
+                786759.6800000003,
+                881170.8416000004,
+                986911.3425920005,
+                1105340.7037030407,
+                1237981.5881474058,
+                1386539.3787250945,
+                1552924.1041721061,
+                1739274.996672759,
+                1947987.9962734904,
+                2181746.5558263096,
+                2443556.1425254666,
+                2736782.879628523,
+                3065196.8251839457,
+                3433020.4442060194,
+                3844982.8975107423,
+                4306380.845212032,
+                4823146.546637476,
+                5401924.1322339745,
+                6050155.0281020515,
+                6776173.631474298,
+                7589314.467251214,
+                8500032.20332136,
+                9520036.067719925,
+                10662440.395846318,
+                11941933.243347876,
+                13374965.232549623,
+                14979961.06045558
+              ],
+              "realSeries": [
+                500000,
+                528301.8867924528,
+                558205.7671769314,
+                589802.3200360029,
+                623187.3570191729,
+                658462.1130768621,
+                695733.5534397033,
+                735114.6979740261,
+                776724.9638970842,
+                820690.5278912588,
+                867144.7087152925,
+                916228.371472762,
+                968090.3547636732,
+                1022887.9220144472,
+                1080787.2383548876,
+                1141963.874488183,
+                1206603.3390818536,
+                1274901.641294034,
+                1347065.8851408663,
+                1423314.8975073306,
+                1503879.891705859,
+                1589005.16859487,
+                1678948.8573832586,
+                1773983.6983672169,
+                1874397.8699729082,
+                1980495.8626128843,
+                2092599.4020060666,
+                2211048.4247611277,
+                2336202.1091815685,
+                2468439.9644182613,
+                2608162.981272125
+              ]
+            },
+            "notes": {
+              "worth": "calc.inflation.worth.note",
+              "lost": "calc.inflation.lost.note",
+              "real": "calc.inflation.real.note"
+            },
+            "verdict": "beats"
+          }
+        }
+      ]
+    },
+    {
+      "id": "emi",
+      "fields": [
+        {
+          "name": "principal",
+          "min": 50000,
+          "max": 10000000,
+          "step": 50000,
+          "value": 1500000
+        },
+        {
+          "name": "rate",
+          "min": 4,
+          "max": 20,
+          "step": 0.25,
+          "value": 12
+        },
+        {
+          "name": "years",
+          "min": 1,
+          "max": 25,
+          "step": 1,
+          "value": 10
+        }
+      ],
+      "figures": [
+        "emi",
+        "interest",
+        "total"
+      ],
+      "lines": [
+        "balances",
+        "paidInterest"
+      ],
+      "cases": [
+        {
+          "name": "default",
+          "why": "the ordinary path: ten years at twelve per cent",
+          "input": {
+            "principal": 1500000,
+            "rate": 12,
+            "years": 10
+          },
+          "out": {
+            "values": {
+              "emi": 21520.642260388096,
+              "interest": 1082477.0712465714,
+              "total": 2582477.0712465714,
+              "interestPct": 72.16513808310476,
+              "shorter": 8,
+              "shorterEmi": 24379.262138608003,
+              "saved": 242067.905940203,
+              "principal": 1500000,
+              "years": 10,
+              "rate": 12
+            },
+            "series": {
+              "balances": [
+                1500000,
+                1417301.9348846485,
+                1324115.685169187,
+                1219111.0865256768,
+                1100789.276495208,
+                967461.2993423559,
+                817223.9974696587,
+                647932.845260011,
+                457171.33757029887,
+                242216.49591981884,
+                3.841705620288849e-9
+              ],
+              "paidInterest": [
+                0,
+                175549.64200930562,
+                340611.0994185012,
+                493854.20789964806,
+                633780.1049938367,
+                758699.8349656416,
+                866710.2402176013,
+                955666.7951326105,
+                1023152.9945675551,
+                1066445.8600417322,
+                1082477.0712465742
+              ]
+            },
+            "notes": {
+              "emi": "calc.emi.emi.note",
+              "interest": "calc.emi.interest.note",
+              "total": "calc.emi.total.note"
+            },
+            "verdict": "shorter"
+          }
+        },
+        {
+          "name": "one-year",
+          "why": "where the shorter term cannot be two years shorter, so the saving is nought and the other sentence prints",
+          "input": {
+            "principal": 1500000,
+            "rate": 12,
+            "years": 1
+          },
+          "out": {
+            "values": {
+              "emi": 133273.18301751252,
+              "interest": 99278.19621015014,
+              "total": 1599278.1962101501,
+              "interestPct": 6.61854641401001,
+              "shorter": 1,
+              "shorterEmi": 133273.18301751252,
+              "saved": 0,
+              "principal": 1500000,
+              "years": 1,
+              "rate": 12
+            },
+            "series": {
+              "balances": [
+                1500000,
+                5.238689482212067e-10
+              ],
+              "paidInterest": [
+                0,
+                99278.19621015078
+              ]
+            },
+            "notes": {
+              "emi": "calc.emi.emi.note",
+              "interest": "calc.emi.interest.note",
+              "total": "calc.emi.total.note"
+            },
+            "verdict": "plain"
+          }
+        },
+        {
+          "name": "three-years",
+          "why": "the shortest term where a two-year saving still exists",
+          "input": {
+            "principal": 1500000,
+            "rate": 12,
+            "years": 3
+          },
+          "out": {
+            "values": {
+              "emi": 49821.46471927675,
+              "interest": 293572.7298939631,
+              "total": 1793572.729893963,
+              "interestPct": 19.571515326264205,
+              "shorter": 1,
+              "shorterEmi": 133273.18301751252,
+              "saved": 194294.53368381294,
+              "principal": 1500000,
+              "years": 3,
+              "rate": 12
+            },
+            "series": {
+              "balances": [
+                1500000,
+                1058376.6687738409,
+                560744.4452579431,
+                2.3137545213103294e-9
+              ],
+              "paidInterest": [
+                0,
+                156234.24540516158,
+                256459.5985205847,
+                293572.72989396495
+              ]
+            },
+            "notes": {
+              "emi": "calc.emi.emi.note",
+              "interest": "calc.emi.interest.note",
+              "total": "calc.emi.total.note"
+            },
+            "verdict": "shorter"
+          }
+        },
+        {
+          "name": "cheapest",
+          "why": "the lowest rate the slider offers",
+          "input": {
+            "principal": 1500000,
+            "rate": 4,
+            "years": 10
+          },
+          "out": {
+            "values": {
+              "emi": 15186.770724731938,
+              "interest": 322412.48696783255,
+              "total": 1822412.4869678325,
+              "interestPct": 21.4941657978555,
+              "shorter": 8,
+              "shorterEmi": 18283.912953459952,
+              "saved": 67156.843435677,
+              "principal": 1500000,
+              "years": 10,
+              "rate": 4
+            },
+            "series": {
+              "balances": [
+                1500000,
+                1375492.5729912831,
+                1245912.5213012581,
+                1111053.1783737552,
+                970699.4577382369,
+                824627.5099694945,
+                672604.3656713547,
+                514387.563914991,
+                349724.76553923835,
+                178353.35069616733,
+                4.221692506689578e-8
+              ],
+              "paidInterest": [
+                0,
+                57733.82168806641,
+                110395.01869482463,
+                157776.92446410505,
+                199664.45252537,
+                235833.75345341084,
+                266051.85785205424,
+                290076.3047924736,
+                307654.7551135042,
+                318524.58896721626,
+                322412.4869678744
+              ]
+            },
+            "notes": {
+              "emi": "calc.emi.emi.note",
+              "interest": "calc.emi.interest.note",
+              "total": "calc.emi.total.note"
+            },
+            "verdict": "shorter"
+          }
+        },
+        {
+          "name": "largest",
+          "why": "the biggest loan over the longest term, where the amortisation loop runs three hundred times and a rounding drift accumulates",
+          "input": {
+            "principal": 10000000,
+            "rate": 20,
+            "years": 25
+          },
+          "out": {
+            "values": {
+              "emi": 167845.17722798983,
+              "interest": 40353553.16839695,
+              "total": 50353553.16839695,
+              "interestPct": 403.5355316839695,
+              "shorter": 23,
+              "shorterEmi": 168425.06542185793,
+              "saved": 3868235.1119641587,
+              "principal": 10000000,
+              "years": 25,
+              "rate": 20
+            },
+            "series": {
+              "balances": [
+                10000000,
+                9984486.717362743,
+                9965569.958817258,
+                9942503.032091586,
+                9914375.427286137,
+                9880076.876746641,
+                9838253.529993605,
+                9787254.513822049,
+                9725066.768163515,
+                9649235.585517146,
+                9556767.717440348,
+                9444013.223467305,
+                9306521.398733575,
+                9138865.093405912,
+                8934426.48936121,
+                8685135.878178634,
+                8381153.129352026,
+                8010479.275467868,
+                7558482.882634061,
+                7007322.510803196,
+                6335242.467039584,
+                5515714.053331517,
+                4516388.411829372,
+                3297819.6336644553,
+                1811907.7292262944,
+                0
+              ],
+              "paidInterest": [
+                0,
+                1998628.8440986201,
+                3993854.2122890116,
+                5984929.412299219,
+                7970943.9342296515,
+                9950787.510426026,
+                11923106.290408866,
+                13886249.400973195,
+                15838203.782050546,
+                17776514.726140056,
+                19698188.984799135,
+                21599576.61756197,
+                23476226.919564124,
+                25322712.74097234,
+                27132416.263663515,
+                28897267.77921682,
+                30607427.15712609,
+                32250895.42997781,
+                33813041.16387987,
+                35276022.918784894,
+                36618085.00175717,
+                37812698.71478497,
+                38827515.2000187,
+                39623088.54858967,
+                40151318.77088738,
+                40353553.16839681
+              ]
+            },
+            "notes": {
+              "emi": "calc.emi.emi.note",
+              "interest": "calc.emi.interest.note",
+              "total": "calc.emi.total.note"
+            },
+            "verdict": "shorter"
+          }
+        }
+      ]
+    },
+    {
+      "id": "position",
+      "fields": [
+        {
+          "name": "capital",
+          "min": 10000,
+          "max": 5000000,
+          "step": 10000,
+          "value": 200000
+        },
+        {
+          "name": "risk",
+          "min": 0.25,
+          "max": 5,
+          "step": 0.25,
+          "value": 1
+        },
+        {
+          "name": "entry",
+          "min": 1,
+          "max": 5000,
+          "step": 0.1,
+          "value": 45,
+          "typed": true
+        },
+        {
+          "name": "stop",
+          "min": 0,
+          "max": 5000,
+          "step": 0.1,
+          "value": 40,
+          "typed": true
+        }
+      ],
+      "figures": [
+        "shares",
+        "cost",
+        "riskTaka"
+      ],
+      "lines": [],
+      "cases": [
+        {
+          "name": "default",
+          "why": "a stop below the entry and a position the account can hold",
+          "input": {
+            "capital": 200000,
+            "risk": 1,
+            "entry": 45,
+            "stop": 40
+          },
+          "out": {
+            "values": {
+              "shares": 400,
+              "cost": 18000,
+              "riskTaka": 2000,
+              "exposure": 9,
+              "after20": 163581.38751944614,
+              "capital": 200000,
+              "entry": 45,
+              "stop": 40,
+              "risk": 1
+            },
+            "series": {},
+            "notes": {
+              "shares": "calc.position.shares.note",
+              "cost": "calc.position.cost.note",
+              "riskTaka": "calc.position.riskTaka.note"
+            },
+            "verdict": "fits"
+          }
+        },
+        {
+          "name": "no-stop",
+          "why": "a stop AT the entry, where there is no defined loss to size against and the tool must refuse rather than divide by nought",
+          "input": {
+            "capital": 200000,
+            "risk": 1,
+            "entry": 45,
+            "stop": 45
+          },
+          "out": {
+            "values": {
+              "shares": 0,
+              "cost": 0,
+              "riskTaka": 2000,
+              "exposure": 0,
+              "after20": 163581.38751944614,
+              "capital": 200000,
+              "entry": 45,
+              "stop": 45,
+              "risk": 1
+            },
+            "series": {},
+            "notes": {
+              "shares": "calc.position.shares.note",
+              "cost": "calc.position.cost.note",
+              "riskTaka": "calc.position.riskTaka.note"
+            },
+            "verdict": "noStop"
+          }
+        },
+        {
+          "name": "stop-above",
+          "why": "a stop above the entry, which is the same refusal by a different route",
+          "input": {
+            "capital": 200000,
+            "risk": 1,
+            "entry": 45,
+            "stop": 50
+          },
+          "out": {
+            "values": {
+              "shares": 0,
+              "cost": 0,
+              "riskTaka": 2000,
+              "exposure": 0,
+              "after20": 163581.38751944614,
+              "capital": 200000,
+              "entry": 45,
+              "stop": 50,
+              "risk": 1
+            },
+            "series": {},
+            "notes": {
+              "shares": "calc.position.shares.note",
+              "cost": "calc.position.cost.note",
+              "riskTaka": "calc.position.riskTaka.note"
+            },
+            "verdict": "noStop"
+          }
+        },
+        {
+          "name": "too-big",
+          "why": "a stop half a taka below the entry, where the rule needs more stock than the whole account. That is the answer this calculator exists to give and the one a reader least wants",
+          "input": {
+            "capital": 10000,
+            "risk": 5,
+            "entry": 45,
+            "stop": 44.5
+          },
+          "out": {
+            "values": {
+              "shares": 1000,
+              "cost": 45000,
+              "riskTaka": 500,
+              "exposure": 450,
+              "after20": 3584.8592240854196,
+              "capital": 10000,
+              "entry": 45,
+              "stop": 44.5,
+              "risk": 5
+            },
+            "series": {},
+            "notes": {
+              "shares": "calc.position.shares.note",
+              "cost": "calc.position.cost.note.over",
+              "riskTaka": "calc.position.riskTaka.note"
+            },
+            "verdict": "tooBig"
+          }
+        },
+        {
+          "name": "expensive",
+          "why": "a share price high enough that the floor matters: the rule allows 28.57 shares and a reader can buy 28",
+          "input": {
+            "capital": 200000,
+            "risk": 1,
+            "entry": 4000,
+            "stop": 3930
+          },
+          "out": {
+            "values": {
+              "shares": 28,
+              "cost": 112000,
+              "riskTaka": 2000,
+              "exposure": 56.00000000000001,
+              "after20": 163581.38751944614,
+              "capital": 200000,
+              "entry": 4000,
+              "stop": 3930,
+              "risk": 1
+            },
+            "series": {},
+            "notes": {
+              "shares": "calc.position.shares.note",
+              "cost": "calc.position.cost.note",
+              "riskTaka": "calc.position.riskTaka.note"
+            },
+            "verdict": "fits"
+          }
+        }
+      ]
+    }
+  ]
+}

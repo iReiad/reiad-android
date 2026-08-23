@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
@@ -66,10 +67,17 @@ fun GroupScreen(
     val context = LocalContext.current
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = Gap.s11, bottom = bottomPadding),
+        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
     ) {
         item {
-            Text(group.label, style = MaterialTheme.typography.displaySmall, color = c.ink)
+            PageHead(
+                /* The group's own two halves as the site writes
+                   them: the Bangla name is the heading and the
+                   English is the eyebrow above it. */
+                title = tabLabel(group.label),
+                eyebrow = group.label.substringAfter("\u00b7", "").trim()
+                    .ifBlank { null },
+            )
             Spacer(Modifier.height(Gap.s9))
         }
 
@@ -91,6 +99,12 @@ fun GroupScreen(
                         )
 
                         canOpenHere(item) -> GoCard(
+                            /* The disc, from the icon this item
+                               already names in the nav table. It
+                               was missing here and present on the
+                               front page, which made the same
+                               destination two different cards. */
+                            art = { Icon(item.icon, size = 18.dp) },
                             title = item.sub ?: item.label,
                             dek = item.blurb,
                             chip = item.kindLabel(),
@@ -99,6 +113,7 @@ fun GroupScreen(
                         )
 
                         else -> GoCard(
+                            art = { Icon(item.icon, size = 18.dp) },
                             title = item.sub ?: item.label,
                             dek = item.blurb,
                             chip = item.kindLabel(),
@@ -117,7 +132,18 @@ fun GroupScreen(
     }
 }
 
-private fun NavItem.kindLabel(): String? = kind?.takeIf { it.isNotBlank() } ?: label
+/**
+ * The chip's word.
+ *
+ * The item's own English LABEL first, and its `kind` only where
+ * there is no label to use. Three schools in one group all carry
+ * `kind: "কোর্স"`, so keying on that drew three identical chips
+ * on three cards whose titles were the only thing telling them
+ * apart, while the front page's cards said MONEY, GERMAN and
+ * QUR'ANIC ARABIC.
+ */
+private fun NavItem.kindLabel(): String? =
+    label.takeIf { it.isNotBlank() } ?: kind?.takeIf { it.isNotBlank() }
 
 /** The reader's own browser, tinted to match, with the site's
     address bar left visible so nobody is in any doubt about

@@ -1,0 +1,49 @@
+# The startup path, AOT-compiled on install.
+#
+# Android runs an app interpreted until the JIT has seen a method
+# enough times, so the FIRST run of anything is the slowest one it
+# will ever be, and a Compose screen touches thousands of methods
+# before it draws. A baseline profile names the classes worth
+# compiling ahead of time, and ProfileInstaller applies it at
+# install rather than on first launch.
+#
+# This one is hand-written and covers the path every cold start
+# takes: the activity, the model, the theme, the material, the
+# shell and the front page. A generated profile from a real device
+# run is better and is what `androidx.baselineprofile` produces
+# when there is a device to run it on; this is the part that can
+# be written down without one, and it is the part that matters
+# most because it is the same on every launch.
+#
+# Syntax: HSPLclass;->method(sig)ret. H is hot, S is startup, P is
+# post-startup. A bare class line compiles the whole class.
+
+HSPLuk/co/reiad/library/MainActivity;->**(**)**
+HSPLuk/co/reiad/library/MainActivityKt;->**(**)**
+HSPLuk/co/reiad/library/AppModel;->**(**)**
+
+# The palette and the type scale, both of which are computed on
+# the first composition and never again.
+HSPLuk/co/reiad/library/core/Palette*;->**(**)**
+HSPLuk/co/reiad/library/core/Accents*;->**(**)**
+HSPLuk/co/reiad/library/ui/ThemeKt;->**(**)**
+HSPLuk/co/reiad/library/ui/FontsKt;->**(**)**
+HSPLuk/co/reiad/library/ui/Faces;->**(**)**
+
+# The material, which is a draw path rather than a layout one and
+# is therefore hit on every frame of the first screen.
+HSPLuk/co/reiad/library/ui/MaterialKt;->**(**)**
+HSPLuk/co/reiad/library/ui/GlowKt;->**(**)**
+HSPLuk/co/reiad/library/core/MaterialKt;->**(**)**
+
+# The chrome and the first screen.
+HSPLuk/co/reiad/library/ui/ShellKt;->**(**)**
+HSPLuk/co/reiad/library/ui/DeckKt;->**(**)**
+HSPLuk/co/reiad/library/ui/DoorKt;->**(**)**
+HSPLuk/co/reiad/library/ui/SurfacesKt;->**(**)**
+HSPLuk/co/reiad/library/ui/IconsKt;->**(**)**
+
+# And the two things that run before anything is drawn: reading
+# the store, and decoding the manifest.
+HSPLuk/co/reiad/library/data/Reiad;->**(**)**
+HSPLuk/co/reiad/library/core/Api*;->**(**)**

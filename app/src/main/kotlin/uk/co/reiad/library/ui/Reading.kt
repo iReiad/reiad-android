@@ -86,17 +86,15 @@ fun ReadingHub(
 
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = Gap.s11, bottom = bottomPadding),
+        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
     ) {
         item {
-            Text(title, style = MaterialTheme.typography.displaySmall, color = c.ink)
-            Text(
+            PageHead(
+                title = title,
                 /* Counted from what is on screen, in the site's
                    own manner: the number is the data's, not a
                    sentence's. */
-                if (pieces.size == 1) "1 piece" else "${pieces.size} pieces",
-                style = MaterialTheme.typography.bodyMedium,
-                color = c.inkSoft,
+                eyebrow = if (pieces.size == 1) "1 piece" else "${pieces.size} pieces",
             )
             if (stale) {
                 Spacer(Modifier.height(Gap.s5))

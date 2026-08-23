@@ -50,12 +50,38 @@ class PrefsTest {
     /** The field names inside somebody's stored value. Kotlin's
         own naming would have written `toolLang` into a record the
         browser then failed to read. */
+    /** The record's fields are the site's, exactly: no more and
+        no fewer.
+
+        Two ways this went wrong at once. `ts` was missing, and
+        `reader-prefs` is the one key in the sync table whose rule
+        is MARK: a record with no `ts` reads as timestamp zero and
+        loses every exchange, so a preference set on this phone
+        would be overwritten by a laptop's for ever, silently.
+
+        And `theme` was IN it, which it is not on the site: the
+        theme lives in its own key so the pre-paint boot script
+        can read it without parsing JSON. A device writing it into
+        the record writes a field nothing reads. */
     @Test
-    fun `the stored shape is the shape the browser writes`() {
+    fun `the stored shape is exactly the shape the browser writes`() {
         val text = json.encodeToString(Prefs.serializer(), Prefs())
-        for (field in listOf("text", "measure", "theme", "lang", "glass", "blur", "veil")) {
-            assertTrue("\"$field\"" in text, "$field is missing from the stored shape")
-        }
+        val fields = Regex("\"([a-z]+)\":").findAll(text).map { it.groupValues[1] }.toSet()
+        assertEquals(
+            setOf("text", "measure", "lang", "glass", "blur", "veil", "ts"),
+            fields,
+            "the record must hold what aab/src/prefs.ts writes, field for field",
+        )
+    }
+
+    /** And a mark that always loses is a mark nobody can see
+        losing, so the rule is asserted here as well as the
+        field. */
+    @Test
+    fun `reader-prefs is a mark and carries its own timestamp`() {
+        assertEquals(MergeRule.MARK, SyncKeys.ruleOf(PREFS_KEY))
+        val saved = json.decodeFromString(Prefs.serializer(), """{"ts":1700000000000}""")
+        assertEquals(1_700_000_000_000L, saved.ts)
     }
 
     /** The defaults are the site's defaults, which matters
@@ -77,12 +103,13 @@ class PrefsTest {
         laptop, silently, the first time they open the app. */
     @Test
     fun `settings this app does not use yet are not lost`() {
-        val stored = """{"text":"large","measure":"wide","theme":"dark","lang":"en",
-            "glass":"paper","blur":"deep","veil":"dense"}"""
+        val stored = """{"text":"large","measure":"wide","lang":"en",
+            "glass":"paper","blur":"deep","veil":"dense","ts":7}"""
         val prefs = json.decodeFromString(Prefs.serializer(), stored)
         assertEquals("large", prefs.text)
         assertEquals("wide", prefs.measure)
         assertEquals("en", prefs.lang)
+        assertEquals(7L, prefs.ts)
         val back = json.encodeToString(Prefs.serializer(), prefs)
         assertTrue("\"large\"" in back && "\"wide\"" in back && "\"en\"" in back)
     }

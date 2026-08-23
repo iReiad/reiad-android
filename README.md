@@ -136,7 +136,36 @@ school's shape, `stufe-1/tag-3` against `term-1/day-3`, because
 both are in real browsers and the site's shared engine built the
 German shape for both once.
 
-Not yet: the account and sync, the tools. `ROADMAP.md` is the
+**And there is an account.** Sign in with Google or an email link,
+through a Custom Tab rather than a WebView, coming back on the
+app's own scheme. Signing in ADOPTS: the account's rows are
+written on to the phone and any synced key the account does not
+have is removed, because a phone is not a copy of an account and
+may have been lent to somebody for five minutes. The screen says
+that before the button rather than after.
+
+A tick made on a train lands later without the app being open,
+which is the half a browser cannot have: WorkManager runs the
+exchange when a network comes back.
+
+The account holds more than ticks: a reading list with notes on
+it, targets, and a year of days. None of those has a local copy
+and that is deliberate, not an omission: progress has one because
+four schools have read localStorage since before there were
+accounts, and nothing here has that history or works signed out.
+
+A target's bar is COMPUTED for a course and a habit, from what the
+phone already holds, so it moves the moment a lesson is ticked.
+Only a metric shows a stored number, because only a metric has one
+the site could not work out. A fourth kind has to pass that test
+or the bar would be a decoration.
+
+The year of days has no flame, nothing red and nothing counting
+down. A year of quiet marks says "here is what you did"; a streak
+counter says "do not stop", and those are different things to say
+to somebody learning a language in their spare time.
+
+Not yet: the tools. `ROADMAP.md` is the
 twelve blocks that finish it, with a scorecard that says where it
 stands rather than how it feels.
 
