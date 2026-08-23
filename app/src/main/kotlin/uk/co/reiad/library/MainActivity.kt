@@ -131,6 +131,9 @@ import uk.co.reiad.library.core.routine.heat
 import uk.co.reiad.library.core.routine.everMarked
 import uk.co.reiad.library.core.routine.flock
 import uk.co.reiad.library.core.routine.garden
+import uk.co.reiad.library.core.routine.gardenFrom
+import uk.co.reiad.library.core.routine.moodsFrom
+import uk.co.reiad.library.core.routine.seasonsFrom
 import uk.co.reiad.library.core.routine.momentum
 import uk.co.reiad.library.core.routine.neverMarked
 import uk.co.reiad.library.core.routine.runs
@@ -505,7 +508,8 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             momentum = momentum(shape, entries, today, 28),
             runs = runs(entries, today, 365),
             echo = echo(entries, today),
-            season = seasonOf(today),
+            season = seasonOf(today, seasonsFrom(words())),
+            moods = moodsFrom(words()),
             greeting = hello(),
             /* The birds and the garden, off the task the routine
                names for them. Both are counted over the WHOLE
@@ -517,13 +521,24 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
                reader who reorders their list keeps their flock.
                A routine with no such task simply has none, which
                is why this is a lookup and not an assumption. */
-            flock = flock(everMarked(entries, BIRD_TASK)),
-            garden = garden(everMarked(entries, GARDEN_TASK)),
+            /* The two ids and the plant list come DOWN from the
+               site where the manifest has landed, and fall back
+               to the compiled tables where it has not. A fifth
+               plant is a fetch rather than a release. */
+            flock = flock(everMarked(entries, birdTask())),
+            garden = garden(everMarked(entries, gardenTask()), gardenFrom(words())),
             loading = false,
         )
     }
 
     private fun hello(): String = greeting(java.time.LocalTime.now().hour).first
+
+    /** The routine's words as the site last sent them, or null. */
+    private fun words(): uk.co.reiad.library.core.RoutineWords? = _site.value?.routine
+
+    private fun birdTask(): String = words()?.grown?.get("birds") ?: BIRD_TASK
+
+    private fun gardenTask(): String = words()?.grown?.get("plants") ?: GARDEN_TASK
 
     private companion object {
         /* The two tasks the drawings hang on, by the ids the

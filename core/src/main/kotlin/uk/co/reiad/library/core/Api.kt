@@ -67,6 +67,17 @@ data class SiteManifest(
         its next fetch. */
     val door: Door = Door(),
 
+    /** The routine tool's own vocabulary: the moods, the seasons,
+        the garden and the two task ids the drawings hang on.
+
+        Sent because every one of them is an id, a name in each
+        language and a colour, which is DATA by the contract at
+        the top of CLAUDE.md, and because this app was carrying a
+        Kotlin copy of all four. A fifth mood reaches a phone on
+        the next fetch now. The copy stays as the floor, for a
+        first run with no network. */
+    val routine: RoutineWords = RoutineWords(),
+
     /** The palette's index: every page of the site that is not
         private, with the title, the address and one line saying
         what it is. This is what the Ctrl+K palette searches on
@@ -157,6 +168,42 @@ data class LadderSchool(
     val href: String = "",
     val accent: String = "",
     val blurb: String = "",
+)
+
+/** The routine tool's vocabulary, out of `shared/routine.ts`. */
+@Serializable
+data class RoutineWords(
+    val moods: List<MoodWord> = emptyList(),
+    val seasons: List<SeasonWord> = emptyList(),
+    val garden: List<PlantWord> = emptyList(),
+    /** The two task ids: `{"birds": "brd", "plants": "pln"}`. */
+    val grown: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+data class MoodWord(
+    val id: String = "",
+    val bn: String = "",
+    val en: String = "",
+    /** A hex value, because it is data rather than a token: a
+        reader can change it and there is no stylesheet to edit. */
+    val colour: String = "",
+)
+
+@Serializable
+data class SeasonWord(
+    val id: String = "",
+    val bn: String = "",
+    val en: String = "",
+    val colour: String = "",
+)
+
+@Serializable
+data class PlantWord(
+    /** How many times the task has to have been marked. */
+    val at: Int = 0,
+    val bn: String = "",
+    val en: String = "",
 )
 
 /** The front door's words. `DOOR` in `shared/content.ts`. */

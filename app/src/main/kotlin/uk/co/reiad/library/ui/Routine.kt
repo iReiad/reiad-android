@@ -5,6 +5,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import uk.co.reiad.library.core.Kind
+import uk.co.reiad.library.core.routine.Mood
 import uk.co.reiad.library.core.routine.Plant
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -96,6 +97,9 @@ data class RoutineState(
     val season: Season? = null,
     val greeting: String = "",
     val flock: Int = 0,
+    /** The four moods as the site last sent them, so a fifth
+        one reaches a phone with no release. */
+    val moods: List<Mood> = MOODS,
     /** What has been planted, ever. Never shrinks, for the
         same reason the flock does not. */
     val garden: List<Plant> = emptyList(),
@@ -206,7 +210,7 @@ fun RoutineScreen(
         }
 
         /* ---------- how it felt, and what was worth keeping ---------- */
-        item { MoodRow(state.entry?.mood, onMood) }
+        item { MoodRow(state.moods, state.entry?.mood, onMood) }
         item { NoteBox(state.today, state.entry?.note.orEmpty(), onNote) }
 
         /* ---------- the year ---------- */
@@ -516,7 +520,7 @@ private fun TaskRow(task: Task, mark: Double, onMark: (String, Double) -> Unit) 
     difference between this and every tracker that offers a
     frowning face. */
 @Composable
-private fun MoodRow(chosen: String?, onMood: (String?) -> Unit) {
+private fun MoodRow(moods: List<Mood>, chosen: String?, onMood: (String?) -> Unit) {
     val c = LocalReiad.current
     Pane {
         Text(
@@ -527,7 +531,7 @@ private fun MoodRow(chosen: String?, onMood: (String?) -> Unit) {
         )
         Spacer(Modifier.height(Gap.s4))
         Row(horizontalArrangement = Arrangement.spacedBy(Gap.s4)) {
-            for (mood in MOODS) {
+            for (mood in moods) {
                 val on = chosen == mood.id
                 Box(
                     /* Pressing the chosen one again clears it. A

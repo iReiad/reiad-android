@@ -329,3 +329,59 @@ fun echo(entries: List<Entry>, today: String): Echo? {
     }
     return null
 }
+
+/* ============================================================
+   The site's copy wins, and the one here is the floor.
+
+   `MOODS`, `SEASONS`, `GARDEN` and the two ids above are a second
+   statement of `shared/routine.ts`, which is exactly the thing
+   the DATA/CODE contract says must not be a second statement: a
+   fifth mood or a sixth plant should reach a phone on the next
+   fetch rather than in a release.
+
+   So `/api/site` sends them and these four functions prefer what
+   it sent. The tables stay because a first run with no network
+   still has to draw a mood row, and because a table that is
+   NEVER used is a table nobody notices has gone wrong; these are
+   used every time the site cannot be reached.
+
+   The COLOURS travel with the words for the same reason a band's
+   colour does: they are values a reader can change, not tokens
+   with a stylesheet behind them.
+   ============================================================ */
+
+fun moodsFrom(words: uk.co.reiad.library.core.RoutineWords?): List<Mood> =
+    words?.moods?.takeIf { it.isNotEmpty() }
+        ?.map { Mood(it.id, it.bn, it.en, it.colour) }
+        ?: MOODS
+
+fun seasonsFrom(words: uk.co.reiad.library.core.RoutineWords?): List<Season> =
+    words?.seasons?.takeIf { it.isNotEmpty() }
+        ?.map { Season(it.id, it.bn, it.en, it.colour) }
+        ?: SEASONS
+
+fun gardenFrom(words: uk.co.reiad.library.core.RoutineWords?): List<Plant> =
+    words?.garden?.takeIf { it.isNotEmpty() }
+        ?.map { Plant(it.at, it.bn, it.en) }
+        ?: GARDEN
+
+/**
+ * Which of the six a date falls in, against whichever list of
+ * seasons is current.
+ *
+ * The BOUNDARIES stay here rather than travelling, and that is
+ * the line between the two halves: mid-December to mid-February
+ * is winter is a fact about Bangladesh's calendar, which is
+ * arithmetic. What শীত is called and what colour it is are
+ * values, and those come down.
+ */
+fun seasonOf(iso: String, seasons: List<Season>): Season {
+    val order = seasons.takeIf { it.size == SEASONS.size } ?: SEASONS
+    val index = SEASONS.indexOf(seasonOf(iso))
+    return order.getOrElse(index) { order.first() }
+}
+
+/** The garden as it stands, against a list that may have come
+    down from the site. */
+fun garden(times: Int, plants: List<Plant>): List<Plant> =
+    plants.filter { times >= it.at }
