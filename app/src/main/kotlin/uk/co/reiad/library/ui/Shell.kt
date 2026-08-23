@@ -484,58 +484,105 @@ private fun Bar(
     onMore: () -> Unit,
 ) {
     val c = LocalReiad.current
-    Row(
+
+    /* Home first, and it is not in the nav table.
+
+       The site has no home ENTRY: its rail draws the link
+       separately because a table of destinations does not need a
+       row saying "the top". On a phone it does: with only group
+       tabs, a reader who opened a group could get back to the
+       front page by system back and by nothing else, which is a
+       way out that leaves no mark on screen. */
+    val stops = buildList {
+            add(BarStop("home", "Home", c.accent, null, onHome))
+            for (group in barGroups(groups, current)) {
+                add(
+                    BarStop(
+                        /* A group has no icon of its own in the
+                           site's table, so it wears its first
+                           item's. That is a choice rather than a
+                           fact, and it works because the first
+                           item of a group is the one the group is
+                           named after. */
+                        icon = group.items.firstOrNull()?.icon ?: "home",
+                        label = tabLabel(group.label),
+                        accent = accentColour(group.accent, c),
+                        key = group.id,
+                        open = { onGroup(group) },
+                    ),
+                )
+            }
+        add(BarStop("menu", "More", c.accent, null, onMore))
+    }
+
+    val here = stops.firstOrNull { stop ->
+        if (stop.key == null) current == null && stop.label == "Home"
+        else groups.firstOrNull { it.id == stop.key }
+            ?.items?.any { it.key != null && it.key == current } == true
+    }
+
+    Box(
         modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = Gap.s7, vertical = Gap.s5)
             .clip(RoundedCornerShape(Corner.pill))
             .material(Kind.PANE, c, Corner.pill)
-            .padding(horizontal = Gap.s4, vertical = Gap.s3),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(Gap.s3),
     ) {
-        /* Home first, and it is not in the nav table.
+        /* One gesture across the whole bar, with the glass thumb
+           under the finger the whole way: press and slide through
+           the destinations, and it opens the one you let go over.
+           A tap is the same gesture with no travel in it.
 
-           The site has no home ENTRY: its rail draws the link
-           separately because a table of destinations does not
-           need a row saying "the top". On a phone it does: with
-           only group tabs, a reader who opened a group could get
-           back to the front page by system back and by nothing
-           else, which is a way out that leaves no mark on screen. */
-        Destination(
-            icon = "home",
-            label = "Home",
-            selected = current == null,
-            accent = c.accent,
-            modifier = Modifier.weight(1f),
-            onClick = onHome,
-        )
-        for (group in barGroups(groups, current)) {
-            Destination(
-                /* A group has no icon of its own in the site's
-                   table, so it wears its first item's. That is a
-                   choice rather than a fact, and it works because
-                   the first item of a group is the one the group
-                   is named after. */
-                icon = group.items.firstOrNull()?.icon ?: "home",
-                label = tabLabel(group.label),
-                selected = group.items.any { it.key != null && it.key == current },
-                accent = accentColour(group.accent, c),
-                modifier = Modifier.weight(1f),
-                onClick = { onGroup(group) },
-            )
+           `Segmented` is the same control every switch on this
+           site uses now, for the reason its own head gives: a row
+           of separate hit targets is where a press ends up on the
+           wrong one. */
+        Segmented(
+            options = stops,
+            chosen = here,
+            onChoose = { it.open() },
+            height = Gap.tap + Gap.s3,
+            label = { it.label },
+            /* The thumb is a quiet panel rather than the accent:
+               on a bar the accent belongs to the icon, and five
+               accent tiles in a row is a bar with no answer to
+               "which one am I on". */
+            thumbGround = c.accentSoft,
+            thumbInset = 0.dp,
+        ) { stop, on ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(stop.icon, size = 19.dp, tint = if (on) stop.accent else c.inkSoft)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    stop.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (on) stop.accent else c.inkSoft,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
-        Destination(
-            icon = "menu",
-            label = "More",
-            selected = false,
-            accent = c.accent,
-            modifier = Modifier.weight(1f),
-            onClick = onMore,
-        )
     }
 }
+
+/** One destination on the bar.
+
+    `key` is the group's id, or null for the two that are not
+    groups: Home and More. It is what says which stop the reader
+    is standing on, and it is an id rather than a label because a
+    label is bilingual and gets cut down to fit. */
+private data class BarStop(
+    val icon: String,
+    val label: String,
+    val accent: Color,
+    val key: String?,
+    val open: () -> Unit,
+)
 
 /**
  * A group's name, cut down to something a tab can hold.
@@ -869,41 +916,21 @@ fun AudienceSwitch(
 ) {
     val c = LocalReiad.current
     Column {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                /* The GROOVE is a tap taller than a tap, because
-                   what rides in it is the target: at `Gap.tap`
-                   with the channel's own padding the two thumbs
-                   came to 36dp each. */
-                .height(Gap.tap + Gap.s4)
-                .clip(RoundedCornerShape(Corner.pill))
-                .material(Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
-                .padding(Gap.s2),
-        ) {
-            for ((id, label) in options) {
-                val on = id == chosen
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(Corner.pill))
-                        .material(
-                            kind = Kind.CONTROL,
-                            colours = c,
-                            corner = Corner.pill,
-                            ground = if (on) c.accent else Color.Transparent,
-                        )
-                        .clickable(role = Role.RadioButton) { onChoose(id) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (on) c.paper else c.inkSoft,
-                    )
-                }
-            }
+        /* Hold and slide, like every other switch here. The
+           groove is a tap taller than a tap, because what rides
+           in it is the target: at `Gap.tap` with the channel's
+           own padding the two thumbs came to 36dp each. */
+        Segmented(
+            options = options,
+            chosen = options.firstOrNull { it.first == chosen },
+            onChoose = { onChoose(it.first) },
+            label = { it.second },
+        ) { option, on ->
+            Text(
+                option.second,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (on) c.paper else c.inkSoft,
+            )
         }
         Spacer(Modifier.height(Gap.s4))
         Text(

@@ -319,6 +319,7 @@ private fun <T> Choice(
 ) {
     val c = LocalReiad.current
     val dim = if (enabled) 1f else 0.45f
+    val current = options.firstOrNull { it.id == chosen }
     Column {
         Text(
             heading.uppercase(),
@@ -326,60 +327,32 @@ private fun <T> Choice(
             color = c.inkSoft.copy(alpha = dim),
         )
         Spacer(Modifier.height(Gap.s4))
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .height(Gap.tap)
-                .clip(RoundedCornerShape(Corner.pill))
-                .material(Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
-                .padding(Gap.s2),
-        ) {
-            for (option in options) {
-                val on = option.id == chosen
-                Box(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(Corner.pill))
-                        .material(
-                            kind = Kind.CONTROL,
-                            colours = c,
-                            corner = Corner.pill,
-                            ground = if (on) c.accent.copy(alpha = dim) else Color.Transparent,
-                        )
-                        .clickable(role = Role.RadioButton, enabled = enabled) { onChoose(option.id) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        label(option),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = (if (on) c.paper else c.inkSoft).copy(alpha = dim),
-                        /* Truncated inside the thumb rather than
-                           wrapped out of it. A two-line label in a
-                           pill this size does not make the pill
-                           taller, it spills over the edge, and
-                           "Follow my system" did exactly that.
-                           `PrefLabelsTest` keeps them short; this
-                           is what happens if one ever is not. */
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
+
+        /* One gesture over the whole track rather than a
+           `clickable` per option. That is the fix for six of the
+           seven preferences doing nothing on a real phone, and it
+           is also the hold-and-slide the reader asked for: see
+           the head of `Segmented.kt`. */
+        Segmented(
+            options = options,
+            chosen = current,
+            onChoose = { onChoose(it.id) },
+            enabled = enabled,
+            height = Gap.tap,
+            label = label,
+        ) { option, on ->
+            Text(
+                label(option),
+                style = MaterialTheme.typography.labelLarge,
+                color = (if (on) c.paper else c.inkSoft).copy(alpha = dim),
+            )
         }
-        /* The sentence for the one that is CHOSEN, not all three.
-           Three notes under three buttons is a paragraph nobody
-           reads; one note under the answer you are on is a
-           sentence saying what you just did. */
-        options.firstOrNull { it.id == chosen }?.let { current ->
-            if (note(current).isNotBlank()) {
-                Spacer(Modifier.height(Gap.s4))
-                Text(
-                    note(current),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = c.inkSoft.copy(alpha = dim),
-                )
-            }
-        }
+
+        Spacer(Modifier.height(Gap.s4))
+        Text(
+            current?.let(note).orEmpty(),
+            style = MaterialTheme.typography.bodySmall,
+            color = c.inkSoft.copy(alpha = dim),
+        )
     }
 }
