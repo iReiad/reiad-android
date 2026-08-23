@@ -3479,7 +3479,7 @@ fun StageCard(
            read, which is what `uebung` says. A stage with neither
            shows nothing rather than an empty slot. */
         stage.workbook?.let { workbook ->
-            Rung(Modifier.clickable(role = Role.Button) { onOpenBook(stage) }) {
+            Rung(onClick = { onOpenBook(stage) }) {
                 Icon("pen", size = 18.dp, tint = c.accent)
                 Spacer(Modifier.width(Gap.s6))
                 Text(
@@ -3503,7 +3503,7 @@ fun StageCard(
 
         for (lesson in lessons) {
             val id = lessonId(stage.slug, lesson.slug)
-            Rung(Modifier.clickable(enabled = lesson.isWritten) { onOpen(stage, lesson) }) {
+            Rung(onClick = { onOpen(stage, lesson) }, enabled = lesson.isWritten) {
                 Box(
                     Modifier
                         .width(16.dp)

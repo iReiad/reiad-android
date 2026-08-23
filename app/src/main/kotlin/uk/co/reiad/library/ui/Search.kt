@@ -204,7 +204,7 @@ private fun Suggestions(site: SiteManifest?, onOpen: (Found) -> Unit) {
 private fun Result(row: Found, accents: Map<String, String>, onOpen: (Found) -> Unit) {
     val c = LocalReiad.current
     val accent = accentColour(row.group?.let { accents[it] }, c)
-    Rung(Modifier.clickable(role = Role.Button) { onOpen(row) }) {
+    Rung(onClick = { onOpen(row) }) {
         Column(Modifier.weight(1f)) {
             Text(
                 row.title,

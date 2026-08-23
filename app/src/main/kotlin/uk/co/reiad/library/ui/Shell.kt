@@ -490,9 +490,11 @@ private fun RoundButton(
     here: Boolean = false,
 ) {
     val c = LocalReiad.current
+    val touch = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Box(
         Modifier
             .size(Gap.tap)
+            .pressGives(touch)
             .clip(RoundedCornerShape(Corner.pill))
             /* Only the one you are on has a ground, which is the
                bar's own rule one level up and the site's
@@ -507,7 +509,12 @@ private fun RoundButton(
                     ground = c.accentSoft,
                 ),
             )
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(
+                interactionSource = touch,
+                indication = androidx.compose.foundation.LocalIndication.current,
+                role = Role.Button,
+                onClick = onClick,
+            )
             .semantics {
                 contentDescription = label
                 if (here) selected = true
@@ -1040,7 +1047,7 @@ private fun Drawer(
                 Spacer(Modifier.height(Gap.s8))
             }
 
-            Rung(Modifier.clickable(role = Role.Button, onClick = onSettings)) {
+            Rung(onClick = onSettings) {
                 Icon("theme", size = 20.dp, tint = c.inkSoft)
                 Spacer(Modifier.width(Gap.s6))
                 Text("Settings", style = MaterialTheme.typography.bodyLarge, color = c.ink)
@@ -1059,7 +1066,7 @@ private fun DrawerRow(
     onClick: () -> Unit,
 ) {
     val c = LocalReiad.current
-    Rung(Modifier.clickable(role = Role.Button, onClick = onClick)) {
+    Rung(onClick = onClick) {
         Icon(item.icon, size = 20.dp, tint = accent)
         Spacer(Modifier.width(Gap.s6))
         Column(Modifier.weight(1f)) {

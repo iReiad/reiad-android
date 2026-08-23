@@ -553,7 +553,7 @@ private fun Double.trim(): String =
 @Composable
 private fun KeptRow(row: Kept, onOpen: () -> Unit) {
     val c = LocalReiad.current
-    Rung(Modifier.clickable(role = Role.Button, onClick = onOpen)) {
+    Rung(onClick = onOpen) {
         Icon(if (row.kind == "lesson") "book" else "pen", size = 18.dp, tint = c.accent)
         Spacer(Modifier.width(Gap.s6))
         Column(Modifier.weight(1f)) {

@@ -220,7 +220,7 @@ fun PrevNext(
     val c = LocalReiad.current
     Column(modifier.fillMaxWidth()) {
         previous?.let {
-            Rung(Modifier.clickable(role = Role.Button) { onOpen(it) }) {
+            Rung(onClick = { onOpen(it) }) {
                 Text("←", style = MaterialTheme.typography.labelLarge, color = c.accent)
                 Spacer(Modifier.width(Gap.s6))
                 Column(Modifier.weight(1f)) {
@@ -240,7 +240,7 @@ fun PrevNext(
             }
         }
         next?.let {
-            Rung(Modifier.clickable(role = Role.Button) { onOpen(it) }) {
+            Rung(onClick = { onOpen(it) }) {
                 Column(Modifier.weight(1f)) {
                     Text("NEXT", style = MaterialTheme.typography.labelSmall, color = c.inkSoft)
                     Text(

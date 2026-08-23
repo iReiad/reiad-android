@@ -332,13 +332,22 @@ fun Tap(
 @Composable
 fun Rung(
     modifier: Modifier = Modifier,
+    /** Pressable rungs say so HERE, not with a clickable bolted
+        on outside. Eight call sites each wired their own, which
+        was eight rows that lit and rippled and did not GIVE: the
+        press answer lives with the press. Null stays a plain
+        row. */
+    onClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
     val c = LocalReiad.current
     val glow = rememberGlow()
+    val touch = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Row(
         modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.pressGives(touch) else Modifier)
             /* A rung is usually the target itself: the menu's
                rows, a ladder's lessons. At `Gap.s5` of padding
                around one line it came to 40dp, which is under
@@ -357,6 +366,16 @@ fun Rung(
                 lit = { glow.lit },
             )
             .follows(glow)
+            .then(
+                if (onClick == null) Modifier
+                else Modifier.clickable(
+                    interactionSource = touch,
+                    indication = androidx.compose.foundation.LocalIndication.current,
+                    role = Role.Button,
+                    enabled = enabled,
+                    onClick = onClick,
+                ),
+            )
             .padding(horizontal = Gap.s6, vertical = Gap.s5),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
