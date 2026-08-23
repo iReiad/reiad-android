@@ -1,0 +1,705 @@
+{
+  "cuts": {
+    "general": {
+      "under": 18.5,
+      "raised": 25,
+      "high": 30
+    },
+    "asian": {
+      "under": 18.5,
+      "raised": 23,
+      "high": 27.5
+    }
+  },
+  "activity": [
+    {
+      "key": "sedentary",
+      "factor": 1.2,
+      "en": "Desk work, little walking",
+      "bn": "বসে কাজ, হাঁটা কম"
+    },
+    {
+      "key": "light",
+      "factor": 1.375,
+      "en": "Light activity most days",
+      "bn": "প্রতিদিন হালকা চলাফেরা"
+    },
+    {
+      "key": "moderate",
+      "factor": 1.55,
+      "en": "On your feet, or training three times a week",
+      "bn": "দাঁড়িয়ে কাজ, বা সপ্তাহে তিন দিন ব্যায়াম"
+    },
+    {
+      "key": "active",
+      "factor": 1.725,
+      "en": "Physical work, or training most days",
+      "bn": "শারীরিক কাজ, বা প্রায় রোজ ব্যায়াম"
+    },
+    {
+      "key": "very",
+      "factor": 1.9,
+      "en": "Heavy physical work and training",
+      "bn": "ভারী শারীরিক কাজ ও ব্যায়াম"
+    }
+  ],
+  "cases": {
+    "middle": {
+      "why": "an ordinary body in the middle of every band, so a drift anywhere shows up somewhere",
+      "body": {
+        "heightCm": 172,
+        "weightKg": 74,
+        "ageYears": 34,
+        "sex": "male",
+        "ancestry": "asian",
+        "waistCm": 88,
+        "hipCm": 98,
+        "neckCm": 38
+      },
+      "leanKg": null,
+      "activity": "light",
+      "factor": 1.375,
+      "bmi": 25.013520822065985,
+      "bmiBand": "raised",
+      "whtr": 0.5116279069767442,
+      "whtrBand": "raised",
+      "navyFat": 19.723801036036548,
+      "deurenbergFat": 25.136224986479178,
+      "fat": {
+        "method": "navy",
+        "se": 3.5,
+        "pct": {
+          "low": 16.223801036036548,
+          "mid": 19.723801036036548,
+          "high": 23.223801036036548
+        },
+        "leanKg": 59.404387233332955,
+        "fatKg": 14.595612766667045
+      },
+      "ffmi": null,
+      "ffmiNormalised": null,
+      "mifflin": 1650,
+      "katch": null,
+      "resting": {
+        "kcal": 1650,
+        "method": "mifflin"
+      },
+      "estimatedBurn": 2268.75,
+      "floorKcal": 1500,
+      "target": {
+        "kcal": 1862,
+        "offset": -407,
+        "floors": [],
+        "ratePct": 0.5
+      },
+      "proteinFloor": null,
+      "stone": {
+        "st": 11,
+        "lb": 9.1
+      },
+      "feetInches": {
+        "ft": 5,
+        "inch": 7.7
+      }
+    },
+    "the two tables disagree": {
+      "why": "BMI 24.2: `healthy` on the general cut-offs and `raised` on the Asian ones. This is the pair the whole `ancestry` field exists for, and a port that read one table would pass every other case here",
+      "body": {
+        "heightCm": 170,
+        "weightKg": 70,
+        "ageYears": 40,
+        "sex": "male",
+        "ancestry": "asian",
+        "waistCm": 86,
+        "hipCm": 96,
+        "neckCm": 37
+      },
+      "leanKg": null,
+      "activity": "sedentary",
+      "factor": 1.2,
+      "bmi": 24.221453287197235,
+      "bmiBand": "raised",
+      "whtr": 0.5058823529411764,
+      "whtrBand": "raised",
+      "navyFat": 19.3280027234282,
+      "deurenbergFat": 25.56574394463668,
+      "fat": {
+        "method": "navy",
+        "se": 3.5,
+        "pct": {
+          "low": 15.828002723428199,
+          "mid": 19.3280027234282,
+          "high": 22.8280027234282
+        },
+        "leanKg": 56.47039809360026,
+        "fatKg": 13.529601906399739
+      },
+      "ffmi": null,
+      "ffmiNormalised": null,
+      "mifflin": 1567.5,
+      "katch": null,
+      "resting": {
+        "kcal": 1567.5,
+        "method": "mifflin"
+      },
+      "estimatedBurn": 1881,
+      "floorKcal": 1500,
+      "target": {
+        "kcal": 1568,
+        "offset": -313,
+        "floors": [
+          "resting"
+        ],
+        "ratePct": 0.40714285714285714
+      },
+      "proteinFloor": null,
+      "stone": {
+        "st": 11,
+        "lb": 0.3
+      },
+      "feetInches": {
+        "ft": 5,
+        "inch": 6.9
+      }
+    },
+    "the same body, general": {
+      "why": "the other half of the pair above, one field different",
+      "body": {
+        "heightCm": 170,
+        "weightKg": 70,
+        "ageYears": 40,
+        "sex": "male",
+        "ancestry": "general",
+        "waistCm": 86,
+        "hipCm": 96,
+        "neckCm": 37
+      },
+      "leanKg": null,
+      "activity": "sedentary",
+      "factor": 1.2,
+      "bmi": 24.221453287197235,
+      "bmiBand": "healthy",
+      "whtr": 0.5058823529411764,
+      "whtrBand": "raised",
+      "navyFat": 19.3280027234282,
+      "deurenbergFat": 22.06574394463668,
+      "fat": {
+        "method": "navy",
+        "se": 3.5,
+        "pct": {
+          "low": 15.828002723428199,
+          "mid": 19.3280027234282,
+          "high": 22.8280027234282
+        },
+        "leanKg": 56.47039809360026,
+        "fatKg": 13.529601906399739
+      },
+      "ffmi": null,
+      "ffmiNormalised": null,
+      "mifflin": 1567.5,
+      "katch": null,
+      "resting": {
+        "kcal": 1567.5,
+        "method": "mifflin"
+      },
+      "estimatedBurn": 1881,
+      "floorKcal": 1500,
+      "target": {
+        "kcal": 1568,
+        "offset": -313,
+        "floors": [
+          "resting"
+        ],
+        "ratePct": 0.40714285714285714
+      },
+      "proteinFloor": null,
+      "stone": {
+        "st": 11,
+        "lb": 0.3
+      },
+      "feetInches": {
+        "ft": 5,
+        "inch": 6.9
+      }
+    },
+    "no tape": {
+      "why": "waist, hip and neck all absent, which is most readers on day one: Navy answers null and Deurenberg has to carry it",
+      "body": {
+        "heightCm": 165,
+        "weightKg": 62,
+        "ageYears": 29,
+        "sex": "female",
+        "ancestry": "asian"
+      },
+      "leanKg": null,
+      "activity": "moderate",
+      "factor": 1.55,
+      "bmi": 22.77318640955005,
+      "bmiBand": "healthy",
+      "whtr": null,
+      "whtrBand": null,
+      "navyFat": null,
+      "deurenbergFat": 32.09782369146006,
+      "fat": {
+        "method": "deurenberg",
+        "se": 5,
+        "pct": {
+          "low": 27.097823691460057,
+          "mid": 32.09782369146006,
+          "high": 37.09782369146006
+        },
+        "leanKg": 42.09934931129476,
+        "fatKg": 19.900650688705237
+      },
+      "ffmi": null,
+      "ffmiNormalised": null,
+      "mifflin": 1345.25,
+      "katch": null,
+      "resting": {
+        "kcal": 1345.25,
+        "method": "mifflin"
+      },
+      "estimatedBurn": 2085.1375000000003,
+      "floorKcal": 1200,
+      "target": {
+        "kcal": 2085,
+        "offset": 0,
+        "floors": [],
+        "ratePct": 0
+      },
+      "proteinFloor": null,
+      "stone": {
+        "st": 9,
+        "lb": 10.7
+      },
+      "feetInches": {
+        "ft": 5,
+        "inch": 5
+      }
+    },
+    "a woman with the full tape": {
+      "why": "Navy needs the hip for a woman and does not for a man, which is the one place the two sexes take different arguments",
+      "body": {
+        "heightCm": 160,
+        "weightKg": 58,
+        "ageYears": 31,
+        "sex": "female",
+        "ancestry": "asian",
+        "waistCm": 74,
+        "hipCm": 96,
+        "neckCm": 32
+      },
+      "leanKg": 40,
+      "activity": "light",
+      "factor": 1.375,
+      "bmi": 22.656249999999996,
+      "bmiBand": "healthy",
+      "whtr": 0.4625,
+      "whtrBand": "healthy",
+      "navyFat": 28.78950834125783,
+      "deurenbergFat": 32.4175,
+      "fat": {
+        "method": "navy",
+        "se": 3.5,
+        "pct": {
+          "low": 25.28950834125783,
+          "mid": 28.78950834125783,
+          "high": 32.28950834125783
+        },
+        "leanKg": 41.302085162070455,
+        "fatKg": 16.69791483792954
+      },
+      "ffmi": 15.624999999999996,
+      "ffmiNormalised": 16.844999999999995,
+      "mifflin": 1264,
+      "katch": 1234,
+      "resting": {
+        "kcal": 1234,
+        "method": "katch"
+      },
+      "estimatedBurn": 1696.75,
+      "floorKcal": 1200,
+      "target": {
+        "kcal": 1234,
+        "offset": -463,
+        "floors": [
+          "resting"
+        ],
+        "ratePct": 0.7253134796238244
+      },
+      "proteinFloor": {
+        "low": 64,
+        "mid": 80,
+        "high": 88
+      },
+      "stone": {
+        "st": 9,
+        "lb": 1.9
+      },
+      "feetInches": {
+        "ft": 5,
+        "inch": 3
+      }
+    },
+    "lean mass known": {
+      "why": "Katch instead of Mifflin, which is a different equation rather than a correction to one",
+      "body": {
+        "heightCm": 180,
+        "weightKg": 82,
+        "ageYears": 27,
+        "sex": "male",
+        "ancestry": "general",
+        "waistCm": 84,
+        "hipCm": 100,
+        "neckCm": 40
+      },
+      "leanKg": 66,
+      "activity": "active",
+      "factor": 1.725,
+      "bmi": 25.30864197530864,
+      "bmiBand": "raised",
+      "whtr": 0.4666666666666667,
+      "whtrBand": "healthy",
+      "navyFat": 13.720454881898206,
+      "deurenbergFat": 20.380370370370365,
+      "fat": {
+        "method": "navy",
+        "se": 3.5,
+        "pct": {
+          "low": 10.220454881898206,
+          "mid": 13.720454881898206,
+          "high": 17.220454881898206
+        },
+        "leanKg": 70.74922699684348,
+        "fatKg": 11.250773003156528
+      },
+      "ffmi": 20.37037037037037,
+      "ffmiNormalised": 20.37037037037037,
+      "mifflin": 1815,
+      "katch": 1795.6000000000001,
+      "resting": {
+        "kcal": 1795.6000000000001,
+        "method": "katch"
+      },
+      "estimatedBurn": 3097.4100000000003,
+      "floorKcal": 1500,
+      "target": {
+        "kcal": 3323,
+        "offset": 226,
+        "floors": [],
+        "ratePct": 0.25
+      },
+      "proteinFloor": {
+        "low": 105.60000000000001,
+        "mid": 105.60000000000001,
+        "high": 145.20000000000002
+      },
+      "stone": {
+        "st": 12,
+        "lb": 12.8
+      },
+      "feetInches": {
+        "ft": 5,
+        "inch": 10.9
+      }
+    },
+    "small and in a hurry": {
+      "why": "the case that hits more than one floor: a small body on a fast rate is capped by the rate AND lands under the resting burn, and reporting only the last of them tells the reader the wrong thing",
+      "body": {
+        "heightCm": 152,
+        "weightKg": 48,
+        "ageYears": 55,
+        "sex": "female",
+        "ancestry": "asian",
+        "waistCm": 72,
+        "hipCm": 90,
+        "neckCm": 31
+      },
+      "leanKg": null,
+      "activity": "sedentary",
+      "factor": 1.2,
+      "bmi": 20.775623268698062,
+      "bmiBand": "healthy",
+      "whtr": 0.47368421052631576,
+      "whtrBand": "healthy",
+      "navyFat": 27.408550647773552,
+      "deurenbergFat": 35.680747922437675,
+      "fat": {
+        "method": "navy",
+        "se": 3.5,
+        "pct": {
+          "low": 23.908550647773552,
+          "mid": 27.408550647773552,
+          "high": 30.908550647773552
+        },
+        "leanKg": 34.843895689068695,
+        "fatKg": 13.156104310931305
+      },
+      "ffmi": null,
+      "ffmiNormalised": null,
+      "mifflin": 994,
+      "katch": null,
+      "resting": {
+        "kcal": 994,
+        "method": "mifflin"
+      },
+      "estimatedBurn": 1192.8,
+      "floorKcal": 1200,
+      "target": {
+        "kcal": 1200,
+        "offset": 7,
+        "floors": [
+          "rate",
+          "resting",
+          "absolute"
+        ],
+        "ratePct": 0.013636363636363724
+      },
+      "proteinFloor": null,
+      "stone": {
+        "st": 7,
+        "lb": 7.8
+      },
+      "feetInches": {
+        "ft": 4,
+        "inch": 11.8
+      }
+    },
+    "already underweight": {
+      "why": "the one refusal in the file: `lose` under the BMI floor returns maintenance and says why",
+      "body": {
+        "heightCm": 175,
+        "weightKg": 52,
+        "ageYears": 24,
+        "sex": "male",
+        "ancestry": "asian",
+        "waistCm": 68,
+        "hipCm": 84,
+        "neckCm": 34
+      },
+      "leanKg": null,
+      "activity": "moderate",
+      "factor": 1.55,
+      "bmi": 16.979591836734695,
+      "bmiBand": "under",
+      "whtr": 0.38857142857142857,
+      "whtrBand": "low",
+      "navyFat": 5.413740025295738,
+      "deurenbergFat": 13.19551020408163,
+      "fat": {
+        "method": "navy",
+        "se": 3.5,
+        "pct": {
+          "low": 1.9137400252957377,
+          "mid": 5.413740025295738,
+          "high": 8.913740025295738
+        },
+        "leanKg": 49.184855186846214,
+        "fatKg": 2.8151448131537835
+      },
+      "ffmi": null,
+      "ffmiNormalised": null,
+      "mifflin": 1498.75,
+      "katch": null,
+      "resting": {
+        "kcal": 1498.75,
+        "method": "mifflin"
+      },
+      "estimatedBurn": 2323.0625,
+      "floorKcal": 1500,
+      "target": {
+        "kcal": 2323,
+        "offset": 0,
+        "floors": [
+          "underweight"
+        ],
+        "ratePct": 0
+      },
+      "proteinFloor": null,
+      "stone": {
+        "st": 8,
+        "lb": 2.6
+      },
+      "feetInches": {
+        "ft": 5,
+        "inch": 8.9
+      }
+    },
+    "waist to height, low": {
+      "why": "under 0.4, which is a band most tools do not have and this one does because it is a real reading rather than an error",
+      "body": {
+        "heightCm": 178,
+        "weightKg": 58,
+        "ageYears": 22,
+        "sex": "male",
+        "ancestry": "general",
+        "waistCm": 68,
+        "hipCm": 88,
+        "neckCm": 35
+      },
+      "leanKg": null,
+      "activity": "very",
+      "factor": 1.9,
+      "bmi": 18.30576947355132,
+      "bmiBand": "under",
+      "whtr": 0.38202247191011235,
+      "whtrBand": "low",
+      "navyFat": 3.9043984668380176,
+      "deurenbergFat": 10.826923368261584,
+      "fat": {
+        "method": "navy",
+        "se": 3.5,
+        "pct": {
+          "low": 0.4043984668380176,
+          "mid": 3.9043984668380176,
+          "high": 7.404398466838018
+        },
+        "leanKg": 55.73544888923395,
+        "fatKg": 2.26455111076605
+      },
+      "ffmi": null,
+      "ffmiNormalised": null,
+      "mifflin": 1587.5,
+      "katch": null,
+      "resting": {
+        "kcal": 1587.5,
+        "method": "mifflin"
+      },
+      "estimatedBurn": 3016.25,
+      "floorKcal": 1500,
+      "target": {
+        "kcal": 3335,
+        "offset": 319,
+        "floors": [],
+        "ratePct": 0.49999999999999994
+      },
+      "proteinFloor": null,
+      "stone": {
+        "st": 9,
+        "lb": 1.9
+      },
+      "feetInches": {
+        "ft": 5,
+        "inch": 10.1
+      }
+    },
+    "waist to height, high": {
+      "why": "over 0.6, the top band, on a body the BMI table also calls high: the two agreeing is worth freezing as much as the two disagreeing",
+      "body": {
+        "heightCm": 168,
+        "weightKg": 96,
+        "ageYears": 47,
+        "sex": "male",
+        "ancestry": "asian",
+        "waistCm": 112,
+        "hipCm": 110,
+        "neckCm": 43
+      },
+      "leanKg": null,
+      "activity": "sedentary",
+      "factor": 1.2,
+      "bmi": 34.013605442176875,
+      "bmiBand": "high",
+      "whtr": 0.6666666666666666,
+      "whtrBand": "high",
+      "navyFat": 32.66945506106515,
+      "deurenbergFat": 38.92632653061225,
+      "fat": {
+        "method": "navy",
+        "se": 3.5,
+        "pct": {
+          "low": 29.16945506106515,
+          "mid": 32.66945506106515,
+          "high": 36.16945506106515
+        },
+        "leanKg": 64.63732314137745,
+        "fatKg": 31.362676858622546
+      },
+      "ffmi": null,
+      "ffmiNormalised": null,
+      "mifflin": 1780,
+      "katch": null,
+      "resting": {
+        "kcal": 1780,
+        "method": "mifflin"
+      },
+      "estimatedBurn": 2136,
+      "floorKcal": 1500,
+      "target": {
+        "kcal": 1780,
+        "offset": -356,
+        "floors": [
+          "resting"
+        ],
+        "ratePct": 0.3371212121212121
+      },
+      "proteinFloor": null,
+      "stone": {
+        "st": 15,
+        "lb": 1.6
+      },
+      "feetInches": {
+        "ft": 5,
+        "inch": 6.1
+      }
+    },
+    "maintenance, which is a phase": {
+      "why": "`maintain` returns the maintenance figure with no offset and no floors, and is not the absence of a goal",
+      "body": {
+        "heightCm": 172,
+        "weightKg": 68,
+        "ageYears": 36,
+        "sex": "female",
+        "ancestry": "asian",
+        "waistCm": 76,
+        "hipCm": 98,
+        "neckCm": 33
+      },
+      "leanKg": null,
+      "activity": "moderate",
+      "factor": 1.55,
+      "bmi": 22.985397512168742,
+      "bmiBand": "healthy",
+      "whtr": 0.4418604651162791,
+      "whtrBand": "healthy",
+      "navyFat": 27.0950389421526,
+      "deurenbergFat": 33.96247701460249,
+      "fat": {
+        "method": "navy",
+        "se": 3.5,
+        "pct": {
+          "low": 23.5950389421526,
+          "mid": 27.0950389421526,
+          "high": 30.5950389421526
+        },
+        "leanKg": 49.57537351933623,
+        "fatKg": 18.42462648066377
+      },
+      "ffmi": null,
+      "ffmiNormalised": null,
+      "mifflin": 1414,
+      "katch": null,
+      "resting": {
+        "kcal": 1414,
+        "method": "mifflin"
+      },
+      "estimatedBurn": 2191.7000000000003,
+      "floorKcal": 1200,
+      "target": {
+        "kcal": 2100,
+        "offset": 0,
+        "floors": [],
+        "ratePct": 0
+      },
+      "proteinFloor": null,
+      "stone": {
+        "st": 10,
+        "lb": 9.9
+      },
+      "feetInches": {
+        "ft": 5,
+        "inch": 7.7
+      }
+    }
+  }
+}

@@ -48,7 +48,7 @@ with green ticks and no test run at all.
 | | |
 | --- | --- |
 | `core/` | plain Kotlin. API models, the body parser, the storage keys, the sync arithmetic, the palette, the material |
-| `core/src/test/resources/fixtures/` | real answers from the live API, captured rather than written |
+| `core/src/test/resources/fixtures/` | real answers from the live API, captured rather than written. Four are not from the API: `stock.json`, `calculators.json`, `routine.json` and `diet.json` are written by the website's `scripts/export-*-fixtures.ts` out of the models themselves, which is what locks each Kotlin port to the site's arithmetic number for number |
 | `app/` | Compose. The theme, the material, the deck, the body renderer, the four schools |
 | `app/src/main/res/font/` | the site's six faces, bundled. See `docs/FONTS.md` |
 
