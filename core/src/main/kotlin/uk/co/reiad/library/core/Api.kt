@@ -89,6 +89,16 @@ data class SiteManifest(
         has to render with nothing rather than an empty box. */
     val profile: ProfileWords = ProfileWords(),
 
+    /** What each hub page SAYS about itself: the eyebrow, the
+        headline and the lede, with any count already resolved.
+
+        Keyed by the nav key of the page, so a screen that knows
+        which destination it is drawing knows where to look.
+        Absent until a deployment carries it, and a screen with
+        no head draws its title and nothing else rather than an
+        empty paragraph. */
+    val heads: Map<String, PageHeadWords> = emptyMap(),
+
     /** The palette's index: every page of the site that is not
         private, with the title, the address and one line saying
         what it is. This is what the Ctrl+K palette searches on
@@ -304,6 +314,22 @@ data class Skill(
     val url: String? = null,
     val course: Boolean = false,
     val note: String? = null,
+)
+
+/** One hub page's own words: what `/skills` and `/portfolio`
+    say about themselves.
+
+    `lede` arrives with any `{n}` ALREADY FILLED. The endpoint
+    resolves it from `COUNTS` before it leaves, so nothing here
+    has to know that a lede can carry a count, and nothing here
+    can print the characters `{n}` to a reader. */
+@Serializable
+data class PageHeadWords(
+    val eyebrow: String = "",
+    val title: String = "",
+    val lede: String = "",
+    /** `bn` or `en`, which decides the face. */
+    val lang: String = "en",
 )
 
 /* ---------- /api/schools/<school> ---------- */

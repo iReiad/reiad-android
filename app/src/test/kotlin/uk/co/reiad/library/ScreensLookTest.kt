@@ -71,6 +71,8 @@ import uk.co.reiad.library.core.Scenario
 import uk.co.reiad.library.core.Comment
 import uk.co.reiad.library.ui.Thread
 import uk.co.reiad.library.ui.ThreadState
+import uk.co.reiad.library.ui.SkillsScreen
+import uk.co.reiad.library.ui.PortfolioScreen
 
 /* Every screen, drawn, so a change to the design is something
    somebody can look at rather than something they have to guess
@@ -197,6 +199,24 @@ class ScreensLookTest {
 
     /** A thread with a comment, a reply and a body that looks
         like markup, so a picture shows all three rules at once. */
+    @Test fun skills() = page {
+        SkillsScreen(
+            group = site.nav.firstOrNull { it.id == "learn" },
+            head = site.heads["skills"],
+            bottomPadding = 96.dp,
+            onOpen = {},
+        )
+    }
+
+    @Test fun portfolio() = page {
+        PortfolioScreen(
+            cases = site.pages.filter { it.group == "case" },
+            head = site.heads["portfolio"],
+            bottomPadding = 96.dp,
+            onOpen = {},
+        )
+    }
+
     @Test fun thread() = page {
         Column(Modifier.padding(Gap.s8)) {
             Thread(

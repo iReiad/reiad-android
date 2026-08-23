@@ -78,6 +78,8 @@ import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.nav.Destination
 import uk.co.reiad.library.core.nav.LIVE_KEY
+import uk.co.reiad.library.core.nav.SKILLS_KEY
+import uk.co.reiad.library.core.nav.PORTFOLIO_KEY
 import uk.co.reiad.library.core.nav.DIET_KEY
 import uk.co.reiad.library.core.nav.ROUTINE_KEY
 import uk.co.reiad.library.core.nav.STOCK_KEY
@@ -190,6 +192,8 @@ import uk.co.reiad.library.ui.accentOf as tokenAccent
 import uk.co.reiad.library.ui.InfoCard
 import uk.co.reiad.library.ui.LocalReiad
 import uk.co.reiad.library.ui.Path
+import uk.co.reiad.library.ui.SkillsScreen
+import uk.co.reiad.library.ui.PortfolioScreen
 import uk.co.reiad.library.ui.Paths
 import uk.co.reiad.library.ui.RoutineLine
 import uk.co.reiad.library.ui.ThreadState
@@ -331,6 +335,14 @@ internal sealed interface Where {
         showing a cached balance: a live portfolio that is not
         live is a screenshot. */
     data object Live : Where
+
+    /** The two hubs that are a LIST of things the manifest
+        already carries: what this site teaches, and the work it
+        shows. Both were a browser hand-off for eleven blocks,
+        for a list this phone was holding the whole time. */
+    data object Skills : Where
+
+    data object Portfolio : Where
 
     /** The routine. It belongs to an ACCOUNT rather than to this
         phone, which is the one thing about it worth saying twice:
@@ -1742,6 +1754,8 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         Where.Live -> Accents.GOLD
         Where.Routine -> Accents.GOLD
         Where.Diet -> Accents.GOLD
+        Where.Skills -> Accents.GREEN
+        Where.Portfolio -> Accents.PLUM
         Where.Home -> Accents.GREEN
     }
 
@@ -1826,6 +1840,8 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     LIVE_KEY -> { model.openLive(context); where = Where.Live }
                     ROUTINE_KEY -> { model.openRoutine(context); where = Where.Routine }
                     DIET_KEY -> { model.openDiet(context); where = Where.Diet }
+                    SKILLS_KEY -> { where = Where.Skills }
+                    PORTFOLIO_KEY -> { where = Where.Portfolio }
                     else -> Unit
                 }
             }
@@ -1857,6 +1873,8 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         Where.Live -> LIVE_KEY
         Where.Routine -> ROUTINE_KEY
         Where.Diet -> DIET_KEY
+        Where.Skills -> SKILLS_KEY
+        Where.Portfolio -> PORTFOLIO_KEY
         Where.Home -> null
     }
 
@@ -1917,6 +1935,48 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                 onAudience = { model.chooseAudience(it) },
             ) {
             when (val here = where) {
+                Where.Skills -> {
+                    BackHandler { where = Where.Home }
+                    SkillsScreen(
+                        /* The LEARN group of the nav table, which
+                           is what the site's own `/skills` reads.
+                           Not `SKILLS` in `content.ts`: the nav
+                           item is what carries each school's own
+                           colour, and the site has a comment
+                           about the day this page did without
+                           them. */
+                        group = site?.nav?.firstOrNull { it.id == "learn" },
+                        head = site?.heads?.get(SKILLS_KEY),
+                        bottomPadding = BAR_CLEARANCE,
+                        onOpen = { item ->
+                            /* Through the ONE function that
+                               decides where a nav item goes, so a
+                               row here reaches the same screen as
+                               the same row in the menu. */
+                            where = if (opensHere(site, item)) {
+                                goTo(model, context, site, item, where)
+                            } else {
+                                openOnSite(context, item.href, colours)
+                                where
+                            }
+                        },
+                    )
+                }
+
+                Where.Portfolio -> {
+                    BackHandler { where = Where.Home }
+                    PortfolioScreen(
+                        /* Out of the manifest's own `pages`, by
+                           the group the site files them under. A
+                           case study added on the site is on this
+                           screen with no release. */
+                        cases = site?.pages.orEmpty().filter { it.group == "case" },
+                        head = site?.heads?.get(PORTFOLIO_KEY),
+                        bottomPadding = BAR_CLEARANCE,
+                        onOpen = { page -> openOnSite(context, page.url, colours) },
+                    )
+                }
+
                 Where.Account -> {
                     BackHandler { where = Where.Home }
                     AccountScreen(
@@ -2350,7 +2410,8 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     the honest answer for a page nobody has ported: a dead handle
     is worse than a browser. */
 internal fun opensHere(site: SiteManifest?, item: NavItem): Boolean =
-    item.key == "account" || item.key == STOCK_KEY ||
+    item.key == "account" || item.key == SKILLS_KEY ||
+        item.key == PORTFOLIO_KEY || item.key == STOCK_KEY ||
         item.key == TOOLS_KEY || item.key == LIVE_KEY ||
         item.key == ROUTINE_KEY || item.key == DIET_KEY ||
         site?.ladders?.any { it.key == item.key } == true ||
@@ -2378,6 +2439,8 @@ internal fun goTo(
         item.key == LIVE_KEY -> { model.openLive(context); Where.Live }
         item.key == ROUTINE_KEY -> { model.openRoutine(context); Where.Routine }
         item.key == DIET_KEY -> { model.openDiet(context); Where.Diet }
+        item.key == SKILLS_KEY -> Where.Skills
+        item.key == PORTFOLIO_KEY -> Where.Portfolio
         school != null -> { model.openLadder(school); Where.Ladder(school) }
         section != null -> Where.Hub(section, sectionTitle(site, section))
         else -> now

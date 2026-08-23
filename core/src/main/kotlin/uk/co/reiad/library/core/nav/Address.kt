@@ -66,6 +66,11 @@ sealed interface Destination {
     data class Elsewhere(val url: String) : Destination
 }
 
+/** The two hubs that are a list of things the manifest already
+    carries: what this site teaches, and the work it shows. */
+const val SKILLS_KEY = "skills"
+const val PORTFOLIO_KEY = "portfolio"
+
 /** The tool keys, which are the nav table's own. */
 const val STOCK_KEY = "stock"
 const val TOOLS_KEY = "tools"
