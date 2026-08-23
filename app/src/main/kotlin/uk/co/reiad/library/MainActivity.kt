@@ -176,6 +176,21 @@ import uk.co.reiad.library.ui.BodyView
 import uk.co.reiad.library.ui.Faces
 import uk.co.reiad.library.ui.Checkpoints
 import uk.co.reiad.library.ui.barClearance
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.lazy.itemsIndexed
+import uk.co.reiad.library.core.BOARD_FLOOR
+import uk.co.reiad.library.core.Placed
+import uk.co.reiad.library.core.WidgetKind
+import uk.co.reiad.library.core.layoutOf
+import uk.co.reiad.library.core.moved
+import uk.co.reiad.library.core.storedOf
+import uk.co.reiad.library.ui.BoardActions
+import uk.co.reiad.library.ui.BoardData
+import uk.co.reiad.library.ui.DRAWABLE
+import uk.co.reiad.library.ui.PillButton
+import uk.co.reiad.library.ui.Widget
+import uk.co.reiad.library.ui.WidgetFrame
+import uk.co.reiad.library.ui.WidgetPicker
 import uk.co.reiad.library.ui.topClearance
 import uk.co.reiad.library.ui.Chip
 import uk.co.reiad.library.ui.Control
@@ -1096,6 +1111,31 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
 
     fun ticksOf(key: String): Set<String> = _ticks.value[key].orEmpty()
 
+    /* ---------- the board the reader arranged ----------
+
+       Straight off the store, because it is one small list read
+       on one screen. Null means "never arranged", which is not
+       the same as an empty board: `layoutOf` falls back for the
+       first and honours the second. Saving stamps a `ts` and
+       queues the exchange like any other synced key. */
+
+    val board: StateFlow<List<String>?> = reiad.board
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun saveBoard(next: List<String>) {
+        viewModelScope.launch {
+            reiad.saveBoard(next)
+            queueSync()
+        }
+    }
+
+    fun resetBoard() {
+        viewModelScope.launch {
+            reiad.resetBoard()
+            queueSync()
+        }
+    }
+
     /* ---------- checkpoints and the bookmark ---------- */
 
     private val _checks = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
@@ -1715,6 +1755,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val erasing by model.erasing.collectAsState()
     val checks by model.checks.collectAsState()
     val bookmarks by model.bookmarks.collectAsState()
+    val board by model.board.collectAsState()
     val book by model.book.collectAsState()
     val bookFailed by model.bookFailed.collectAsState()
     val bookDays by model.days.collectAsState()
@@ -2274,6 +2315,30 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         }
                     },
                     onRetry = { model.refresh() },
+                    board = board,
+                    bookmarks = bookmarks,
+                    pieces = pieces,
+                    lang = prefs.lang,
+                    signedIn = reader != null,
+                    onBoard = { model.saveBoard(it) },
+                    onResetBoard = { model.resetBoard() },
+                    onPiece = { piece ->
+                        model.openPiece(piece)
+                        where = Where.Reading2(piece.section, piece)
+                    },
+                    /* Into that school's ladder, which is where
+                       the bookmark is drawn: the row is
+                       highlighted and the lesson is one press
+                       away. Straight into the lesson would need
+                       the ladder fetched first anyway, and would
+                       leave a reader with no way back to the
+                       school they were in the middle of. */
+                    onResume = { key, _ ->
+                        site?.ladders?.firstOrNull { it.key == key }?.let { school ->
+                            model.openLadder(school)
+                            where = Where.Ladder(school)
+                        }
+                    },
                 )
 
                 is Where.Ladder -> {
@@ -2497,6 +2562,19 @@ fun Home(
     onOpen: (LadderSchool) -> Unit,
     onGo: (NavItem) -> Unit = {},
     onRetry: () -> Unit = {},
+    /** The board this reader arranged, as stored. Null means
+        they never have, which is not the same as an empty board:
+        the site's own default answers the first and nothing
+        answers the second. */
+    board: List<String>? = null,
+    bookmarks: Map<String, Bookmark> = emptyMap(),
+    pieces: List<Piece> = emptyList(),
+    lang: String = "bn",
+    signedIn: Boolean = false,
+    onBoard: (List<String>) -> Unit = {},
+    onResetBoard: () -> Unit = {},
+    onPiece: (Piece) -> Unit = {},
+    onResume: (String, Bookmark) -> Unit = { _, _ -> },
 ) {
     val c = LocalReiad.current
     /* One sway for the whole screen, not one per card. Every card
@@ -2514,13 +2592,35 @@ fun Home(
             .mapNotNull { item -> item.key?.let { it to item.icon } }
             .toMap()
     }
-    val rows = remember(site) {
-        site?.nav.orEmpty()
-            .flatMap { group -> group.items.map { group to it } }
-            .filter { (_, item) ->
-                item.key != null && site?.ladders?.none { it.key == item.key } == true
-            }
+
+    /* ---------- the board ----------
+
+       The reader's own arrangement, filtered against what THIS
+       build can draw. A kind the site has shipped and this app
+       has no renderer for is skipped rather than left as a blank
+       rectangle with a title on it: see `ui/Widgets.kt`.
+
+       The site's own default is the fallback where the reader
+       has arranged nothing, and `BOARD_FLOOR` is the fallback
+       for THAT, on a phone that has never fetched anything. */
+    var arranging by rememberSaveable { mutableStateOf(false) }
+    val catalogue = remember(site) {
+        site?.widgets?.kinds.orEmpty().associateBy { it.id }
     }
+    val placed = remember(board, site) {
+        layoutOf(
+            stored = board,
+            drawable = DRAWABLE,
+            fallback = site?.widgets?.home?.takeIf { it.isNotEmpty() } ?: BOARD_FLOOR,
+        )
+    }
+    val data = BoardData(
+        site = site, ticks = ticks, bookmarks = bookmarks, pieces = pieces,
+        sway = sway, icons = icons, lang = lang,
+    )
+    val act = BoardActions(
+        onSchool = onOpen, onItem = onGo, onPiece = onPiece, onResume = onResume,
+    )
 
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
@@ -2575,42 +2675,76 @@ fun Home(
             }
         }
 
-        items(site?.ladders.orEmpty(), key = { it.key }) { school ->
-            SchoolCard(
-                school,
-                ticks[school.key].orEmpty().size,
-                sway,
-                icons[school.key],
-                onOpen,
-            )
+        /* ---------- the board ---------- */
+
+        item("arrange") {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.weight(1f))
+                PillButton(
+                    label = if (arranging) {
+                        if (lang == "bn") "হয়ে গেছে" else "Done"
+                    } else {
+                        if (lang == "bn") "সাজান" else "Arrange"
+                    },
+                    onClick = { arranging = !arranging },
+                    icon = if (arranging) "check" else "sliders",
+                    filled = arranging,
+                )
+            }
+            Spacer(Modifier.height(Gap.s6))
+        }
+
+        itemsIndexed(placed, key = { _, p -> p.id }) { at, p ->
+            /* The catalogue describes a widget; it is not what
+               DRAWS one. A phone that has never fetched the
+               manifest still has `BOARD_FLOOR` and still has
+               every renderer, so the board draws and only the
+               arranging strip is thinner: the id where a name
+               would be, and no resize where the sizes are not
+               known. Requiring the catalogue here left the whole
+               front page blank until the first fetch landed. */
+            val kind = catalogue[p.id]
+                ?: WidgetKind(id = p.id, bn = p.id, en = p.id, sizes = listOf(p.size.id))
+            WidgetFrame(
+                kind = kind,
+                placed = p,
+                arranging = arranging,
+                first = at == 0,
+                last = at == placed.lastIndex,
+                lang = lang,
+                onUp = { onBoard(storedOf(moved(placed, at, at - 1))) },
+                onDown = { onBoard(storedOf(moved(placed, at, at + 1))) },
+                onResize = {
+                    val other = kind.other(p.size) ?: return@WidgetFrame
+                    onBoard(storedOf(placed.toMutableList().also { it[at] = p.copy(size = other) }))
+                },
+                onRemove = {
+                    onBoard(storedOf(placed.filterIndexed { i, _ -> i != at }))
+                },
+            ) {
+                Widget(p.id, data, act)
+            }
             Spacer(Modifier.height(Gap.s7))
         }
 
-        /* And everything else the site holds, as HANDLES rather
-           than as cards, which is the site's own side column: a
-           tool, a reading hub and the account are one line each.
-           A list of places to go should not be a page of
-           paragraphs, and on a handset that difference is four
-           screens of scrolling. */
-        if (rows.isNotEmpty()) {
-            item("rows-head") {
-                Spacer(Modifier.height(Gap.s7))
-                Text(
-                    "AND THE REST OF IT",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = c.inkSoft,
-                )
+        if (arranging) {
+            item("picker") {
                 Spacer(Modifier.height(Gap.s6))
-            }
-            items(rows, key = { (_, item) -> item.key ?: item.label }) { (group, item) ->
-                ReiadTheme(accent = accentOfGroup(group), dark = c.isDark) {
-                    RowCard(
-                        title = item.sub?.takeIf { it.isNotBlank() } ?: item.label,
-                        icon = item.icon,
-                        onOpen = { onGo(item) },
-                    )
-                }
-                Spacer(Modifier.height(Gap.s5))
+                WidgetPicker(
+                    /* The catalogue minus what is already on the
+                       board, and minus what this build cannot
+                       draw: offering a widget that would not
+                       appear is worse than not offering it. */
+                    offered = site?.widgets?.kinds.orEmpty()
+                        .filter { it.id in DRAWABLE && placed.none { p -> p.id == it.id } },
+                    lang = lang,
+                    signedIn = signedIn,
+                    onAdd = { kind ->
+                        onBoard(storedOf(placed + Placed(kind.id, kind.added())))
+                    },
+                    onReset = onResetBoard,
+                )
+                Spacer(Modifier.height(Gap.s8))
             }
         }
     }

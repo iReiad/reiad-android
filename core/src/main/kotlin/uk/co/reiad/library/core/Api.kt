@@ -99,6 +99,17 @@ data class SiteManifest(
         empty paragraph. */
     val heads: Map<String, PageHeadWords> = emptyMap(),
 
+    /** What the front page can be made of, and what a reader who
+        has arranged nothing gets.
+
+        The catalogue is DATA and each side's renderer is CODE, so
+        a kind this build cannot draw is skipped rather than left
+        as a blank rectangle with a title on it, and a kind
+        renamed on the site is renamed here at the next fetch.
+        Empty until a deployment carries it; `BOARD_FLOOR` is what
+        a first run with no network draws. */
+    val widgets: Widgets = Widgets(),
+
     /** The palette's index: every page of the site that is not
         private, with the title, the address and one line saying
         what it is. This is what the Ctrl+K palette searches on

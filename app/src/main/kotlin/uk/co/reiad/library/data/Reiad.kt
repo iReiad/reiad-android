@@ -24,6 +24,8 @@ import kotlinx.serialization.json.Json
 import uk.co.reiad.library.core.LadderResponse
 import uk.co.reiad.library.core.LessonResponse
 import uk.co.reiad.library.core.AUDIENCE_KEY
+import uk.co.reiad.library.core.BOARD_KEY
+import uk.co.reiad.library.core.BoardRecord
 import uk.co.reiad.library.core.PREFS_KEY
 import uk.co.reiad.library.core.Prefs
 import uk.co.reiad.library.core.Bookmark
@@ -353,6 +355,44 @@ class Reiad(private val context: Context) {
             else stored[key(THEME_KEY)] = next.themeChoice.id
             stored[key(TOOL_LANG_KEY)] = next.lang
         }
+    }
+
+    /* ---------- the board the reader arranged ----------
+
+       `home-board`, a synced key like any other, holding
+       `{"board": ["continue:full", ...], "ts": ...}`. The `ts` is
+       what makes it a MARK: a board is replaced rather than
+       accumulated, so the newer of two devices wins and the union
+       of them would be a board holding everything either ever
+       had.
+
+       Null is a real answer here and it is not the same as empty.
+       Null is "never arranged" and gets the site's own default;
+       an empty list is a reader who took everything off, and
+       filling that back in would be the page overruling them. */
+
+    val board: Flow<List<String>?> = context.store.data.map { stored ->
+        val raw = stored[key(BOARD_KEY)]
+        if (raw.isNullOrBlank()) return@map null
+        runCatching {
+            json.decodeFromString(BoardRecord.serializer(), raw).board
+        }.getOrNull()
+    }
+
+    suspend fun saveBoard(next: List<String>) {
+        context.store.edit { stored ->
+            stored[key(BOARD_KEY)] = json.encodeToString(
+                BoardRecord.serializer(),
+                BoardRecord(board = next, ts = System.currentTimeMillis()),
+            )
+        }
+    }
+
+    /** Back to whatever the site's default is, which is not the
+        same as an empty board: the key is REMOVED, so the next
+        read says "never arranged" and the default answers. */
+    suspend fun resetBoard() {
+        context.store.edit { it.remove(key(BOARD_KEY)) }
     }
 
     /** Which groups lead. Null is a real answer and means the

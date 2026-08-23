@@ -25,7 +25,7 @@ private fun fixture(name: String): String =
 
 class StorageKeyTest {
 
-    /* The whole point of naming all twenty-one: a rename should
+    /* The whole point of naming all twenty-two: a rename should
        fail here rather than lose somebody's ticks in the field. */
     @Test
     fun `every synced key is spelled the way real accounts spell it`() {
@@ -35,7 +35,7 @@ class StorageKeyTest {
             "english-read", "english-days", "english-last", "english-day", "english-checks",
             "quran-done", "quran-last", "quran-checks",
             "courses-read", "courses-last", "courses-answers",
-            "days-active", "reader-prefs",
+            "days-active", "reader-prefs", "home-board",
         )
         assertEquals(expected, SyncKeys.ALL.keys)
     }

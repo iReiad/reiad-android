@@ -77,6 +77,21 @@ internal val SHAPES: Map<String, String> = mapOf(
        four. */
     "sliders" to "M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M8 14v6",
     "chevron" to "M9 5l7 7-7 7",
+    /* The board's arranging strip. Up, down, and the two that
+       say which way a widget is about to change width: an arrow
+       pointing in for narrower and out for wider, because a
+       reader has to know what a control does BEFORE pressing it
+       and "resize" alone does not say which way. */
+    "chevron-up" to "M5 15l7-7 7 7",
+    "chevron-down" to "M5 9l7 7 7-7",
+    "shrink" to "M9 4v5H4M15 20v-5h5M9 9L3.5 3.5M15 15l5.5 5.5",
+    "grow" to "M4 9V4h5M20 15v5h-5M4 4l5.5 5.5M20 20l-5.5-5.5",
+    /* The Save under a byline, and the reading-list widget. The
+       site draws this one as `keep`, and the catalogue in
+       `shared/widgets.ts` is shared, so the NAME has to be the
+       site's. */
+    "keep" to "M6.5 3.5h11v17l-5.5-4-5.5 4z",
+    "leaf" to "M19 5c0 7.2-4.4 11.5-9.6 11.9C7 17.1 5 15.2 5 12.6 5 7.7 10.4 5 19 5zM16 8L5.5 18.5",
     "arrow" to "M4 12h15M13.5 6.5L20 12l-6.5 5.5",
     "menu" to "M4 7h16M4 12h16M4 17h16",
     "close" to "M6 6l12 12M18 6L6 18",
