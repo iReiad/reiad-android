@@ -15,4 +15,6 @@
     <!-- Shown in the widget picker, so it says what the widget
          DOES rather than naming the app a second time. -->
     <string name="widget_continue_description">The lesson you were last reading, one tap away.</string>
+    <string name="widget_progress_description">How many lessons you have read in each school.</string>
+    <string name="widget_news_description">Today\'s market headlines, picked from three sources.</string>
 </resources>

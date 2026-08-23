@@ -249,6 +249,27 @@ class Reiad(private val context: Context) {
         Cached(fromCache.getOrNull(), stale = true, failed = live.exceptionOrNull())
     }
 
+    /** What the last successful fetch stored, and nothing else.
+
+        **For a home-screen widget, which cannot afford a round
+        trip.** A widget is drawn in the launcher's process and
+        its update is a broadcast with a timeout on it, so a
+        `fetch()` that hangs on a slow connection is a widget that
+        shows nothing at all until it gives up. Everything a
+        widget says is something the app has already fetched and
+        stored, so reading the store is also what keeps the widget
+        and the screen behind it from ever disagreeing.
+
+        Null where nothing has been stored yet, which for a widget
+        means the invitation rather than a blank. */
+    suspend fun <T> cached(cacheKey: String, serializer: DeserializationStrategy<T>): T? {
+        val saved = context.store.data.first()[stringPreferencesKey(cacheKey)] ?: return null
+        return runCatching { json.decodeFromString(serializer, saved) }.getOrNull()
+    }
+
+    suspend fun cachedManifest(): SiteManifest? = cached("cache:site", SiteManifest.serializer())
+    suspend fun cachedNews(): NewsResponse? = cached("cache:news", NewsResponse.serializer())
+
     /* ---------- what the reader did ----------
 
        Stored as the same JSON the browser stores: an array of ids

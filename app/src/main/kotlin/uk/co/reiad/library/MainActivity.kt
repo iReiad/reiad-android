@@ -109,6 +109,8 @@ import uk.co.reiad.library.data.Held
 import androidx.glance.appwidget.updateAll
 import uk.co.reiad.library.data.Reiad
 import uk.co.reiad.library.widget.ContinueWidget
+import uk.co.reiad.library.widget.NewsWidget
+import uk.co.reiad.library.widget.ProgressWidget
 import uk.co.reiad.library.data.SchoolWorker
 import uk.co.reiad.library.data.Shelf
 import uk.co.reiad.library.data.forgetHeld
@@ -1099,6 +1101,12 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             val after = reiad.toggleTick(which, lessonId(stage.slug, lesson.slug))
             _ticks.value = _ticks.value + (which.id to after)
             queueSync()
+            /* And the home screen. A tick is the ONE moment the
+               progress widget's answer changes, which is why its
+               `updatePeriodMillis` is 0: a widget that polled
+               would wake the app on a schedule to redraw four
+               numbers that had not moved. */
+            host?.let { context -> runCatching { ProgressWidget().updateAll(context) } }
         }
     }
 
@@ -1125,7 +1133,13 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     fun fetchNews() {
         if (_news.value.isNotEmpty()) return
         viewModelScope.launch {
-            reiad.news().value?.let { _news.value = it.items }
+            reiad.news().value?.let {
+                _news.value = it.items
+                /* The widget reads the same cache this fetch just
+                   wrote, so this is the moment its answer changed
+                   and the only moment it needs redrawing. */
+                host?.let { context -> runCatching { NewsWidget().updateAll(context) } }
+            }
         }
     }
 
