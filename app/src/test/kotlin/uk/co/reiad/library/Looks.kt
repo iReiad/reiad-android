@@ -37,6 +37,18 @@ val HANDSET: DeviceConfig = DeviceConfig.PIXEL_5.copy(
 
 val DARK: DeviceConfig = HANDSET.copy(nightMode = NightMode.NIGHT)
 
+/** The same handset, three screens tall.
+
+    Paparazzi renders one frame, so a screen longer than 915dp is
+    a screen whose picture only ever shows its head. The account
+    is nine sections and a form; snapshotting it at handset height
+    was a picture of the sign-in panel, over and over, while
+    everything below it could rot quietly.
+
+    The WIDTH is unchanged, which is the point: every line breaks
+    where it breaks on a real phone. Only the frame is longer. */
+val TALL: DeviceConfig = HANDSET.copy(screenHeight = 915 * 3 * 3)
+
 fun paparazzi(device: DeviceConfig = HANDSET): Paparazzi = Paparazzi(
     deviceConfig = device,
     /* The real faces are in `app/src/main/res/font`, so the render

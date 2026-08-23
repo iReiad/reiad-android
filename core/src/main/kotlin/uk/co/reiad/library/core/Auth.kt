@@ -1,5 +1,7 @@
 package uk.co.reiad.library.core
 
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -301,7 +303,88 @@ data class Target(
         of a derived number is a copy that goes stale. */
     val reached: Double = 0.0,
     val unit: String = "",
-    @kotlinx.serialization.SerialName("done_at") val doneAt: String? = null,
+    @SerialName("done_at") val doneAt: String? = null,
+)
+
+/* ---------- a filled-in calculator, under a name ---------- */
+
+/**
+ * `public.scenarios`. One saved check.
+ *
+ * `inputs` is whatever shape the calculator already had for its
+ * own state, and the stock check's shape is its QUERY STRING:
+ * the format it has shared analyses in since it was written. A
+ * second serialisation of the same fifty-six fields would be a
+ * second thing to keep in step with the model, and this one is
+ * already proved correct by every link anybody has ever copied
+ * off that page.
+ *
+ * `summary` is one line of the ANSWER, stored so a list can be
+ * drawn without loading the model that produced it.
+ */
+@Serializable
+data class Scenario(
+    val id: String = "",
+    /** Which calculator. `stock` today. */
+    val tool: String = "stock",
+    val name: String = "",
+    val inputs: ScenarioInputs = ScenarioInputs(),
+    val summary: String = "",
+    @SerialName("updated_at") val updatedAt: String? = null,
+)
+
+/** The stock check's own shape for `inputs`: its query string,
+    with no leading `?`. Named rather than a free map, because the
+    site writes exactly this key and a typo here is a saved check
+    that opens empty. */
+@Serializable
+data class ScenarioInputs(val query: String = "")
+
+/* ---------- what an account says about its reader ---------- */
+
+/**
+ * `public.profiles`, the one table on this site whose select
+ * policy is `using (true)`.
+ *
+ * Every field is nullable because it arrives over a wire and
+ * because two of them mean something when absent: `setup_at` null
+ * IS "has never been asked", and that is what decides whether the
+ * form says "Set up your account" or "Your settings".
+ */
+@Serializable
+data class Profile(
+    @SerialName("display_name") val displayName: String? = null,
+    /** The school ids this reader said they were learning. A
+        CHECK constraint in Postgres allows only the four in
+        `LADDER_SCHOOLS`, so a value not in that list is a 400 on
+        the whole write rather than one ignored field. */
+    val following: List<String>? = null,
+    val pace: String? = null,
+    /** When they answered, or null if they never have. Set on the
+        first save whether or not anything was ticked: somebody
+        who saves a name and nothing else has been through setup,
+        and the page has to stop asking. */
+    @SerialName("setup_at") val setupAt: String? = null,
+)
+
+/** One answer to one of the account's questions.
+
+    The site's `shared/profile.ts` shape, arriving through
+    `/api/site`: the ids are CHECK constraint values and are NOT
+    spelled in this app, so a fourth pace reaches a phone with no
+    release. */
+@Serializable
+data class Choice(
+    val id: String = "",
+    val label: String = "",
+    val note: String = "",
+)
+
+/** The two vocabularies together, as the manifest carries them. */
+@Serializable
+data class ProfileWords(
+    val paces: List<Choice> = emptyList(),
+    @SerialName("targetKinds") val targetKinds: List<Choice> = emptyList(),
 )
 
 /** How far along a target is, worked out rather than read.

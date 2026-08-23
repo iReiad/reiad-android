@@ -85,6 +85,27 @@ class AddressTest {
         assertEquals(Destination.Tool("routine"), to("https://reiad.co.uk/tools/routine"))
     }
 
+    /**
+     * `/tools/diet` is today's log, which the app draws. Its other
+     * thirteen pages are the site's.
+     *
+     * The split is the point: a deep link into a page this app
+     * does not have must open where the page IS, rather than
+     * landing on the nearest one it does. A reader who tapped a
+     * link to the trend and got today's log has been answered
+     * with something else.
+     */
+    @Test fun theDietToolIsSplit() {
+        assertEquals(Destination.Tool("diet"), to("https://reiad.co.uk/tools/diet"))
+        assertEquals(Destination.Tool("diet"), to("https://reiad.co.uk/tools/diet/"))
+        for (page in listOf("trend", "log", "goal", "you", "foods", "keto", "journal")) {
+            assertTrue(
+                to("https://reiad.co.uk/tools/diet/$page") is Destination.Elsewhere,
+                "/tools/diet/$page is the site's and should open there",
+            )
+        }
+    }
+
     @Test fun theAccount() {
         assertEquals(Destination.Account, to("https://reiad.co.uk/account"))
     }
@@ -96,7 +117,6 @@ class AddressTest {
         for (url in listOf(
             "https://reiad.co.uk/portfolio",
             "https://reiad.co.uk/skills/courses/",
-            "https://reiad.co.uk/tools/diet/journal",
             "https://reiad.co.uk/admin",
             "https://reiad.co.uk/about",
         )) {

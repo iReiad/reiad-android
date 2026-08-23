@@ -1,6 +1,7 @@
 package uk.co.reiad.library.account
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.datastore.preferences.core.edit
@@ -15,6 +16,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -29,6 +31,7 @@ import uk.co.reiad.library.core.Arrival
 import uk.co.reiad.library.core.Reader
 import uk.co.reiad.library.core.Session
 import uk.co.reiad.library.core.Supabase
+import uk.co.reiad.library.core.encodeComponent
 import uk.co.reiad.library.core.arrivalOf
 import uk.co.reiad.library.core.authorizeUrl
 import uk.co.reiad.library.core.needsRefresh
@@ -87,8 +90,27 @@ class Account(private val context: Context) {
 
     val signedIn: Flow<Boolean> = context.session.data.map { it[ACCESS] != null }
 
-    /** Sends the reader to their own browser to sign in. */
-    fun signIn(provider: String) {
+    /** Sends the reader to their own browser to sign in.
+
+        Returns null when the browser opened, and a sentence when
+        it did not.
+
+        ---- it used to return nothing, and swallow everything ----
+
+        `runCatching { launchUrl(...) }` with no `getOrElse` is a
+        button that does nothing at all when there is no browser
+        that can answer a `VIEW` intent, and nothing on screen
+        says so. That is indistinguishable from a broken account,
+        it is what "signin still not working" looks like from the
+        outside, and it needs a device to reproduce, which is
+        exactly the kind of failure that has to be REPORTED rather
+        than caught. */
+    fun signIn(provider: String): String? {
+        val url = Uri.parse(authorizeUrl(provider))
+        /* A Custom Tab first, because it IS the reader's own
+           browser: their session is there, their password manager
+           works, and the address bar shows whose page they are
+           typing into. */
         runCatching {
             CustomTabsIntent.Builder()
                 .setShowTitle(true)
@@ -99,7 +121,19 @@ class Account(private val context: Context) {
                    height. */
                 .setUrlBarHidingEnabled(false)
                 .build()
-                .launchUrl(context, Uri.parse(authorizeUrl(provider)))
+                .launchUrl(context, url)
+        }.onSuccess { return null }
+
+        /* And a plain browser when there is no Custom Tabs
+           provider. Not the same thing and not as good, but a
+           reader who can sign in beats a reader who cannot. */
+        return runCatching {
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, url).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+            null
+        }.getOrElse {
+            "This phone has no browser that can open a sign-in page."
         }
     }
 
@@ -108,26 +142,63 @@ class Account(private val context: Context) {
         Both ways in, because the site offers both and an app that
         offered fewer would be an account somebody could make on
         one and not reach on the other. */
-    suspend fun sendLink(email: String): Boolean = runCatching {
-        http.post("${Supabase.AUTH}/otp") {
+    suspend fun sendLink(email: String): String? = runCatching {
+        /* ---- `redirect_to` is a QUERY PARAMETER ----
+
+           It was `options.email_redirect_to` in the body, which
+           is the JS client library's shape and not this API's.
+           GoTrue ignores a field it does not know, so the request
+           returned 200, the screen said the link had been sent,
+           the email arrived, and the link went to the SITE_URL
+           default instead of back to the app. Every part of that
+           looks like success.
+
+           `aab/src/account.ts` does it the right way and has
+           since it was written, which is what settled it: the
+           site's magic link works and the app's did not, over one
+           difference. */
+        val answer = http.post(
+            "${Supabase.AUTH}/otp?redirect_to=${encodeComponent(Supabase.REDIRECT)}",
+        ) {
             header("apikey", Supabase.KEY)
             contentType(ContentType.Application.Json)
-            /* The address is BUILT rather than interpolated, so
-               a quote or a backslash in what somebody typed
-               cannot end the string early and change the shape of
-               the request. */
+            /* The body is BUILT rather than interpolated, so a
+               quote or a backslash in what somebody typed cannot
+               end the string early and change the shape of the
+               request. */
             setBody(
                 buildJsonObject {
                     put("email", email)
                     put("create_user", true)
-                    putJsonObject("options") {
-                        put("email_redirect_to", Supabase.REDIRECT)
-                    }
                 }.toString(),
             )
         }
-        true
-    }.getOrDefault(false)
+        /* And the ANSWER is read. `runCatching` around a call that
+           cannot throw on a 400 turned every refusal into a
+           success: a rate limit, a malformed address and a
+           project with email sign-in switched off all reported
+           "we have sent you a link". */
+        if (answer.status.isSuccess()) {
+            null
+        } else {
+            /* The server's OWN words, not a sentence made up
+               here. "For security purposes, you can only request
+               this after 47 seconds" and "Signups not allowed for
+               otp" are both things GoTrue says plainly, and both
+               were reported as "That email would not send",
+               which tells a reader nothing and tells whoever is
+               fixing it less. */
+            val said = runCatching {
+                json.parseToJsonElement(answer.bodyAsText())
+                    .let { it as? JsonObject }
+                    ?.let { o ->
+                        (o["msg"] ?: o["message"] ?: o["error_description"] ?: o["error"])
+                            ?.jsonPrimitive?.contentOrNull
+                    }
+            }.getOrNull()
+            said?.ifBlank { null } ?: "The sign-in service answered ${answer.status.value}."
+        }
+    }.getOrElse { "Could not reach the sign-in service: ${it.message ?: "no connection"}." }
 
     /** What came back on the redirect. */
     suspend fun arrived(uri: String): Arrival {

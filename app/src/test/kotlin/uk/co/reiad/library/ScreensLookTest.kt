@@ -19,13 +19,29 @@ import uk.co.reiad.library.ui.CalcState
 import uk.co.reiad.library.ui.CalculatorsScreen
 import uk.co.reiad.library.ui.Gap
 import uk.co.reiad.library.ui.LocalReiad
+import uk.co.reiad.library.ui.BodyView
+import uk.co.reiad.library.ui.LessonHead
+import uk.co.reiad.library.ui.Path
+import uk.co.reiad.library.ui.Paths
+import uk.co.reiad.library.ui.PageHead
 import uk.co.reiad.library.ui.Problem
 import uk.co.reiad.library.ui.ReiadTheme
 import uk.co.reiad.library.ui.Shell
+import uk.co.reiad.library.ui.SetupState
 import uk.co.reiad.library.ui.ShellState
 import uk.co.reiad.library.ui.Skeleton
 import uk.co.reiad.library.ui.StockScreen
 import uk.co.reiad.library.ui.StockState
+import uk.co.reiad.library.ui.DietScreen
+import uk.co.reiad.library.ui.DietState
+import uk.co.reiad.library.core.diet.Ancestry
+import uk.co.reiad.library.core.diet.Body
+import uk.co.reiad.library.core.diet.DietDay
+import uk.co.reiad.library.core.diet.DietEntry
+import uk.co.reiad.library.core.diet.DietProfile
+import uk.co.reiad.library.core.diet.FloorHit
+import uk.co.reiad.library.core.diet.Sex
+import uk.co.reiad.library.core.diet.Target
 import uk.co.reiad.library.ui.GroupScreen
 import uk.co.reiad.library.ui.LiveScreen
 import uk.co.reiad.library.ui.LiveState
@@ -47,6 +63,16 @@ import uk.co.reiad.library.core.LessonResponse
 import uk.co.reiad.library.core.Lesson
 import uk.co.reiad.library.core.Stage
 import uk.co.reiad.library.core.LadderResponse
+import uk.co.reiad.library.core.rungsOf
+import uk.co.reiad.library.core.standingOf
+import uk.co.reiad.library.core.BodyParser
+import uk.co.reiad.library.core.Reader
+import uk.co.reiad.library.core.Scenario
+import uk.co.reiad.library.core.Comment
+import uk.co.reiad.library.ui.Thread
+import uk.co.reiad.library.ui.ThreadState
+import uk.co.reiad.library.ui.SkillsScreen
+import uk.co.reiad.library.ui.PortfolioScreen
 
 /* Every screen, drawn, so a change to the design is something
    somebody can look at rather than something they have to guess
@@ -98,7 +124,8 @@ class ScreensLookTest {
         Shell(
             state = ShellState(site = site, current = null, audience = null, drawerOpen = false),
             onHome = {}, onGroup = {}, onItem = {}, onDrawer = {},
-            onSearch = {}, onSettings = {}, onAudience = {},
+            onSearch = {}, onSettings = {},
+                onAccount = {}, onAudience = {},
         ) {
             Home(site, stale = false, note = null, ticks = emptyMap(), audience = null, onOpen = {})
         }
@@ -108,7 +135,8 @@ class ScreensLookTest {
         Shell(
             state = ShellState(site = site, current = null, audience = null, drawerOpen = true),
             onHome = {}, onGroup = {}, onItem = {}, onDrawer = {},
-            onSearch = {}, onSettings = {}, onAudience = {},
+            onSearch = {}, onSettings = {},
+                onAccount = {}, onAudience = {},
         ) {
             Home(site, stale = false, note = null, ticks = emptyMap(), audience = null, onOpen = {})
         }
@@ -152,16 +180,99 @@ class ScreensLookTest {
         )
     }
 
-    @Test fun lesson() = page {
-        val page = fixture("lesson-papers.json", LessonResponse.serializer())
-        Reading(
-            school = site.ladders.first { it.key == "money" },
-            stage = Stage(slug = "basics-1", bn = "\u09ac\u09c7\u09b8\u09bf\u0995", en = "Basics"),
-            lesson = Lesson(slug = "x", bn = "\u09ac\u09bf\u0993 \u0985\u09cd\u09af\u09be\u0995\u09be\u0989\u09a8\u09cd\u099f"),
-            page = page.lesson,
-            ticked = false, isMoney = true,
-            onBack = {}, onTick = {}, checks = emptySet(), onCheck = {}, lessonKey = "k",
+
+    /** A lesson's prose, drawn from blocks parsed HERE.
+
+        It was `Reading()` and it was FLAKY, which is worse than
+        no snapshot: `Reading` parses the body on
+        `Dispatchers.Default` and draws a skeleton until that
+        lands, deliberately, because a long lesson parsed inside
+        composition is a hitch on the frame a reader is watching.
+        Whether Paparazzi caught the skeleton or the prose was a
+        race with a real thread pool, so the recorded image was
+        sometimes six grey bars and nothing failed.
+
+        The picture is of the PROSE, so the parse belongs in the
+        test. `ReadingSettlesTest` is what asserts that the screen
+        gets from one to the other. */
+
+
+    /** A thread with a comment, a reply and a body that looks
+        like markup, so a picture shows all three rules at once. */
+    @Test fun skills() = page {
+        SkillsScreen(
+            group = site.nav.firstOrNull { it.id == "learn" },
+            head = site.heads["skills"],
+            bottomPadding = 96.dp,
+            onOpen = {},
         )
+    }
+
+    @Test fun portfolio() = page {
+        PortfolioScreen(
+            cases = site.pages.filter { it.group == "case" },
+            head = site.heads["portfolio"],
+            bottomPadding = 96.dp,
+            onOpen = {},
+        )
+    }
+
+    @Test fun thread() = page {
+        Column(Modifier.padding(Gap.s8)) {
+            Thread(
+                state = ThreadState(
+                    slug = "a-piece", section = "insights", count = 3, loading = false,
+                    comments = listOf(
+                        Comment(
+                            id = 1, authorName = "Rony Reiad",
+                            body = "The bit about the buy-below price is the part " +
+                                "I keep coming back to.",
+                            createdAt = "2026-08-20T10:00:00Z",
+                            replies = listOf(
+                                Comment(
+                                    id = 2, parentId = 1, authorName = "Nadia",
+                                    body = "Same. It is the only number that changes " +
+                                        "what I actually do.",
+                                    createdAt = "2026-08-20T11:00:00Z",
+                                ),
+                            ),
+                        ),
+                        Comment(
+                            id = 3, authorName = "Someone",
+                            body = "<b>not markup</b>, on purpose: a body is text.",
+                            createdAt = "2026-08-21T09:00:00Z",
+                        ),
+                    ),
+                ),
+                signedIn = true,
+                onLeave = { _, _ -> },
+                onRetry = {},
+            )
+        }
+    }
+
+    @Test fun lessonBody() = page {
+        val page = requireNotNull(
+            fixture("lesson-papers.json", LessonResponse.serializer()).lesson,
+        ) { "the lesson fixture has no page in it" }
+        val blocks = BodyParser.parse(page.body).blocks
+        Column(Modifier.padding(horizontal = Gap.s8)) {
+            /* The head the route draws, with the same four parts:
+               the trail, the icon and both names, the definition
+               against its accent rail, and the minutes. Written
+               out here rather than calling `Reading()` for the
+               reason in the doc above. */
+            LessonHead(
+                title = "\u09b6\u09c7\u09df\u09be\u09b0",
+                also = "Share / Stock",
+                icon = "book",
+                eyebrow = "BASICS",
+                oneLiner = page.blurb,
+                meta = "\u09e9 \u09ae\u09bf\u09a8\u09bf\u099f \u09aa\u09dc\u09be",
+            )
+            Spacer(Modifier.height(Gap.s7))
+            BodyView(blocks)
+        }
     }
 
     @Test fun ladder() = page {
@@ -241,6 +352,11 @@ class ScreensLookTest {
             onClose = {},
             held = Held(89, 1_430_000),
             onForget = {},
+            /* Pinned, because the real one is the commit and this
+               snapshot would then differ on every commit, which
+               is a diff that means nothing and hides the ones
+               that do. */
+            builtFrom = "0000000  1970-01-01 00:00",
         )
     }
 
@@ -261,6 +377,50 @@ class ScreensLookTest {
             onTickDay = {},
             onReveal = {},
             onBack = {},
+        )
+    }
+
+    @Test fun diet() = page {
+        DietScreen(
+            state = DietState(
+                loading = false,
+                today = "2026-08-23",
+                profile = DietProfile(
+                    heightCm = 172.0, birthYear = 1992, sex = "male",
+                    ancestry = "asian", activity = "light", goal = "lose", ratePct = 0.5,
+                ),
+                day = DietDay(date = "2026-08-23", weightKg = 74.0, waistCm = 88.0),
+                entries = listOf(
+                    DietEntry(id = "1", date = "2026-08-23", label = "Rice, cooked",
+                        labelBn = "\u09ad\u09be\u09a4", qty = 200.0, unit = "g", kcal = 260.0),
+                    DietEntry(id = "2", date = "2026-08-23", label = "Dal",
+                        labelBn = "\u09a1\u09be\u09b2", qty = 150.0, unit = "g", kcal = 180.0),
+                    DietEntry(id = "3", date = "2026-08-23", label = "Egg",
+                        labelBn = "\u09a1\u09bf\u09ae", qty = 2.0, unit = "", kcal = 155.0),
+                ),
+                body = Body(172.0, 74.0, 34.0, Sex.MALE, Ancestry.ASIAN, waistCm = 88.0),
+                target = Target(1900, -400, listOf(), 0.5),
+                maintenance = 2300.0,
+            ),
+            onWeight = {}, onRemove = {}, onOpenSite = {},
+            contentPadding = PaddingValues(
+                start = Gap.s8, end = Gap.s8, top = 84.dp, bottom = 96.dp,
+            ),
+        )
+    }
+
+    @Test fun dietEmpty() = page {
+        DietScreen(
+            state = DietState(
+                loading = false,
+                today = "2026-08-23",
+                profile = DietProfile(heightCm = 172.0, birthYear = 1992, sex = "male"),
+                target = Target(1200, -8, listOf(FloorHit.RATE, FloorHit.RESTING, FloorHit.ABSOLUTE), 0.01),
+            ),
+            onWeight = {}, onRemove = {}, onOpenSite = {},
+            contentPadding = PaddingValues(
+                start = Gap.s8, end = Gap.s8, top = 84.dp, bottom = 96.dp,
+            ),
         )
     }
 }

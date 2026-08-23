@@ -27,6 +27,10 @@ import uk.co.reiad.library.core.Radius
 import uk.co.reiad.library.core.Space
 import uk.co.reiad.library.core.Surfaces
 import uk.co.reiad.library.core.TypeScale
+import androidx.compose.runtime.staticCompositionLocalOf
+import uk.co.reiad.library.core.Measure
+import uk.co.reiad.library.core.Scale
+import androidx.compose.ui.unit.isSpecified
 
 /* ============================================================
    The site's design language, in Compose.
@@ -282,6 +286,16 @@ fun headingStyle(text: String): TextStyle =
 fun ReiadTheme(
     accent: Accent = Accents.GREEN,
     dark: Boolean = isSystemInDarkTheme(),
+    /* How wide a column of prose gets. Read by the reading
+       screens through `LocalMeasure`, which is a composition
+       local rather than a parameter threaded through nine
+       composables for the same reason the palette is. */
+    measure: Measure = Measure.NORMAL,
+    /* The reader's type size, which is a preference this app
+       stored, synced and IGNORED. Every screen goes through this
+       one function, so scaling here is the whole of applying it:
+       nothing else has to know, and nothing else can forget. */
+    scale: Scale = Scale.NORMAL,
     content: @Composable () -> Unit,
 ) {
     val colours = remember(accent, dark) { coloursOf(accent, dark) }
@@ -317,7 +331,72 @@ fun ReiadTheme(
         )
     }
 
-    CompositionLocalProvider(LocalReiad provides colours) {
-        MaterialTheme(colorScheme = scheme, typography = ReiadType, content = content)
+    /* The whole ramp, not a font-size on the body.
+
+       The site scales `--t-0` and every step follows, so a
+       heading grows with the prose under it. Scaling one style
+       would make Comfortable a page of normal headings over
+       larger paragraphs, which is not larger type, it is a
+       different design. */
+    val type = remember(scale) {
+        if (scale == Scale.NORMAL) ReiadType else ReiadType.scaledBy(scale.factor)
     }
+
+    CompositionLocalProvider(
+        LocalReiad provides colours,
+        LocalScale provides scale,
+        LocalMeasure provides measure,
+    ) {
+        MaterialTheme(colorScheme = scheme, typography = type, content = content)
+    }
+}
+
+/** Which type size is on, for the few things that size
+    themselves rather than reading a `TextStyle`: the icon beside
+    a heading, the width of a column of prose. */
+val LocalScale = staticCompositionLocalOf { Scale.NORMAL }
+
+/** How wide a column of prose gets, in characters.
+
+    Only bites where there is room: a handset in portrait is
+    about 45 characters wide at the site's body size, which is
+    already narrower than the narrowest setting. It is a tablet,
+    a landscape phone and an unfolded foldable that this is for,
+    and on those the difference between 56 and 78 is the
+    difference between reading and scanning. */
+val LocalMeasure = staticCompositionLocalOf { Measure.NORMAL }
+
+/**
+ * Every style in the ramp, multiplied.
+ *
+ * Written out rather than mapped over a list of names, because
+ * `Typography` has no iteration and a `copy` that forgot one
+ * style would leave a single line of the app at the old size,
+ * which is exactly the sort of thing nobody sees.
+ */
+private fun Typography.scaledBy(k: Float): Typography {
+    /* UNSPECIFIED IS NOT ZERO and it is not multipliable.
+
+       `TextUnit.Unspecified` throws on any arithmetic, and three
+       styles in this ramp set a size and leave the leading to
+       Compose. Scaling them crashed the whole app on any size but
+       Normal, which is to say: for every reader who used the
+       preference this change exists to make work. Caught by a
+       snapshot, because a crash in a theme is a crash before
+       anything is drawn and there is nothing else to see. */
+    fun TextStyle.up() = copy(
+        fontSize = if (fontSize.isSpecified) fontSize * k else fontSize,
+        lineHeight = if (lineHeight.isSpecified) lineHeight * k else lineHeight,
+    )
+    return copy(
+        displayLarge = displayLarge.up(), displayMedium = displayMedium.up(),
+        displaySmall = displaySmall.up(),
+        headlineLarge = headlineLarge.up(), headlineMedium = headlineMedium.up(),
+        headlineSmall = headlineSmall.up(),
+        titleLarge = titleLarge.up(), titleMedium = titleMedium.up(),
+        titleSmall = titleSmall.up(),
+        bodyLarge = bodyLarge.up(), bodyMedium = bodyMedium.up(), bodySmall = bodySmall.up(),
+        labelLarge = labelLarge.up(), labelMedium = labelMedium.up(),
+        labelSmall = labelSmall.up(),
+    )
 }

@@ -38,6 +38,7 @@ import uk.co.reiad.library.core.Block
 import uk.co.reiad.library.core.CalloutKind
 import uk.co.reiad.library.core.Inline
 import uk.co.reiad.library.core.checkpointId
+import androidx.compose.foundation.layout.widthIn
 
 /* ============================================================
    A parsed body, drawn.
@@ -93,7 +94,14 @@ fun BodyView(
         per slice would forget somebody's ticks. */
     path: String = "",
 ) {
-    Column(modifier) {
+    /* THE READER'S MEASURE, and it is a maximum rather than a
+       width: a column narrower than the setting stays as it is.
+       The site says the same thing with `max-width: var(--measure)`
+       and it matters for the same reason: a line of prose running
+       the whole width of an unfolded foldable is a line the eye
+       loses its place in. */
+    val ch = measureCh(LocalMeasure.current.ch, MaterialTheme.typography.bodyLarge)
+    Column(modifier.widthIn(max = ch)) {
         for ((index, block) in blocks.withIndex()) {
             BlockView(block, checkpoints, if (path.isEmpty()) "$index" else "$path.$index")
             /* A heading opens a section, so the air belongs ABOVE

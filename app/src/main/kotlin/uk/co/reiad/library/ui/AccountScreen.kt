@@ -38,8 +38,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import uk.co.reiad.library.core.Kind
 import androidx.compose.foundation.lazy.items
+import uk.co.reiad.library.core.Choice
+import uk.co.reiad.library.core.LadderSchool
 import uk.co.reiad.library.core.Kept
 import uk.co.reiad.library.core.Reader
+import uk.co.reiad.library.core.Scenario
 import uk.co.reiad.library.core.Target
 import uk.co.reiad.library.core.isDone
 import uk.co.reiad.library.core.reachedFor
@@ -86,6 +89,39 @@ fun AccountScreen(
     onGoogle: () -> Unit,
     onLink: (String) -> Unit,
     onSignOut: () -> Unit,
+    /* ---- the three questions, and the target form ----
+
+       All of it is the caller's state, because all of it is a
+       WRITE: a screen that owned its own answers would have to
+       hand them back through a callback, which is the same thing
+       with more steps and one more place for a label to drift.
+
+       Defaulted so the render tests can draw this screen without
+       a profile, which is also what a reader who has never
+       answered sees. */
+    setup: SetupState = SetupState(),
+    schools: List<LadderSchool> = emptyList(),
+    paces: List<Choice> = emptyList(),
+    targetKinds: List<Choice> = emptyList(),
+    started: Set<String> = emptySet(),
+    onSetupChange: (SetupState) -> Unit = {},
+    onSaveProfile: () -> Unit = {},
+    onNotNow: () -> Unit = {},
+    onAddTarget: (Target) -> Unit = {},
+    /** Where the reader stands in each school whose ladder has
+        arrived. Empty draws the section away entirely rather than
+        four bars at nought. */
+    paths: List<Path> = emptyList(),
+    onOpenSchool: (LadderSchool) -> Unit = {},
+    /** Checks saved under a name, newest first. */
+    scenarios: List<Scenario> = emptyList(),
+    onOpenScenario: (Scenario) -> Unit = {},
+    onRemoveScenario: (String) -> Unit = {},
+    /** The routine in one line, or null before it has answered.
+        Null draws nothing: an empty panel and "you have not built
+        one" must not look the same. */
+    routine: RoutineLine? = null,
+    onOpenRoutine: () -> Unit = {},
 ) {
     val c = LocalReiad.current
     LazyColumn(
@@ -145,6 +181,47 @@ fun AccountScreen(
                 Spacer(Modifier.height(Gap.s9))
             }
 
+            /* ---- the three questions ----
+
+               ABOVE the year and the targets, because a reader
+               who has never answered them is being ASKED, and a
+               question below three panels of results is a
+               question nobody scrolls to. Once answered it is
+               the settings section and its position stops
+               mattering. */
+            item("setup") {
+                Pane {
+                    SetupPanel(
+                        state = setup,
+                        schools = schools,
+                        paces = paces,
+                        started = started,
+                        onChange = onSetupChange,
+                        onSave = onSaveProfile,
+                        onNotNow = onNotNow,
+                    )
+                }
+                Spacer(Modifier.height(Gap.s9))
+            }
+
+            /* ---- where you are ----
+
+               Above the year, because "how far through am I" is
+               the question this screen exists for and a calendar
+               is the answer to a different one. */
+            if (paths.isNotEmpty()) {
+                item("paths") {
+                    Text(
+                        "WHERE YOU ARE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = c.inkSoft,
+                    )
+                    Spacer(Modifier.height(Gap.s5))
+                    Paths(paths, onOpenSchool)
+                    Spacer(Modifier.height(Gap.s9))
+                }
+            }
+
             /* ---- a year of days ---- */
             item("year") {
                 Text("DAYS HERE", style = MaterialTheme.typography.labelSmall, color = c.inkSoft)
@@ -163,7 +240,66 @@ fun AccountScreen(
                     TargetRow(target, ticksOf, daysActive.size) { onRemoveTarget(target.id) }
                     Spacer(Modifier.height(Gap.s5))
                 }
-                item("targets-foot") { Spacer(Modifier.height(Gap.s7)) }
+                item("targets-foot") { Spacer(Modifier.height(Gap.s5)) }
+            }
+
+            /* ---- and setting a new one ----
+
+               Outside the `isNotEmpty` above, deliberately: a
+               reader with no targets is exactly the reader who
+               needs the form, and it sat inside that branch for
+               one draft, so the only way to get a first target
+               was to already have one. */
+            item("targets-add") {
+                if (targets.isEmpty()) {
+                    Text(
+                        "AIMING AT",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = c.inkSoft,
+                    )
+                    Spacer(Modifier.height(Gap.s5))
+                }
+                AddTarget(
+                    kinds = targetKinds,
+                    schools = schools,
+                    onAdd = onAddTarget,
+                )
+                Spacer(Modifier.height(Gap.s9))
+            }
+
+            /* ---- the routine ---- */
+            routine?.let { line ->
+                item("routine") {
+                    Text(
+                        "YOUR ROUTINE",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = c.inkSoft,
+                    )
+                    Spacer(Modifier.height(Gap.s5))
+                    RoutinePanel(line, onOpenRoutine)
+                    Spacer(Modifier.height(Gap.s9))
+                }
+            }
+
+            /* ---- saved checks ---- */
+            if (scenarios.isNotEmpty()) {
+                item("saved-head") {
+                    Text(
+                        "SAVED CHECKS",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = c.inkSoft,
+                    )
+                    Spacer(Modifier.height(Gap.s5))
+                }
+                items(scenarios, key = { "s-" + it.id }) { row ->
+                    ScenarioRow(
+                        row,
+                        onOpen = { onOpenScenario(row) },
+                        onRemove = { onRemoveScenario(row.id) },
+                    )
+                    Spacer(Modifier.height(Gap.s4))
+                }
+                item("saved-foot") { Spacer(Modifier.height(Gap.s9)) }
             }
 
             /* ---- the reading list ---- */
@@ -369,10 +505,12 @@ private fun EmailBox(sent: Boolean, onLink: (String) -> Unit) {
         }
         Control(
             modifier = Modifier
-                /* Four letters and the site's own padding come to
-                   34dp wide, which is a target too narrow in one
-                   direction: the height was right and nothing
-                   said so. */
+                /* The same minimum `PillButton` carries: a short
+                   label is a target too narrow in one direction.
+                   This is a bare `Control` rather than a
+                   `PillButton` because it sits inside the email
+                   row and shares its height, so it needs saying
+                   here too. */
                 .widthIn(min = Gap.tap)
                 .clickable(
                     role = Role.Button,
@@ -555,6 +693,56 @@ private fun Erase(onErase: () -> Unit, erasing: String?) {
                     color = c.paper,
                 )
             }
+        }
+    }
+}
+
+/**
+ * One saved check.
+ *
+ * The summary is READ rather than recomputed, which is what the
+ * column is for: a list of twenty checks should not load the
+ * model twenty times to print twenty lines it already has.
+ */
+@Composable
+private fun ScenarioRow(
+    row: Scenario,
+    onOpen: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val c = LocalReiad.current
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Rung(
+            Modifier
+                .weight(1f)
+                .clickable(role = Role.Button, onClick = onOpen),
+        ) {
+            Icon("gauge", size = 18.dp, tint = c.accent)
+            Spacer(Modifier.width(Gap.s6))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    row.name.ifBlank { "Untitled" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.ink,
+                    maxLines = 1,
+                )
+                if (row.summary.isNotBlank()) {
+                    Text(
+                        row.summary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = c.inkSoft,
+                        fontFamily = Faces.mono,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.width(Gap.s4))
+        /* A full tap target, not a glyph. The site's own list has
+           a remove on each row and this is the same control at a
+           size a thumb can find. */
+        Tap(onClick = onRemove, label = "Remove ${row.name.ifBlank { "this check" }}") {
+            Icon("close", size = 16.dp, tint = c.inkSoft)
         }
     }
 }

@@ -64,10 +64,23 @@ import uk.co.reiad.library.core.LessonPage
 import uk.co.reiad.library.core.NavGroup
 import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.School
+import uk.co.reiad.library.core.measureOf
+import uk.co.reiad.library.core.scaleOf
+import uk.co.reiad.library.core.Scenario
+import uk.co.reiad.library.core.rungsOf
+import uk.co.reiad.library.core.standingOf
+import uk.co.reiad.library.core.stock.inScript
+import uk.co.reiad.library.core.stock.readShare
+import uk.co.reiad.library.core.stock.shareQuery
+import uk.co.reiad.library.core.stock.summarise
+import uk.co.reiad.library.core.ProgressKeys
 import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.nav.Destination
 import uk.co.reiad.library.core.nav.LIVE_KEY
+import uk.co.reiad.library.core.nav.SKILLS_KEY
+import uk.co.reiad.library.core.nav.PORTFOLIO_KEY
+import uk.co.reiad.library.core.nav.DIET_KEY
 import uk.co.reiad.library.core.nav.ROUTINE_KEY
 import uk.co.reiad.library.core.nav.STOCK_KEY
 import uk.co.reiad.library.core.nav.TOOLS_KEY
@@ -81,6 +94,8 @@ import uk.co.reiad.library.core.checkpointCount
 import uk.co.reiad.library.core.lessonId
 import uk.co.reiad.library.core.lessonUrl
 import uk.co.reiad.library.account.Account
+import uk.co.reiad.library.account.Said
+import uk.co.reiad.library.account.Say
 import uk.co.reiad.library.account.Library
 import uk.co.reiad.library.account.Sync
 import uk.co.reiad.library.account.SyncWorker
@@ -121,7 +136,19 @@ import uk.co.reiad.library.ui.LiveScreen
 import uk.co.reiad.library.ui.LiveState
 import uk.co.reiad.library.ui.RoutineScreen
 import uk.co.reiad.library.ui.RoutineState
+import uk.co.reiad.library.diet.Log
 import uk.co.reiad.library.routine.Days
+import uk.co.reiad.library.core.diet.DietDay
+import uk.co.reiad.library.core.diet.DietEntry
+import uk.co.reiad.library.core.diet.DietProfile
+import uk.co.reiad.library.core.diet.GoalKind
+import uk.co.reiad.library.core.diet.activityFactor
+import uk.co.reiad.library.core.diet.bodyOf
+import uk.co.reiad.library.core.diet.estimatedBurn
+import uk.co.reiad.library.core.diet.restingBurn
+import uk.co.reiad.library.core.diet.target
+import uk.co.reiad.library.ui.DietScreen
+import uk.co.reiad.library.ui.DietState
 import uk.co.reiad.library.routine.RoutineRow
 import uk.co.reiad.library.core.routine.consistency
 import uk.co.reiad.library.core.routine.dayBefore
@@ -164,6 +191,16 @@ import uk.co.reiad.library.ui.openOnSite
 import uk.co.reiad.library.ui.accentOf as tokenAccent
 import uk.co.reiad.library.ui.InfoCard
 import uk.co.reiad.library.ui.LocalReiad
+import uk.co.reiad.library.ui.Path
+import uk.co.reiad.library.ui.SkillsScreen
+import uk.co.reiad.library.ui.PortfolioScreen
+import uk.co.reiad.library.ui.Paths
+import uk.co.reiad.library.ui.RoutineLine
+import uk.co.reiad.library.ui.ThreadState
+import uk.co.reiad.library.ui.accentOfSchool
+import uk.co.reiad.library.ui.LessonHead
+import uk.co.reiad.library.ui.SetupState
+import uk.co.reiad.library.ui.seeded
 import uk.co.reiad.library.ui.Pane
 import uk.co.reiad.library.ui.PieceScreen
 import uk.co.reiad.library.ui.Plate
@@ -299,11 +336,20 @@ internal sealed interface Where {
         live is a screenshot. */
     data object Live : Where
 
+    /** The two hubs that are a LIST of things the manifest
+        already carries: what this site teaches, and the work it
+        shows. Both were a browser hand-off for eleven blocks,
+        for a list this phone was holding the whole time. */
+    data object Skills : Where
+
+    data object Portfolio : Where
+
     /** The routine. It belongs to an ACCOUNT rather than to this
         phone, which is the one thing about it worth saying twice:
         there is nothing to show signed out, and that is not an
         error. */
     data object Routine : Where
+    data object Diet : Where
 }
 
 internal class AppModel(private val reiad: Reiad) : ViewModel() {
@@ -374,6 +420,97 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     val routine: StateFlow<RoutineState> = _routine.asStateFlow()
 
     private var routineStore: Days? = null
+
+    /** The routine, in one line, for the account screen.
+
+        The routine tool's own state is a year of entries, six
+        charts and a season; the account wants what the site's
+        account wants, which is its NAME, how many things are in
+        it, and how many days have been written. Read separately
+        rather than by opening the tool, because the account
+        should not pull a year of rows to print a sentence. */
+    private val _routineLine = MutableStateFlow<RoutineLine?>(null)
+    val routineLine: StateFlow<RoutineLine?> = _routineLine.asStateFlow()
+
+    /* ---------- the thread under a piece or a lesson ---------- */
+
+    private val _thread = MutableStateFlow(ThreadState())
+    val thread: StateFlow<ThreadState> = _thread.asStateFlow()
+
+    private var sayer: Say? = null
+
+    fun openThread(slug: String, section: String) {
+        _thread.value = ThreadState(slug = slug, section = section, loading = true)
+        viewModelScope.launch {
+            val answer = reiad.thread(slug)
+            val body = answer.value
+            _thread.value = ThreadState(
+                slug = slug,
+                section = section,
+                comments = body?.comments.orEmpty(),
+                count = body?.count ?: 0,
+                loading = false,
+                stale = answer.stale,
+                problem = if (body == null) {
+                    answer.problem ?: "This phone has not read this thread before."
+                } else {
+                    null
+                },
+            )
+        }
+    }
+
+    /**
+     * Leaves a comment, and DOES NOT put it in the thread.
+     *
+     * The endpoint deliberately answers with no row, precisely so
+     * a page cannot render what it just sent. Showing your own
+     * pending words back to you is the one thing moderation
+     * exists to prevent, and "shown immediately and confirmed
+     * after" is exactly what `keep()` does one file away: right
+     * for a bookmark, wrong here.
+     *
+     * An admin is the exception and it is the SERVER'S: their own
+     * comment is filed live, the answer says so, and the thread is
+     * re-read rather than having a row invented for it.
+     */
+    fun leaveComment(context: android.content.Context, body: String, parentId: Int?) {
+        val now = _thread.value
+        if (now.slug.isBlank()) return
+        val voice = sayer ?: Say(account(context)).also { sayer = it }
+        _thread.value = now.copy(posting = true, said = null, wrong = false)
+        viewModelScope.launch {
+            when (val said = voice.leave(now.slug, now.section, body, parentId)) {
+                is Said.Live -> {
+                    _thread.value = _thread.value.copy(
+                        posting = false,
+                        said = "Up now.",
+                        wrong = false,
+                    )
+                    /* Re-read, rather than adding the row here:
+                       the server decides what a thread contains
+                       and this app has just been told its comment
+                       is part of it. */
+                    openThread(now.slug, now.section)
+                }
+                is Said.Queued -> _thread.value = _thread.value.copy(
+                    posting = false,
+                    said = "Sent. It will appear once it has been read.",
+                    wrong = false,
+                )
+                is Said.Wrong -> _thread.value = _thread.value.copy(
+                    posting = false,
+                    said = said.why,
+                    wrong = true,
+                )
+            }
+        }
+    }
+
+    private val _diet = MutableStateFlow(DietState())
+    val diet: StateFlow<DietState> = _diet.asStateFlow()
+
+    private var dietStore: Log? = null
 
     private val _toolNote = MutableStateFlow<String?>(null)
     val toolNote: StateFlow<String?> = _toolNote.asStateFlow()
@@ -486,6 +623,101 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             val entries = store.entries(dayBefore(today, 365))
             _routine.value = readRoutine(row, entries, today)
         }
+    }
+
+    /**
+     * Today's log, the reader's own answers, and what the two make
+     * together.
+     *
+     * Derived in ONE place rather than in the screen, for the
+     * reason the routine's own loader gives: a figure and the bar
+     * under it must not be able to disagree about what today is.
+     */
+    fun openDiet(context: android.content.Context) {
+        val store = dietStore ?: Log(account(context)).also { dietStore = it }
+        _diet.value = DietState(loading = true)
+        viewModelScope.launch {
+            if (account(context).token() == null) {
+                _diet.value = DietState(loading = false, signedOut = true)
+                return@launch
+            }
+            val today = java.time.LocalDate.now().toString()
+            val profile = store.profile()
+            /* A fortnight, which is the shortest window the trend
+               means anything over and the longest one this screen
+               needs: the long view is `/tools/diet/trend`. */
+            val days = store.days(dayBefore(today, 14))
+            val entries = store.entries(today)
+            _diet.value = readDiet(profile, days, entries, today)
+        }
+    }
+
+    /** A weight, saved. A PARTIAL upsert: the day's other columns
+        are absent from the body, so this does not erase a waist
+        measured this morning. */
+    fun weighIn(context: android.content.Context, kg: Double) {
+        val store = dietStore ?: return
+        val today = _diet.value.today.ifBlank { java.time.LocalDate.now().toString() }
+        _diet.value = _diet.value.copy(saving = true)
+        viewModelScope.launch {
+            store.saveDay(DietDay(date = today, weightKg = kg))
+            openDiet(context)
+        }
+    }
+
+    fun removeEaten(context: android.content.Context, id: String) {
+        val store = dietStore ?: return
+        viewModelScope.launch {
+            store.removeEntry(id)
+            openDiet(context)
+        }
+    }
+
+    private fun readDiet(
+        profile: DietProfile?,
+        days: List<DietDay>,
+        entries: List<DietEntry>,
+        today: String,
+    ): DietState {
+        /* The most recent weight rather than today's, and that is
+           deliberate: a reader who weighs twice a week still has a
+           body, and a screen that showed no BMI on the days
+           between would be describing the scale rather than the
+           person. */
+        val latest = days.firstOrNull { it.weightKg != null }
+        val day = days.firstOrNull { it.date == today }
+        val body = bodyOf(profile, day ?: latest, java.time.LocalDate.now().year)
+            ?: bodyOf(profile, latest, java.time.LocalDate.now().year)
+
+        val resting = body?.let { restingBurn(it) }
+        val maintenance = resting?.let {
+            estimatedBurn(it.kcal, activityFactor(profile?.activity ?: "sedentary"))
+        }
+        val goal = when (profile?.goal) {
+            "gain" -> GoalKind.GAIN
+            "maintain" -> GoalKind.MAINTAIN
+            else -> GoalKind.LOSE
+        }
+        return DietState(
+            loading = false,
+            today = today,
+            profile = profile,
+            day = day,
+            entries = entries,
+            body = body,
+            maintenance = maintenance,
+            target = if (body == null || resting == null || maintenance == null) {
+                null
+            } else {
+                target(
+                    body = body,
+                    maintenance = maintenance,
+                    restingKcal = resting.kcal,
+                    kind = goal,
+                    ratePct = profile?.ratePct ?: 0.5,
+                )
+            },
+        )
     }
 
     /** Everything the screen draws, derived in one place so a
@@ -636,6 +868,83 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         val clip = context.getSystemService(android.content.ClipboardManager::class.java)
         clip?.setPrimaryClip(android.content.ClipData.newPlainText("Stock check", link))
         _toolNote.value = _words.value?.t(Keys.COPIED, _stock.value.lang) ?: link
+    }
+
+    /* ---------- saved checks ---------- */
+
+    private val _scenarios = MutableStateFlow<List<Scenario>>(emptyList())
+    val scenarios: StateFlow<List<Scenario>> = _scenarios.asStateFlow()
+
+    private val _saveNote = MutableStateFlow<String?>(null)
+    val saveNote: StateFlow<String?> = _saveNote.asStateFlow()
+
+    /** This check, under a name, on the account.
+
+        What is stored is the QUERY STRING rather than a blob of
+        the fifty-six fields: it is the format the stock check has
+        shared analyses in since it was written, `ShareTest`
+        asserts it byte-for-byte against the site's, and a second
+        serialisation would be a second thing to keep in step with
+        the model.
+
+        The summary is one line of the ANSWER, so the account can
+        list a check without loading the model that produced it. */
+    fun saveCheck(name: String) {
+        val shelf = library ?: run {
+            _saveNote.value = "Sign in to keep a check."
+            return
+        }
+        val state = _stock.value
+        val words = _words.value
+        viewModelScope.launch {
+            val query = shareQuery(
+                state.inputs,
+                state.weights,
+                style = state.style.takeIf { it != "custom" },
+                lang = state.lang.takeIf { it != "en" },
+            )
+            val a = analyse(state.inputs, state.weights)
+            val ok = shelf.saveScenario(
+                tool = "stock",
+                name = name,
+                query = query,
+                summary = summarise(a, words),
+            )
+            _saveNote.value = words?.t(
+                if (ok) Keys.SAVED else Keys.SAVE_FAILED,
+                state.lang,
+            ) ?: if (ok) "Saved." else "That did not save."
+            if (ok) _scenarios.value = shelf.scenarios()
+        }
+    }
+
+    fun readScenarios() {
+        val shelf = library ?: return
+        viewModelScope.launch { _scenarios.value = shelf.scenarios() }
+    }
+
+    fun removeScenario(id: String) {
+        val shelf = library ?: return
+        viewModelScope.launch {
+            shelf.removeScenario(id)
+            _scenarios.value = shelf.scenarios()
+        }
+    }
+
+    /** Opens a saved check with its numbers back in the fields.
+
+        Through `readShare`, which is the same decoder every link
+        anybody has pasted goes through, so a check saved on a
+        laptop opens here with the same figures. */
+    fun openScenario(scenario: Scenario) {
+        val shared = readShare(scenario.inputs.query)
+        _stock.value = StockState(
+            inputs = shared.inputs,
+            weights = shared.weights,
+            style = shared.style,
+            lang = shared.lang ?: _stock.value.lang,
+        )
+        openTools()
     }
 
     /** The whole analysis as a spreadsheet, shared the way the
@@ -860,6 +1169,24 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     private val _targets = MutableStateFlow<List<Target>>(emptyList())
     val targets: StateFlow<List<Target>> = _targets.asStateFlow()
 
+    /** The three questions, as the reader is answering them.
+
+        The FORM's state rather than the row's: it is seeded from
+        the account and never over anything already typed, because
+        a reader who starts filling this in while the profile is
+        still in flight must not have it taken away underneath
+        them. */
+    private val _setup = MutableStateFlow(SetupState())
+    val setup: StateFlow<SetupState> = _setup.asStateFlow()
+
+    /** Where the reader stands in each school whose ladder has
+        arrived. A school absent from this list is a school this
+        phone has not read yet, and the account draws nothing for
+        it: "you have finished nothing" and "this has not loaded"
+        must not look the same. */
+    private val _paths = MutableStateFlow<List<Path>>(emptyList())
+    val paths: StateFlow<List<Path>> = _paths.asStateFlow()
+
     private val _daysActive = MutableStateFlow<Set<String>>(emptySet())
     val daysActive: StateFlow<Set<String>> = _daysActive.asStateFlow()
 
@@ -925,6 +1252,141 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             _kept.value = shelf.kept()
             _targets.value = shelf.targets()
             _daysActive.value = reiad.daysActive()
+            /* Seeded, never assigned: `seeded()` is a null-or-blank
+               test on every field for the reason above. The
+               reader's own name off the token is the fallback, so
+               somebody who has never saved sees their own name
+               rather than an empty box. */
+            _setup.value = _setup.value.seeded(
+                profile = shelf.profile(),
+                fallbackName = account?.reader?.first()?.name.orEmpty(),
+                started = startedIn(_ticks.value),
+            )
+        }
+        readPaths()
+        readScenarios()
+        readRoutineLine()
+    }
+
+    /** The routine's name, its size, and how many days have been
+        written, without opening the tool.
+
+        The store is BUILT here where it is missing, rather than
+        returning early. It used to be created only by
+        `openRoutine`, so on the account screen it was always
+        null and this section never appeared for anybody who had
+        not already opened the routine tool this session: a panel
+        that works after you visit the thing it is a summary of. */
+    fun readRoutineLine() {
+        val where = host ?: return
+        val store = routineStore ?: Days(account(where)).also { routineStore = it }
+        viewModelScope.launch {
+            val row = store.routine()
+            _routineLine.value = if (row == null) {
+                RoutineLine(built = false)
+            } else {
+                /* A year, which is what "days written" means on
+                   the site's own account panel. The tool asks for
+                   the same window. */
+                val today = java.time.LocalDate.now().toString()
+                RoutineLine(
+                    built = true,
+                    name = row.name,
+                    tasks = row.tasks.size,
+                    written = store.entries(dayBefore(today, 365)).size,
+                )
+            }
+        }
+    }
+
+    /** Where the reader stands in each school.
+
+        The ladders come from the CACHE first and the network
+        second, which `Reiad.fetch` already does, so this is four
+        reads off disk for somebody who has opened the schools and
+        four small requests for somebody who has not. It runs on
+        the account screen only, which is a screen a reader opened
+        deliberately.
+
+        The ticks, the bookmark and the checkpoints are all this
+        phone's. That split is the rule: the ladder is the
+        server's and the ticks are ours. */
+    fun readPaths() {
+        val manifest = _site.value ?: return
+        viewModelScope.launch {
+            val found = mutableListOf<Path>()
+            for (school in manifest.ladders) {
+                val which = School.of(school.key) ?: continue
+                val answer = reiad.ladder(school.key)
+                val stages = answer.value?.stages ?: continue
+                found.add(
+                    Path(
+                        school = school,
+                        at = standingOf(
+                            ladder = rungsOf(stages),
+                            read = reiad.ticksNow(which),
+                            last = reiad.bookmark(which).first()?.id,
+                            checks = reiad.checkpoints(which).first(),
+                        ),
+                    ),
+                )
+            }
+            _paths.value = found
+        }
+    }
+
+    /** An ISO instant, for `setup_at`. Written out because
+        `java.time` needs API 26, which is this app's minimum, and
+        because the column is a `timestamptz`: a local time with
+        no zone on it is a time Postgres has to guess about. */
+    private fun nowIso(): String = java.time.Instant.now().toString()
+
+    fun editSetup(next: SetupState) { _setup.value = next }
+
+    /** Saves the three answers, and stamps `setup_at` so the
+        screen stops asking.
+
+        Set on the first save whether or not anything was ticked:
+        somebody who saves a name and nothing else has been
+        through setup. */
+    fun saveProfile(stampOnly: Boolean = false) {
+        val shelf = library ?: return
+        val now = _setup.value
+        if (!stampOnly && now.name.isBlank()) {
+            _setup.value = now.copy(note = "A name cannot be empty.", wrong = true)
+            return
+        }
+        _setup.value = now.copy(busy = true, note = null, wrong = false)
+        viewModelScope.launch {
+            val stamp = nowIso()
+            val ok = if (stampOnly) {
+                shelf.saveProfile(setupAt = stamp)
+            } else {
+                shelf.saveProfile(
+                    displayName = now.name.trim(),
+                    following = now.following.toList(),
+                    pace = now.pace,
+                    setupAt = stamp,
+                )
+            }
+            _setup.value = _setup.value.copy(
+                busy = false,
+                asked = _setup.value.asked || ok,
+                note = when {
+                    !ok -> "That did not save."
+                    stampOnly -> "Fine. Everything above is here whenever you want it."
+                    else -> "Saved."
+                },
+                wrong = !ok,
+            )
+        }
+    }
+
+    fun addTarget(target: Target) {
+        val shelf = library ?: return
+        viewModelScope.launch {
+            shelf.addTarget(target)
+            _targets.value = shelf.targets()
         }
     }
 
@@ -1032,9 +1494,25 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
 
     fun sendLink(context: android.content.Context, email: String) {
         viewModelScope.launch {
-            _linkSent.value = account(context).sendLink(email)
-            if (!_linkSent.value) _authProblem.value = "That email would not send."
+            _authProblem.value = null
+            /* The server's own words when it refuses. "That email
+               would not send" was the whole of what a reader saw
+               for a rate limit, a malformed address and a project
+               with email sign-in switched off alike, which is
+               three different fixes reported as one mystery. */
+            val wrong = account(context).sendLink(email)
+            _linkSent.value = wrong == null
+            _authProblem.value = wrong
         }
+    }
+
+    /** Google, and what happens when there is no browser.
+
+        `signIn` returned Unit and swallowed the exception, so on
+        a phone with no Custom Tabs provider the button did
+        nothing and said nothing. */
+    fun signInWith(context: android.content.Context, provider: String) {
+        _authProblem.value = account(context).signIn(provider)
     }
 
     fun signOut(context: android.content.Context) {
@@ -1218,6 +1696,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val calcState by model.calc.collectAsState()
     val liveState by model.live.collectAsState()
     val routineState by model.routine.collectAsState()
+    val dietState by model.diet.collectAsState()
     val toolNote by model.toolNote.collectAsState()
     val openPiece by model.open.collectAsState()
     val reader by model.reader.collectAsState()
@@ -1225,6 +1704,12 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val linkSent by model.linkSent.collectAsState()
     val kept by model.kept.collectAsState()
     val targets by model.targets.collectAsState()
+    val setupState by model.setup.collectAsState()
+    val paths by model.paths.collectAsState()
+    val scenarios by model.scenarios.collectAsState()
+    val saveNote by model.saveNote.collectAsState()
+    val routineLine by model.routineLine.collectAsState()
+    val threadState by model.thread.collectAsState()
     val daysActive by model.daysActive.collectAsState()
     val exported by model.exported.collectAsState()
     val erasing by model.erasing.collectAsState()
@@ -1268,6 +1753,9 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         Where.Calculators -> Accents.GOLD
         Where.Live -> Accents.GOLD
         Where.Routine -> Accents.GOLD
+        Where.Diet -> Accents.GOLD
+        Where.Skills -> Accents.GREEN
+        Where.Portfolio -> Accents.PLUM
         Where.Home -> Accents.GREEN
     }
 
@@ -1351,6 +1839,9 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     TOOLS_KEY -> { model.openTools(); where = Where.Calculators }
                     LIVE_KEY -> { model.openLive(context); where = Where.Live }
                     ROUTINE_KEY -> { model.openRoutine(context); where = Where.Routine }
+                    DIET_KEY -> { model.openDiet(context); where = Where.Diet }
+                    SKILLS_KEY -> { where = Where.Skills }
+                    PORTFOLIO_KEY -> { where = Where.Portfolio }
                     else -> Unit
                 }
             }
@@ -1381,14 +1872,25 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         Where.Calculators -> TOOLS_KEY
         Where.Live -> LIVE_KEY
         Where.Routine -> ROUTINE_KEY
+        Where.Diet -> DIET_KEY
+        Where.Skills -> SKILLS_KEY
+        Where.Portfolio -> PORTFOLIO_KEY
         Where.Home -> null
     }
 
-    ReiadTheme(accent = accent, dark = dark) {
+    /* The reader's own type size, applied at the ONE place every
+       screen goes through. It has been in `reader-prefs` and
+       syncing since the app was written, and nothing read it. */
+    ReiadTheme(
+        accent = accent,
+        dark = dark,
+        scale = scaleOf(prefs.text),
+        measure = measureOf(prefs.measure),
+    ) {
         val colours = LocalReiad.current
         Surface(Modifier.fillMaxSize(), color = colours.paper) {
             Shell(
-                state = ShellState(site, current, audience, drawer),
+                state = ShellState(site, current, audience, drawer, reader != null),
                 /* A tab opens its GROUP, not its first item.
 
                    Sending each tab to the first thing in it looked
@@ -1423,9 +1925,58 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                 onDrawer = { drawer = it },
                 onSearch = { searching = true },
                 onSettings = { settings = true; model.readShelf(context) },
+                /* The account, one tap from every screen, which is
+                   where the site keeps it. It was behind More and
+                   four groups of drawer, and the report that came
+                   back was that pressing account went back to the
+                   front page: it did, because the thing being
+                   pressed was the bar's name. */
+                onAccount = { where = Where.Account },
                 onAudience = { model.chooseAudience(it) },
             ) {
             when (val here = where) {
+                Where.Skills -> {
+                    BackHandler { where = Where.Home }
+                    SkillsScreen(
+                        /* The LEARN group of the nav table, which
+                           is what the site's own `/skills` reads.
+                           Not `SKILLS` in `content.ts`: the nav
+                           item is what carries each school's own
+                           colour, and the site has a comment
+                           about the day this page did without
+                           them. */
+                        group = site?.nav?.firstOrNull { it.id == "learn" },
+                        head = site?.heads?.get(SKILLS_KEY),
+                        bottomPadding = BAR_CLEARANCE,
+                        onOpen = { item ->
+                            /* Through the ONE function that
+                               decides where a nav item goes, so a
+                               row here reaches the same screen as
+                               the same row in the menu. */
+                            where = if (opensHere(site, item)) {
+                                goTo(model, context, site, item, where)
+                            } else {
+                                openOnSite(context, item.href, colours)
+                                where
+                            }
+                        },
+                    )
+                }
+
+                Where.Portfolio -> {
+                    BackHandler { where = Where.Home }
+                    PortfolioScreen(
+                        /* Out of the manifest's own `pages`, by
+                           the group the site files them under. A
+                           case study added on the site is on this
+                           screen with no release. */
+                        cases = site?.pages.orEmpty().filter { it.group == "case" },
+                        head = site?.heads?.get(PORTFOLIO_KEY),
+                        bottomPadding = BAR_CLEARANCE,
+                        onOpen = { page -> openOnSite(context, page.url, colours) },
+                    )
+                }
+
                 Where.Account -> {
                     BackHandler { where = Where.Home }
                     AccountScreen(
@@ -1443,9 +1994,40 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         problem = authProblem,
                         linkSent = linkSent,
                         bottomPadding = BAR_CLEARANCE,
-                        onGoogle = { model.account(context).signIn("google") },
+                        onGoogle = { model.signInWith(context, "google") },
                         onLink = { model.sendLink(context, it) },
                         onSignOut = { model.signOut(context) },
+                        setup = setupState,
+                        /* Both vocabularies out of the MANIFEST.
+                           Each is a CHECK constraint in Postgres,
+                           so a fourth pace offered here that the
+                           constraint has not heard of is a 400 on
+                           the whole patch: one list, and it is the
+                           site's. */
+                        schools = site?.ladders.orEmpty(),
+                        paces = site?.profile?.paces.orEmpty(),
+                        targetKinds = site?.profile?.targetKinds.orEmpty(),
+                        started = startedIn(ticks),
+                        onSetupChange = { model.editSetup(it) },
+                        onSaveProfile = { model.saveProfile() },
+                        onNotNow = { model.saveProfile(stampOnly = true) },
+                        onAddTarget = { model.addTarget(it) },
+                        paths = paths,
+                        onOpenSchool = { school ->
+                            model.openLadder(school)
+                            where = Where.Ladder(school)
+                        },
+                        scenarios = scenarios,
+                        onOpenScenario = { row ->
+                            model.openScenario(row)
+                            where = Where.Stock
+                        },
+                        onRemoveScenario = { model.removeScenario(it) },
+                        routine = routineLine,
+                        onOpenRoutine = {
+                            model.openRoutine(context)
+                            where = Where.Routine
+                        },
                     )
                 }
 
@@ -1496,7 +2078,17 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             model.closePiece()
                             where = Where.Hub(here.section, sectionTitle(site, here.section))
                         },
+                        thread = threadState,
+                        onLeaveComment = { body, parent ->
+                            model.leaveComment(context, body, parent)
+                        },
+                        onRetryThread = { model.openThread(shown.slug, here.section) },
                     )
+                    /* Keyed on the SLUG, so walking from one piece
+                       to the next in the same section re-reads the
+                       thread rather than leaving the last one's
+                       comments under the new piece. */
+                    LaunchedEffect(shown.slug) { model.openThread(shown.slug, here.section) }
                 }
 
                 is Where.Book -> {
@@ -1523,6 +2115,25 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         onTickDay = { id -> which?.let { model.tickDay(it, id) } },
                         onReveal = { day -> model.reveal(here.stage.slug, day) },
                         onBack = { where = Where.Ladder(here.school) },
+                    )
+                }
+
+                Where.Diet -> {
+                    BackHandler { where = Where.Home }
+                    DietScreen(
+                        state = dietState,
+                        onWeight = { model.weighIn(context, it) },
+                        onRemove = { model.removeEaten(context, it) },
+                        /* The other thirteen pages of the tool are
+                           the site's. This one opens the log
+                           rather than pretending the app has it. */
+                        onOpenSite = {
+                            openOnSite(context, "/tools/diet/log", colours)
+                        },
+                        contentPadding = PaddingValues(
+                            start = Gap.s8, end = Gap.s8,
+                            top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                        ),
                     )
                 }
 
@@ -1605,6 +2216,16 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             state = stockState.copy(lang = prefs.lang),
                             onState = { model.setStock(it) },
                             onCopyLink = { model.copyCheck(context) },
+                            /* Null signed out, which is what the
+                               site does too: a control that
+                               cannot do anything is a promise
+                               this screen cannot keep. */
+                            onSave = if (reader != null) {
+                                { name -> model.saveCheck(name) }
+                            } else {
+                                null
+                            },
+                            saveNote = saveNote,
                             onExport = { model.exportCheck(context) },
                             onLang = { model.chooseToolLang(it) },
                             note = toolNote,
@@ -1789,9 +2410,10 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     the honest answer for a page nobody has ported: a dead handle
     is worse than a browser. */
 internal fun opensHere(site: SiteManifest?, item: NavItem): Boolean =
-    item.key == "account" || item.key == STOCK_KEY ||
+    item.key == "account" || item.key == SKILLS_KEY ||
+        item.key == PORTFOLIO_KEY || item.key == STOCK_KEY ||
         item.key == TOOLS_KEY || item.key == LIVE_KEY ||
-        item.key == ROUTINE_KEY ||
+        item.key == ROUTINE_KEY || item.key == DIET_KEY ||
         site?.ladders?.any { it.key == item.key } == true ||
         readingSection(site, item.key) != null
 
@@ -1816,14 +2438,35 @@ internal fun goTo(
         item.key == TOOLS_KEY -> { model.openTools(); Where.Calculators }
         item.key == LIVE_KEY -> { model.openLive(context); Where.Live }
         item.key == ROUTINE_KEY -> { model.openRoutine(context); Where.Routine }
+        item.key == DIET_KEY -> { model.openDiet(context); Where.Diet }
+        item.key == SKILLS_KEY -> Where.Skills
+        item.key == PORTFOLIO_KEY -> Where.Portfolio
         school != null -> { model.openLadder(school); Where.Ladder(school) }
         section != null -> Where.Hub(section, sectionTitle(site, section))
         else -> now
     }
 }
 
-internal fun accentOf(school: LadderSchool): Accent =
-    Accents.byToken(school.accent) ?: Accents.BY_KEY[school.key] ?: Accents.GREEN
+/** Which schools have a tick on this phone.
+
+    The SCHOOL id, which is not the storage key: the money
+    school's ticks are still filed under `learn-read` and its id
+    has been `money` since it moved. `profiles.following` is
+    constrained to the ids, so sending a key would be a 400 on
+    the whole patch rather than one ignored field. */
+internal fun startedIn(ticks: Map<String, Set<String>>): Set<String> =
+    School.entries
+        .filter { !ticks[ProgressKeys.read(it)].isNullOrEmpty() }
+        .map { it.id }
+        .toSet()
+
+/** A school's colour, which the rail taught the reader.
+
+    `accentOfSchool` in `ui/Paths.kt` is the same function where
+    the drawing is; this is the one name the rest of this file
+    already uses. One implementation, two names, and the alias is
+    what stops a third appearing. */
+internal fun accentOf(school: LadderSchool): Accent = accentOfSchool(school)
 
 internal fun accentOfGroup(group: NavGroup): Accent = tokenAccent(group.accent)
 
@@ -1992,7 +2635,16 @@ fun SchoolCard(
         GoCard(
             title = school.bn,
             dek = school.blurb.takeIf { it.isNotBlank() },
-            chip = school.en,
+            /* The nav table's own word, which is Bangla, and
+               the Latin label only when a school has none.
+
+               It was `school.en`, so the cards on the front page
+               read MONEY, GERMAN and QUR'ANIC ARABIC to a reader
+               the whole site is written in Bangla for. The site's
+               own card says কোর্স, out of `kind` in `shared/nav.ts`,
+               and that field simply was not being carried: the
+               table mapped its fields by hand. */
+            chip = school.kind.ifBlank { school.en },
             go = "পড়া শুরু",
             done = done > 0,
             sway = sway,
@@ -2250,19 +2902,34 @@ fun Reading(
         Crumb(stage.bn, onBack)
         Spacer(Modifier.height(Gap.s7))
 
-        /* The lesson's own head, at the size the site sets a
-           lesson's head. It was `headlineMedium` with a grey line
-           under it, which is a card's title rather than a page's:
-           a reader who has opened a lesson has arrived somewhere
-           and the top of the page should say so. */
-        PageHead(
+        /* The lesson's own head, and it is FOUR things.
+
+           It was a plain `PageHead`, so the icon, the name in
+           the language the school teaches and the accent rail
+           under the definition were all missing, and the
+           one-liner read as another paragraph of grey text. The
+           site sets all four and every word was already in the
+           row: nothing here needed fetching, only drawing. */
+        LessonHead(
             title = lesson.bn,
-            eyebrow = listOfNotNull(
-                stage.en ?: stage.bn,
-                lesson.minutes.takeIf { it > 0 }?.let { "$it min" },
+            /* Whichever second language this school teaches
+               under. Asked of the LESSON rather than decided
+               from the school's key, because the row is what
+               carries it and a fifth school would arrive
+               drawn. */
+            also = lesson.en ?: lesson.de ?: lesson.ar,
+            icon = lesson.icon,
+            eyebrow = stage.en ?: stage.bn,
+            oneLiner = lesson.blurb,
+            /* Bangla digits inside Bangla words, which is what
+               `bnNum` is for and what the site does through
+               `look.words.minutes`. The risk badge rides here
+               too: the site puts it in the lesson's meta and the
+               card draws it from the same place. */
+            meta = listOfNotNull(
+                lesson.minutes.takeIf { it > 0 }?.let { "${inScript(it.toString(), "bn")} মিনিট পড়া" },
                 lesson.risk,
-            ).joinToString(" · "),
-            lede = lesson.blurb,
+            ).joinToString(" · ").ifBlank { null },
         )
         Spacer(Modifier.height(Gap.s7))
 

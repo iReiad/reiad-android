@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
    dot is what covers the gap in the meantime.
    ============================================================ */
 
-private val SHAPES: Map<String, String> = mapOf(
+internal val SHAPES: Map<String, String> = mapOf(
     "home" to "M3 11l9-8 9 8M5 9.5V21h14V9.5",
     "skills" to "M12 3l9 5-9 5-9-5 9-5zM5 11v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5",
     "coins" to "M12 7c4.4 0 8-1.3 8-2s-3.6-2-8-2-8 1.3-8 2 3.6 2 8 2zM4 5v6c0 .7 3.6 2 8 2s8-1.3 8-2V5M4 11v6c0 .7 3.6 2 8 2s8-1.3 8-2v-6",
@@ -63,6 +63,7 @@ private val SHAPES: Map<String, String> = mapOf(
     "menu" to "M4 7h16M4 12h16M4 17h16",
     "close" to "M6 6l12 12M18 6L6 18",
     "check" to "M5 13l4 4L19 7",
+    "plus" to "M12 5v14M5 12h14",
     "spark" to "M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z",
     /* A bird, for the flock: `ROUTINE.md` counts how many
        times the birds have been fed and never how recently. */

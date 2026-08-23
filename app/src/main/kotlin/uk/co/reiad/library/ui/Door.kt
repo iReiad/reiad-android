@@ -40,6 +40,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.size
 
 /* ============================================================
    The door: the first screen, and the site's own type in it.
@@ -514,5 +518,124 @@ fun Crumb(label: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
             color = c.accent,
             maxLines = 1,
         )
+    }
+}
+
+/* ============================================================
+   A lesson's own head, which is four things and was one.
+
+   The site sets it as: a trail, then an ICON and the name in
+   both languages, then the one-line definition against an accent
+   rail, then the minutes in mono. The app drew a plain
+   `PageHead`, so the icon, the English name and the rail were
+   all missing and the definition read as another paragraph of
+   grey text.
+
+   That is the whole of "course lectures don't have nice
+   layouts": every word was there and none of the shape was.
+   ============================================================ */
+
+/**
+ * The name in both languages, with the lesson's own mark beside
+ * it.
+ *
+ * The second name is whichever the school teaches under: `en`
+ * for the money school and English, `de` for German, `ar` for
+ * Quranic Arabic. Passed in rather than picked here, because a
+ * school knows its own language and this composable should not
+ * have to.
+ */
+@Composable
+fun LessonHead(
+    title: String,
+    /** The other name, in mono beside the Bangla, or null. */
+    also: String?,
+    /** The lesson's icon, from the row. Null draws nothing at
+        all rather than a placeholder: an empty disc is a mark
+        that means something and it does not. */
+    icon: String?,
+    eyebrow: String?,
+    /** The one-line definition. Against an accent rail, which is
+        what makes it read as a definition rather than as the
+        first paragraph. */
+    oneLiner: String?,
+    /** `৩ মিনিট পড়া`, already worded and already in the right
+        digits by the caller. */
+    meta: String?,
+    modifier: Modifier = Modifier,
+) {
+    val c = LocalReiad.current
+    Column(modifier.fillMaxWidth().graphPaper(c).padding(bottom = Gap.s8)) {
+        if (!eyebrow.isNullOrBlank()) {
+            Eyebrow(eyebrow)
+            Spacer(Modifier.height(Gap.s6))
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (!icon.isNullOrBlank()) {
+                /* A disc, at the height of the line it sits on,
+                   the same as the site's `.lesson-art`. */
+                Box(
+                    Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(Corner.field))
+                        .material(Kind.CHIP, c, Corner.field),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(icon, size = 20.dp, tint = c.accent)
+                }
+                Spacer(Modifier.width(Gap.s6))
+            }
+            Column(Modifier.weight(1f)) {
+                Text(
+                    title,
+                    style = headlineStyle(title),
+                    color = c.ink,
+                )
+                if (!also.isNullOrBlank()) {
+                    Text(
+                        also,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontFamily = Faces.mono,
+                        color = c.inkSoft,
+                    )
+                }
+            }
+        }
+
+        if (!oneLiner.isNullOrBlank()) {
+            Spacer(Modifier.height(Gap.s6))
+            Row(Modifier.height(IntrinsicSize.Min)) {
+                /* Three pixels of accent, full height, which is
+                   `border-left: 3px solid var(--accent)` said in
+                   Compose. A Divider would be a fixed height and
+                   this has to match however many lines the
+                   definition takes. */
+                Box(
+                    Modifier
+                        .width(3.dp)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(Corner.xs))
+                        .background(c.accent),
+                )
+                Spacer(Modifier.width(Gap.s6))
+                Text(
+                    oneLiner,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = c.inkSoft,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
+        if (!meta.isNullOrBlank()) {
+            Spacer(Modifier.height(Gap.s6))
+            Text(
+                meta,
+                style = MaterialTheme.typography.labelMedium,
+                fontFamily = Faces.mono,
+                color = c.inkSoft,
+            )
+        }
     }
 }

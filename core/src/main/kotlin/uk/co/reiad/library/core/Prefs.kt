@@ -96,6 +96,51 @@ fun themeOf(id: String?): Theme = Theme.entries.firstOrNull { it.id == id } ?: T
    anybody who finds moving text under a bar hard to read
    chooses, so it is a real finish with its own solid grounds
    rather than the others with a feature switched off. */
+/* ---------- how big, and how wide ----------
+
+   `text` and `measure` have been in this record since it was
+   written, they sync with the account, and NOTHING IN THIS APP
+   READ EITHER of them. A reader who chose Comfortable type on
+   their laptop got normal type on their phone, and could not
+   change it here at all: the field round-tripped perfectly, the
+   sync test passed, and the preference did nothing.
+
+   That is the worst shape a bug can have and it is an
+   accessibility one. The numbers are the site's own, out of
+   `SCALES` and `MEASURES` in `aab/src/prefs.ts`, and the ids are
+   in real accounts. */
+
+enum class Scale(val id: String, val factor: Float) {
+    SMALL("small", 0.94f), NORMAL("normal", 1.0f), LARGE("large", 1.12f)
+}
+
+val SCALES = listOf(
+    PrefOption(Scale.SMALL, "Compact", "more on a screen"),
+    PrefOption(Scale.NORMAL, "Normal", "what this site has always been"),
+    PrefOption(Scale.LARGE, "Comfortable", "easier on the eyes"),
+)
+
+fun scaleOf(id: String?): Scale = Scale.entries.firstOrNull { it.id == id } ?: Scale.NORMAL
+
+/**
+ * How wide a column of prose gets, in characters.
+ *
+ * The middle one is 66 because that is the `--measure` this site
+ * has always used: the two either side are steps away from what
+ * is already there rather than a scale invented around it.
+ */
+enum class Measure(val id: String, val ch: Int) {
+    NARROW("narrow", 56), NORMAL("normal", 66), WIDE("wide", 78)
+}
+
+val MEASURES = listOf(
+    PrefOption(Measure.NARROW, "Narrow", "about 56 characters"),
+    PrefOption(Measure.NORMAL, "Normal", "about 66 characters"),
+    PrefOption(Measure.WIDE, "Wide", "about 78 characters"),
+)
+
+fun measureOf(id: String?): Measure = Measure.entries.firstOrNull { it.id == id } ?: Measure.NORMAL
+
 enum class Finish(val id: String) { FROST("frost"), PAPER("paper"), PLAIN("plain") }
 
 val GLASSES = listOf(

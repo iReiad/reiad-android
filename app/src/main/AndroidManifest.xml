@@ -36,9 +36,28 @@
         android:enableOnBackInvokedCallback="true"
         android:theme="@style/Theme.Reiad">
 
+        <!-- singleTop, and it is the sign-in that needs it.
+
+             `MainActivity.onNewIntent` is what reads the redirect
+             a Custom Tab comes back on, and the comment beside it
+             says so: "onNewIntent is how a redirect arrives when
+             the app is ALREADY open, which is the usual case".
+             With the default `standard` mode that is never true.
+             Android builds a SECOND MainActivity on top of the
+             running one instead, with a second view model and a
+             second copy of every screen's state, and the reader
+             ends up behind their own app with the back button
+             walking through two of it.
+
+             `singleTop` makes the documented behaviour the real
+             one: the running activity is on top when the tab
+             closes, so it receives the intent rather than being
+             duplicated. Not `singleTask`, which would also clear
+             the back stack on every deep link. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTop"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
             android:theme="@style/Theme.Reiad">
 

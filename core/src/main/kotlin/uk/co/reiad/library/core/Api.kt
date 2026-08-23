@@ -78,6 +78,27 @@ data class SiteManifest(
         first run with no network. */
     val routine: RoutineWords = RoutineWords(),
 
+    /** The two vocabularies an account answers with: how often
+        somebody means to practise, and the three kinds of target.
+
+        Sent rather than spelled here because both are a CHECK
+        constraint in Postgres: a value this app offers that the
+        constraint has not heard of is a 400 on the whole write,
+        so one list is the only safe number of lists. Empty until
+        a deployment carries it, and every screen that reads it
+        has to render with nothing rather than an empty box. */
+    val profile: ProfileWords = ProfileWords(),
+
+    /** What each hub page SAYS about itself: the eyebrow, the
+        headline and the lede, with any count already resolved.
+
+        Keyed by the nav key of the page, so a screen that knows
+        which destination it is drawing knows where to look.
+        Absent until a deployment carries it, and a screen with
+        no head draws its title and nothing else rather than an
+        empty paragraph. */
+    val heads: Map<String, PageHeadWords> = emptyMap(),
+
     /** The palette's index: every page of the site that is not
         private, with the title, the address and one line saying
         what it is. This is what the Ctrl+K palette searches on
@@ -168,6 +189,12 @@ data class LadderSchool(
     val href: String = "",
     val accent: String = "",
     val blurb: String = "",
+    /** What kind of thing this is, in Bangla: `কোর্স` for every
+        school. It is the chip on the card, and it comes from the
+        nav table rather than being spelled here, so the day a
+        school is something other than a course the app says so
+        with no release. */
+    val kind: String = "",
 )
 
 /** The routine tool's vocabulary, out of `shared/routine.ts`. */
@@ -287,6 +314,22 @@ data class Skill(
     val url: String? = null,
     val course: Boolean = false,
     val note: String? = null,
+)
+
+/** One hub page's own words: what `/skills` and `/portfolio`
+    say about themselves.
+
+    `lede` arrives with any `{n}` ALREADY FILLED. The endpoint
+    resolves it from `COUNTS` before it leaves, so nothing here
+    has to know that a lede can carry a count, and nothing here
+    can print the characters `{n}` to a reader. */
+@Serializable
+data class PageHeadWords(
+    val eyebrow: String = "",
+    val title: String = "",
+    val lede: String = "",
+    /** `bn` or `en`, which decides the face. */
+    val lang: String = "en",
 )
 
 /* ---------- /api/schools/<school> ---------- */

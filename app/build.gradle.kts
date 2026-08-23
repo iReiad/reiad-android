@@ -9,6 +9,30 @@ plugins {
     alias(libs.plugins.paparazzi)
 }
 
+/** The commit this was built from, and when.
+
+    `git describe` is not used: this repository has no tags, so it
+    would fail on a clean clone and the build would go with it.
+    A short hash plus a dirty marker is the whole of what a bug
+    report needs. Falls back to "unknown" rather than throwing,
+    because a build outside a git checkout is a real thing (a
+    source zip, a CI cache) and it should still produce an app. */
+fun gitStamp(): String {
+    fun git(vararg args: String): String? = runCatching {
+        val p = ProcessBuilder(listOf("git", *args))
+            .directory(rootProject.projectDir)
+            .redirectErrorStream(true)
+            .start()
+        val out = p.inputStream.bufferedReader().readText().trim()
+        if (p.waitFor() == 0 && out.isNotEmpty()) out else null
+    }.getOrNull()
+
+    val sha = git("rev-parse", "--short=8", "HEAD") ?: return "unknown"
+    val dirty = if (git("status", "--porcelain")?.isNotEmpty() == true) "+dirty" else ""
+    val date = git("log", "-1", "--date=format:%Y-%m-%d %H:%M", "--format=%cd") ?: ""
+    return "$sha$dirty  $date"
+}
+
 android {
     namespace = "uk.co.reiad.library"
     compileSdk = 35
@@ -19,6 +43,24 @@ android {
         targetSdk = 35
         versionCode = 1
         versionName = "0.1"
+
+        /* WHICH BUILD IS THIS, answered on the phone.
+
+           "are you giving a wrong apk by any chance? because it's
+           still not working" is a question nobody should have to
+           ask, and it has a second, worse answer than a wrong
+           file: Android refuses to install an APK signed by a
+           different key over one already there, so a reader who
+           taps install, gets "App not installed" and carries on
+           is testing the build from three releases ago while
+           everybody involved believes otherwise. Nothing on
+           screen said which build it was.
+
+           The commit is what a report can be matched against and
+           the date is what a reader can compare to when they
+           downloaded it. Both are read at CONFIGURE time from
+           git, so there is nothing to remember to bump. */
+        buildConfigField("String", "BUILT_FROM", "\"${gitStamp()}\"")
     }
 
     /* ============================================================
@@ -88,7 +130,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        buildConfig = true
+        compose = true
+    }
 
     /* Robolectric needs the app's real resources: the faces, the
        colours and the strings are all resources, and a semantics
@@ -103,6 +148,25 @@ android {
 
 kotlin {
     compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
+}
+
+/* Unit tests are the DEBUG variant's, and the release unit-test
+   task is switched off rather than left to fail.
+
+   `createComposeRule()` starts a `ComponentActivity`, registered
+   by `compose.ui.test.manifest`, and that is a
+   `debugImplementation` on purpose: a test activity in the
+   release manifest is a test activity in the shipped APK. So
+   every Robolectric test in this module fails under
+   `testReleaseUnitTest` with "Unable to resolve activity", which
+   is sixteen red tests for a reason that has nothing to do with
+   whatever was being changed.
+
+   CI runs `:app:testDebugUnitTest`. This makes the aggregate
+   `./gradlew test` mean the same thing, rather than being a
+   command nobody can run. */
+androidComponents {
+    beforeVariants(selector().withBuildType("release")) { it.enableUnitTest = false }
 }
 
 /* The fixtures are an INPUT to these tests, and Gradle cannot

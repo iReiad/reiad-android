@@ -77,6 +77,12 @@ fun PieceScreen(
     onKeep: (Boolean?, String?) -> Unit,
     onOpen: (Piece) -> Unit,
     onBack: () -> Unit,
+    /** The thread under it, or null on a screen that does not
+        take comments. Null draws nothing at all rather than an
+        empty heading. */
+    thread: ThreadState? = null,
+    onLeaveComment: (String, Int?) -> Unit = { _, _ -> },
+    onRetryThread: () -> Unit = {},
 ) {
     val c = LocalReiad.current
     val context = LocalContext.current
@@ -189,6 +195,23 @@ fun PieceScreen(
                     BodyView(listOf(block))
                 }
                 Spacer(Modifier.height(Gap.s6))
+            }
+
+            /* The thread, BETWEEN the piece and where to go
+               next. It belongs after the words and before the
+               next piece, which is where the site puts it and
+               where a reader who has just finished reading
+               looks. */
+            thread?.let { state ->
+                item("thread") {
+                    Spacer(Modifier.height(Gap.s10))
+                    Thread(
+                        state = state,
+                        signedIn = signedIn,
+                        onLeave = onLeaveComment,
+                        onRetry = onRetryThread,
+                    )
+                }
             }
 
             item("foot") {
