@@ -134,6 +134,43 @@ val BOARD_FLOOR: List<String> = listOf(
     "tools:full",
 )
 
+/** What each kind is called, before the catalogue arrives.
+
+    **Not a second copy of the site's table.** The manifest's own
+    name wins the moment it lands, and this is only ever seen on a
+    phone that has not fetched one yet: `KindsFloorTest` asserts
+    that every id here is one this build can draw, so it cannot
+    drift into naming something that does not exist.
+
+    It is here because the alternative shipped: with no catalogue
+    the arranging strip fell back to the id and a reader saw
+    `continue`, `progress`, `pulse` down the side of their own
+    front page, in a Bangla app, as though the screen were
+    unfinished. A name a reader can read is the floor; the site's
+    is the answer. */
+val KIND_NAMES: Map<String, Pair<String, String>> = mapOf(
+    "continue" to ("যেখানে ছিলেন" to "Where you left off"),
+    "progress" to ("কতটা হলো" to "How far you are"),
+    "streak" to ("যে দিনগুলো এসেছেন" to "A year of days"),
+    "diet" to ("আজকের খাওয়া" to "Today's log"),
+    "routine" to ("আজকের রুটিন" to "Today's routine"),
+    "target" to ("লক্ষ্য" to "A target"),
+    "library" to ("পরে পড়ব" to "Saved to read"),
+    "pulse" to ("নতুন লেখা" to "Latest writing"),
+    "market" to ("বাজারের খবর" to "Market pulse"),
+    "stock" to ("শেয়ার যাচাই" to "Stock check"),
+    "schools" to ("যা যা শেখানো হয়" to "The schools"),
+    "tools" to ("যন্ত্রপাতি" to "The tools"),
+)
+
+/** The kind a board holds, described: the site's entry where one
+    has arrived, and a readable name where it has not. */
+fun kindOf(id: String, catalogue: Map<String, WidgetKind>, size: WidgetSize): WidgetKind {
+    catalogue[id]?.let { return it }
+    val (bn, en) = KIND_NAMES[id] ?: (id to id)
+    return WidgetKind(id = id, bn = bn, en = en, sizes = listOf(size.id))
+}
+
 /** `"progress:half"` as a pair, or null when this build cannot
     read it. */
 fun parsePlaced(entry: String, drawable: Set<String>): Placed? {

@@ -117,4 +117,36 @@ class BoardTest {
     @Test fun `a kind with no sizes is added full width`() {
         assertEquals(WidgetSize.FULL, WidgetKind(id = "x").added())
     }
+    /* ---------- the names before the catalogue ---------- */
+
+    /** A floor that named a widget this build cannot draw would
+        be a name nobody ever sees, quietly wrong for ever. */
+    @Test fun `every name in the floor is a kind the floor can hold`() {
+        val ids = BOARD_FLOOR.map { it.substringBefore(":") }
+        for (id in ids) {
+            assertTrue(id in KIND_NAMES, "$id is on the default board and has no name")
+        }
+        for ((id, pair) in KIND_NAMES) {
+            assertTrue(pair.first.isNotBlank(), "$id has no Bangla name")
+            assertTrue(pair.second.isNotBlank(), "$id has no English name")
+        }
+    }
+
+    /** The site's own entry wins the moment it arrives, and the
+        floor answers until then. Falling back to the ID is what
+        put `continue` and `pulse` down the side of a Bangla front
+        page. */
+    @Test fun `the catalogue wins and the floor answers`() {
+        val sent = WidgetKind(id = "pulse", bn = "নতুন", en = "New", sizes = listOf("full"))
+        assertEquals("নতুন", kindOf("pulse", mapOf("pulse" to sent), WidgetSize.FULL).bn)
+
+        val floor = kindOf("pulse", emptyMap(), WidgetSize.FULL)
+        assertEquals(KIND_NAMES.getValue("pulse").first, floor.bn)
+        assertEquals(WidgetSize.FULL, floor.added())
+
+        /* And a kind from a newer site that this build has never
+           heard of still gets a name rather than a crash. */
+        assertEquals("hologram", kindOf("hologram", emptyMap(), WidgetSize.HALF).bn)
+    }
+
 }

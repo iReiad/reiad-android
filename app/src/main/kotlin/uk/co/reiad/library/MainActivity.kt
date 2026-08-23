@@ -184,7 +184,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.lazy.itemsIndexed
 import uk.co.reiad.library.core.BOARD_FLOOR
 import uk.co.reiad.library.core.Placed
-import uk.co.reiad.library.core.WidgetKind
+import uk.co.reiad.library.core.kindOf
 import uk.co.reiad.library.core.layoutOf
 import uk.co.reiad.library.core.moved
 import uk.co.reiad.library.core.storedOf
@@ -2788,13 +2788,13 @@ fun Home(
             /* The catalogue describes a widget; it is not what
                DRAWS one. A phone that has never fetched the
                manifest still has `BOARD_FLOOR` and still has
-               every renderer, so the board draws and only the
-               arranging strip is thinner: the id where a name
-               would be, and no resize where the sizes are not
-               known. Requiring the catalogue here left the whole
-               front page blank until the first fetch landed. */
-            val kind = catalogue[p.id]
-                ?: WidgetKind(id = p.id, bn = p.id, en = p.id, sizes = listOf(p.size.id))
+               every renderer, so the board draws either way and
+               `kindOf` supplies a readable name until the site's
+               own arrives. Requiring the catalogue here left the
+               whole front page blank until the first fetch
+               landed; falling back to the ID put `continue` and
+               `pulse` down the side of a Bangla front page. */
+            val kind = kindOf(p.id, catalogue, p.size)
             WidgetFrame(
                 kind = kind,
                 placed = p,

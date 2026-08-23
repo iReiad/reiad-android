@@ -192,7 +192,12 @@ fun Shell(
                     /* Under the bar and over the page, so prose
                        leaves before it reaches the clock. */
                     BarScrim(
-                        height = statusBar + Gap.s7,
+                        /* Down to the bar's own top edge, so the
+                           strip between the system's bar and this
+                           one is covered too: at `Gap.s7` there
+                           were ten unfaded dp in between and a
+                           sentence could sit in them. */
+                        height = statusBar + Gap.s5 + Gap.s6,
                         fromTop = true,
                         modifier = Modifier.align(Alignment.TopCenter),
                     )
@@ -214,7 +219,7 @@ fun Shell(
                 }
                 if (chrome == Chrome.BAR && groups.isNotEmpty()) {
                     BarScrim(
-                        height = navBar + Gap.s7,
+                        height = navBar + Gap.s5 + Gap.s6,
                         fromTop = false,
                         modifier = Modifier.align(Alignment.BottomCenter),
                     )
@@ -334,7 +339,12 @@ fun pagePadding(horizontal: Dp = Gap.s8, extraTop: Dp = 0.dp): PaddingValues =
 private fun BarScrim(height: Dp, fromTop: Boolean, modifier: Modifier = Modifier) {
     if (height <= 0.dp) return
     val c = LocalReiad.current
-    val stops = listOf(c.paper, c.paper.copy(alpha = 0.86f), Color.Transparent)
+    /* Solid for most of its height and then a short fade, rather
+       than fading the whole way. A gradient that starts fading at
+       the top leaves prose legible right up to the bar's edge,
+       which is what a photograph of a real phone showed: a line
+       of Bangla ending under the clock. */
+    val stops = listOf(c.paper, c.paper, c.paper.copy(alpha = 0.72f), Color.Transparent)
     Box(
         modifier
             .fillMaxWidth()
