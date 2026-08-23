@@ -348,7 +348,16 @@ fun Plate(
     Column(
         modifier
             .clip(RoundedCornerShape(corner))
-            .material(Kind.PLATE, c, corner, ground = ground ?: c.paperSunk)
+            /* The PANEL, never `paperSunk`: sunk is the GROOVE's
+               ground, a channel cut in, and a plate wearing it
+               reads as a hole in whatever holds it. The glass
+               sheet is what showed it, worst as a plate inside a
+               pane, where the statistic sat in a dark slot like
+               something had been removed. A plate is a slab
+               RESTING on the surface, so it takes the quietest
+               raised ground there is and lets the material's own
+               edge say the rest. */
+            .material(Kind.PLATE, c, corner, ground = ground ?: c.panel)
             .padding(horizontal = Gap.s7, vertical = Gap.s6),
         content = content,
     )

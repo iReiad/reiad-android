@@ -24,6 +24,7 @@ import uk.co.reiad.library.core.NavGroup
 import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.WidgetSize
+import uk.co.reiad.library.core.stock.inScript
 import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.Story
 import uk.co.reiad.library.core.rowsOf
@@ -111,7 +112,7 @@ fun Widget(id: String, size: WidgetSize, data: BoardData, act: BoardActions): Bo
        second. */
     when (id) {
         "continue" -> ContinueWidget(data, act)
-        "progress" -> ProgressWidget(data, act)
+        "progress" -> ProgressWidget(data, act, size)
         "pulse" -> PulseWidget(data, act, rows = if (size == WidgetSize.TALL) 4 else 1)
         "market" -> MarketWidget(data, act, rows = if (size == WidgetSize.TALL) 5 else 3)
         "schools" -> SchoolsWidget(data, act)
@@ -206,7 +207,7 @@ private fun ContinueWidget(data: BoardData, act: BoardActions) {
     So it says the true thing it can say. The hub two taps away
     has the ring, the ladder and the denominator. */
 @Composable
-private fun ProgressWidget(data: BoardData, act: BoardActions) {
+private fun ProgressWidget(data: BoardData, act: BoardActions, size: WidgetSize) {
     val c = LocalReiad.current
     val schools = data.site?.ladders.orEmpty()
     if (schools.isEmpty()) return
@@ -215,7 +216,9 @@ private fun ProgressWidget(data: BoardData, act: BoardActions) {
     Pane(Modifier.fillMaxWidth()) {
         WidgetHead(
             if (data.lang == "bn") "কতটা হলো" else "How far you are",
-            if (any) null else if (data.lang == "bn") {
+            if (any || size == WidgetSize.SMALL) {
+                null
+            } else if (data.lang == "bn") {
                 "একটা পাঠ পড়া হলে টিক দিন, এখানে জমতে থাকবে।"
             } else {
                 "Tick a lesson when you have read it and it collects here."
@@ -243,10 +246,21 @@ private fun ProgressWidget(data: BoardData, act: BoardActions) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                Spacer(Modifier.width(Gap.s4))
                 Text(
-                    if (data.lang == "bn") "$done টা পাঠ" else "$done read",
+                    /* At SMALL, the number alone. Half the row
+                       has no width for a truncated school name
+                       AND a phrase, and "টাকা ও শে…3 টা পাঠ" is
+                       what shipping both looked like: the count
+                       ran straight into the ellipsis. */
+                    when {
+                        size == WidgetSize.SMALL -> inScript(done.toString(), data.lang)
+                        data.lang == "bn" -> "${inScript(done.toString(), "bn")} টা পাঠ"
+                        else -> "$done read"
+                    },
                     style = MaterialTheme.typography.labelMedium,
                     color = if (done > 0) c.accent else c.inkSoft,
+                    maxLines = 1,
                 )
             }
         }
