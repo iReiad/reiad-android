@@ -723,7 +723,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             atTime = "%02d:%02d".format(now.hour, now.minute),
         ) ?: return
         viewModelScope.launch {
-            store.addEntry(entry)
+            store.addEntry(entry)?.let { _note.value = it }
             openDiet(context)
         }
     }
@@ -736,7 +736,11 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         val today = _diet.value.today.ifBlank { java.time.LocalDate.now().toString() }
         _diet.value = _diet.value.copy(saving = true)
         viewModelScope.launch {
-            store.saveDay(DietDay(date = today, weightKg = kg))
+            /* Said out loud when it fails, for the reason
+                `writeDay` gives: a weight that went to a 400 and
+                said nothing is a reading the reader believes is
+                on their account. */
+            store.saveDay(DietDay(date = today, weightKg = kg))?.let { _note.value = it }
             openDiet(context)
         }
     }
@@ -744,7 +748,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     fun removeEaten(context: android.content.Context, id: String) {
         val store = dietStore ?: return
         viewModelScope.launch {
-            store.removeEntry(id)
+            store.removeEntry(id)?.let { _note.value = it }
             openDiet(context)
         }
     }
@@ -909,8 +913,15 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         ).copy(saving = true)
 
         viewModelScope.launch {
-            routineStore?.save(routineId, entry)
+            /* SAID OUT LOUD WHEN IT FAILS. This dropped the
+               result for as long as it existed, and a whole day
+               of marks went to a 400 that nothing reported: the
+               screen had already drawn them, so there was nothing
+               to see. A write that can fail and cannot say so is
+               a write that loses work quietly. */
+            val problem = routineStore?.save(routineId, entry)
             _routine.value = _routine.value.copy(saving = false)
+            if (problem != null) _note.value = problem
         }
     }
 
