@@ -257,6 +257,90 @@ class NewsReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = NewsWidget()
 }
 
+/* ---------- today's routine ---------- */
+
+/** How much of today is marked, out of the counting tasks.
+
+    Drawn from the summary the model keeps in step with the day
+    page (`cache:routine-today`), which is the SAME `done()` the
+    screen draws, so the widget and the screen cannot disagree
+    about today.
+
+    A summary from YESTERDAY is the invitation, not a stale
+    number: at midnight every mark honestly returns to nought,
+    and a widget carrying yesterday's 6/8 into the morning would
+    be telling somebody they had already done things they have
+    not. And it never says "0 of 8": a day nobody has marked is
+    "today is still empty", which is the routine's own §0 rule,
+    because a nought is a judgement wearing a number's clothes. */
+class RoutineWidget : GlanceAppWidget() {
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val reiad = Reiad(context)
+        val glance = reiad.cachedRoutineGlance()
+        val today = java.time.LocalDate.now().toString()
+        val current = glance?.takeIf { it.date == today && it.of > 0 }
+        provideContent { GlanceTheme { RoutineToday(current, isNight(context)) } }
+    }
+}
+
+@Composable
+private fun RoutineToday(glance: uk.co.reiad.library.data.RoutineGlance?, dark: Boolean) {
+    val c = coloursFor(Accents.GOLD, dark)
+    Column(
+        GlanceModifier
+            .fillMaxSize()
+            .background(Color(c.panel))
+            .cornerRadius(20.dp)
+            .padding(16.dp)
+            /* The whole widget opens the day page: there is one
+               thing to do from here, which is mark it. */
+            .clickable(openOn("/tools/routine/day")),
+        verticalAlignment = Alignment.Vertical.Top,
+    ) {
+        Text(
+            "আজকের রুটিন",
+            style = TextStyle(
+                color = ColorProvider(Color(c.accent)),
+                fontSize = 11.pt(),
+                fontWeight = FontWeight.Medium,
+            ),
+        )
+        Spacer(GlanceModifier.height(6.dp))
+        if (glance == null || glance.marked == 0) {
+            Text(
+                "আজ এখনো খালি। একটা টিক দিয়ে শুরু করুন।",
+                maxLines = 2,
+                style = TextStyle(color = ColorProvider(Color(c.inkSoft)), fontSize = 13.pt()),
+            )
+        } else {
+            Text(
+                "${bnDigits(glance.marked)} / ${bnDigits(glance.of)}",
+                style = TextStyle(
+                    color = ColorProvider(Color(c.ink)),
+                    fontSize = 24.pt(),
+                    fontWeight = FontWeight.Bold,
+                ),
+            )
+            Spacer(GlanceModifier.height(2.dp))
+            Text(
+                "টিক পড়েছে",
+                style = TextStyle(color = ColorProvider(Color(c.inkSoft)), fontSize = 11.pt()),
+            )
+        }
+    }
+}
+
+/** Bangla digits without the app's own theme in scope: the
+    launcher's process has none of it, so the two lines that need
+    the numerals carry their own. */
+private fun bnDigits(n: Int): String =
+    n.toString().map { if (it in '0'..'9') "০১২৩৪৫৬৭৮৯"[it - '0'] else it }.joinToString("")
+
+class RoutineReceiver : GlanceAppWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = RoutineWidget()
+}
+
 /* ---------- the small bridges ----------
 
    A widget is drawn in the LAUNCHER's process, so none of the

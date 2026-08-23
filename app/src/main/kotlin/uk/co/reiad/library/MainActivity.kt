@@ -665,6 +665,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             }
             val entries = store.entries(dayBefore(today, 365))
             _routine.value = readRoutine(row, entries, today)
+            keepRoutineGlance(context)
         }
     }
 
@@ -937,6 +938,28 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             val problem = routineStore?.save(routineId, entry)
             _routine.value = _routine.value.copy(saving = false)
             if (problem != null) _note.value = problem
+        }
+        host?.let { keepRoutineGlance(it) }
+    }
+
+    /** The summary the home-screen widget reads, kept in step
+        with the screen: the same `done()` the day page draws, so
+        the two can never disagree about today. */
+    private fun keepRoutineGlance(context: android.content.Context) {
+        val now = _routine.value
+        val counting = now.shape.tasks.filter { it.counts && !it.archived }
+        if (now.today.isBlank() || counting.isEmpty()) return
+        val marks = now.entry?.marks.orEmpty()
+        val markedNow = counting.count { (marks[it.id] ?: 0.0) > 0 }
+        viewModelScope.launch {
+            reiad.keepRoutineGlance(
+                uk.co.reiad.library.data.RoutineGlance(
+                    date = now.today,
+                    marked = markedNow,
+                    of = counting.size,
+                ),
+            )
+            runCatching { uk.co.reiad.library.widget.RoutineWidget().updateAll(context) }
         }
     }
 

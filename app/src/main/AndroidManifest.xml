@@ -177,6 +177,17 @@
                 android:resource="@xml/widget_news" />
         </receiver>
 
+        <receiver
+            android:name=".widget.RoutineReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_routine" />
+        </receiver>
+
         <service
             android:name=".read.ReadAloudService"
             android:exported="false"

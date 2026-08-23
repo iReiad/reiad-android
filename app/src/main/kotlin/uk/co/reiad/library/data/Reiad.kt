@@ -21,6 +21,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
 import uk.co.reiad.library.core.LadderResponse
 import uk.co.reiad.library.core.LessonResponse
@@ -84,6 +85,14 @@ import uk.co.reiad.library.core.SyncKeys
     declarations over one name give two objects and DataStore
     throws on the second read. */
 internal val Context.store by preferencesDataStore(name = "reiad")
+
+/** Today's routine, as much of it as a launcher may hold. */
+@Serializable
+data class RoutineGlance(
+    val date: String = "",
+    val marked: Int = 0,
+    val of: Int = 0,
+)
 
 class Reiad(private val context: Context) {
 
@@ -179,6 +188,27 @@ class Reiad(private val context: Context) {
         fetch("$SITE_ORIGIN/api/foods", "cache:foods", JsonObject.serializer())
 
     suspend fun cachedFoods(): JsonObject? = cached("cache:foods", JsonObject.serializer())
+
+    /* ---------- the routine, summarised for the launcher ----------
+
+       A home-screen widget runs in the LAUNCHER's process and
+       reads only what this app last stored. The routine is the
+       one screen whose state lives behind the account and was
+       cached nowhere, so its widget had nothing honest to draw.
+       This is the smallest true summary: which day, how many of
+       its counting tasks are marked, and out of how many. Written
+       by the model every time the day is read or a mark lands,
+       so the widget and the screen cannot disagree. */
+
+    suspend fun keepRoutineGlance(glance: RoutineGlance) {
+        context.store.edit {
+            it[stringPreferencesKey("cache:routine-today")] =
+                json.encodeToString(RoutineGlance.serializer(), glance)
+        }
+    }
+
+    suspend fun cachedRoutineGlance(): RoutineGlance? =
+        cached("cache:routine-today", RoutineGlance.serializer())
 
     /** One piece, body included. Cached under its own slug, so a
         piece read once is readable on a train. */
