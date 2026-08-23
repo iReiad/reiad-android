@@ -26,6 +26,15 @@ import uk.co.reiad.library.ui.ShellState
 import uk.co.reiad.library.ui.Skeleton
 import uk.co.reiad.library.ui.StockScreen
 import uk.co.reiad.library.ui.StockState
+import uk.co.reiad.library.ui.GroupScreen
+import uk.co.reiad.library.ui.LiveScreen
+import uk.co.reiad.library.ui.LiveState
+import uk.co.reiad.library.ui.SearchScreen
+import uk.co.reiad.library.ui.SettingsSheet
+import uk.co.reiad.library.ui.WorkbookScreen
+import uk.co.reiad.library.core.BookResponse
+import uk.co.reiad.library.core.School
+import uk.co.reiad.library.core.Prefs
 import uk.co.reiad.library.ui.KeepSchool
 import uk.co.reiad.library.ui.HeldPanel
 import uk.co.reiad.library.data.Held
@@ -199,5 +208,59 @@ class ScreensLookTest {
             Spacer(Modifier.height(Gap.s10))
             HeldPanel(Held(89, 1_430_000), onForget = {})
         }
+    }
+
+    @Test fun group() = page {
+        GroupScreen(
+            group = site.nav.first { it.id == "learn" },
+            accents = site.accents,
+            bottomPadding = 96.dp,
+            canOpenHere = { true },
+            onOpenHere = {},
+        )
+    }
+
+    @Test fun live() = page {
+        LiveScreen(
+            state = LiveState(loading = false, trouble = null),
+            onConnect = {},
+            contentPadding = PaddingValues(
+                start = Gap.s8, end = Gap.s8, top = 84.dp, bottom = 96.dp,
+            ),
+        )
+    }
+
+    @Test fun search() = page {
+        SearchScreen(site = site, pieces = emptyList(), onOpen = {}, onClose = {})
+    }
+
+    @Test fun settings() = page {
+        SettingsSheet(
+            prefs = Prefs(),
+            onChange = {},
+            onClose = {},
+            held = Held(89, 1_430_000),
+            onForget = {},
+        )
+    }
+
+    @Test fun workbook() = page {
+        val book = fixture("book-stufe-1.json", BookResponse.serializer())
+        WorkbookScreen(
+            stage = "stufe-1",
+            stageName = "Stufe 1",
+            school = School.DEUTSCH,
+            book = book.book,
+            failed = false,
+            onOpenOnSite = {},
+            days = emptySet(),
+            written = emptyMap(),
+            answers = emptyMap(),
+            bottomPadding = 96.dp,
+            onWrite = { _, _ -> },
+            onTickDay = {},
+            onReveal = {},
+            onBack = {},
+        )
     }
 }

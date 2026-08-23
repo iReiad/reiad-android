@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
@@ -233,6 +234,15 @@ private fun <T> Choice(
                         label(option),
                         style = MaterialTheme.typography.labelLarge,
                         color = (if (on) c.paper else c.inkSoft).copy(alpha = dim),
+                        /* Truncated inside the thumb rather than
+                           wrapped out of it. A two-line label in a
+                           pill this size does not make the pill
+                           taller, it spills over the edge, and
+                           "Follow my system" did exactly that.
+                           `PrefLabelsTest` keeps them short; this
+                           is what happens if one ever is not. */
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

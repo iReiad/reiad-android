@@ -85,23 +85,13 @@ fun LiveScreen(
     ) {
         item {
             Column(Modifier.padding(top = Gap.s6)) {
-                Text(
-                    "Live",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = c.accent,
-                )
-                Text(
-                    "One real portfolio",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = c.ink,
+                PageHead(
+                    title = "One real portfolio, live",
+                    eyebrow = "Tools · live",
+                    lede = "Not a model and not a backtest: a Trading 212 account as it "
+                        + "stands right now. Connect your own and this becomes your "
+                        + "dashboard.",
                     modifier = Modifier.semantics { heading() },
-                )
-                Spacer(Modifier.height(Gap.s4))
-                Text(
-                    "Not a model and not a backtest: a Trading 212 account as it stands "
-                        + "right now. Connect your own and this becomes your dashboard.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = c.inkSoft,
                 )
             }
         }
@@ -452,13 +442,7 @@ private fun Connect(standing: Standing?, trouble: Trouble?, onConnect: () -> Uni
            deliberate: a broker credential is the one thing worth
            making somebody type where they can see the address bar
            and the padlock. */
-        Control(Modifier.clickable(onClick = onConnect)) {
-            Text(
-                "Open on the site",
-                style = MaterialTheme.typography.labelLarge,
-                color = c.ink,
-            )
-        }
+        PillButton("Open on the site", onConnect, icon = "arrow")
     }
 }
 

@@ -71,10 +71,15 @@ data class PrefOption<T>(val id: T, val label: String, val note: String = "")
 
 enum class Theme(val id: String) { SYSTEM("system"), LIGHT("light"), DARK("dark") }
 
+/* One word each, and that is a constraint rather than a style.
+   These ride in a segmented control three across a handset, so a
+   label is about eleven characters before it wraps: "Follow my
+   system" came out on two lines and spilled outside its own
+   thumb. The note beside each is where the sentence goes. */
 val THEMES = listOf(
-    PrefOption(Theme.SYSTEM, "Follow my system"),
-    PrefOption(Theme.LIGHT, "Always light"),
-    PrefOption(Theme.DARK, "Always dark"),
+    PrefOption(Theme.SYSTEM, "System", "whatever the phone is set to"),
+    PrefOption(Theme.LIGHT, "Light", "always, whatever the phone says"),
+    PrefOption(Theme.DARK, "Dark", "always, whatever the phone says"),
 )
 
 fun themeOf(id: String?): Theme = Theme.entries.firstOrNull { it.id == id } ?: Theme.SYSTEM
