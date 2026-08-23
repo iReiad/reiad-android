@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.PathSensitivity
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -39,6 +40,26 @@ android {
 
 kotlin {
     compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
+}
+
+/* The fixtures are an INPUT to these tests, and Gradle cannot
+   work that out on its own.
+
+   They live in `core`'s test resources and this module reads them
+   by relative path, which is deliberate: they are one set of real
+   API answers and copying them would be two. But nothing on this
+   module's classpath changes when one is refreshed, so Gradle
+   calls the test task up to date and the renders come back
+   identical to the ones recorded against the old data.
+
+   That is not a theory. Twenty-eight doubled percent signs were
+   fixed on the site, the fixture was regenerated, the screens
+   were re-recorded, and every one of them still showed
+   `২৩৩.১%%`, because the task never ran. */
+tasks.withType<Test>().configureEach {
+    inputs.dir(rootProject.file("core/src/test/resources/fixtures"))
+        .withPropertyName("apiFixtures")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 dependencies {
