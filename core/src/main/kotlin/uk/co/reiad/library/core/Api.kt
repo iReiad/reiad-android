@@ -78,6 +78,17 @@ data class SiteManifest(
         first run with no network. */
     val routine: RoutineWords = RoutineWords(),
 
+    /** The two vocabularies an account answers with: how often
+        somebody means to practise, and the three kinds of target.
+
+        Sent rather than spelled here because both are a CHECK
+        constraint in Postgres: a value this app offers that the
+        constraint has not heard of is a 400 on the whole write,
+        so one list is the only safe number of lists. Empty until
+        a deployment carries it, and every screen that reads it
+        has to render with nothing rather than an empty box. */
+    val profile: ProfileWords = ProfileWords(),
+
     /** The palette's index: every page of the site that is not
         private, with the title, the address and one line saying
         what it is. This is what the Ctrl+K palette searches on

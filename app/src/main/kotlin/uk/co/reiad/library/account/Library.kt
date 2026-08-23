@@ -6,11 +6,14 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.http.isSuccess
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonArray
@@ -20,6 +23,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import uk.co.reiad.library.core.Kept
+import uk.co.reiad.library.core.Profile
 import uk.co.reiad.library.core.Supabase
 import uk.co.reiad.library.core.Target
 import uk.co.reiad.library.core.encodeComponent
@@ -126,6 +130,90 @@ class Library(private val account: Account) {
             setBody(buildJsonArray { add(row) }.toString())
         }
         true
+    } ?: false
+
+    /* ---------- the profile, and the one filter that matters ---------- */
+
+    /** This reader's own profile row.
+
+        ---- `id=eq.<me>` IS THE LOCK HERE, not a second one ----
+
+        Every other read in this file leaves the filter off,
+        because every other table is `auth.uid() = user_id` and a
+        read with no filter returns your own rows and nothing
+        else. `profiles` is the exception: its select policy is
+        `using (true)`, deliberately, because a comment has to
+        show its author's name to somebody signed out.
+
+        The site learned this the hard way. `getProfile()` asked
+        for `profiles?select=...&limit=1`, so PostgREST answered
+        with whichever row the planner reached first out of the
+        WHOLE table. With one account that was always right. With
+        two it was worse than a coin toss, because a non-HOT
+        update moves a row to the end of the heap: SAVING your
+        profile was what made the next read return somebody
+        else's. The account page drew a stranger's name and
+        courses, `setup_at` came back null so the setup form
+        reappeared, and pressing Save again wrote the right row
+        and guaranteed the same wrong read.
+
+        So this names the reader, and `ProfileTest` fails if it
+        ever stops. */
+    suspend fun profile(): Profile? = withToken { token ->
+        val me = account.reader.first()?.id ?: return@withToken null
+        val text = http.get(
+            "${Supabase.REST}/profiles" +
+                "?select=display_name,following,pace,setup_at" +
+                "&id=eq.${encodeComponent(me)}&limit=1",
+        ) {
+            header("apikey", Supabase.KEY)
+            header("Authorization", "Bearer $token")
+        }.bodyAsText()
+        json.decodeFromString(ListSerializer(Profile.serializer()), text).firstOrNull()
+    }
+
+    /** Saves part of the profile, and carries the filter too.
+
+        `id=eq.<me>` on a PATCH is the second lock on a door the
+        update policy already makes impossible to open, and it is
+        written out for the same reason the site writes it out:
+        the read above is the one with no second lock, and a
+        reader comparing the two should see that this one is
+        belt-and-braces and that one is the belt.
+
+        A PATCH rather than an upsert, because the row exists: a
+        trigger writes it when the account is created, so an
+        insert here would be a second row for one person. */
+    suspend fun saveProfile(
+        displayName: String? = null,
+        following: List<String>? = null,
+        pace: String? = null,
+        setupAt: String? = null,
+    ): Boolean = withToken { token ->
+        val me = account.reader.first()?.id ?: return@withToken false
+        val patch = buildJsonObject {
+            displayName?.let { put("display_name", it) }
+            following?.let { list ->
+                put("following", buildJsonArray { for (key in list) add(JsonPrimitive(key)) })
+            }
+            pace?.let { put("pace", it) }
+            setupAt?.let { put("setup_at", it) }
+        }
+        val answer = http.patch(
+            "${Supabase.REST}/profiles?id=eq.${encodeComponent(me)}",
+        ) {
+            header("apikey", Supabase.KEY)
+            header("Authorization", "Bearer $token")
+            header("Prefer", "return=minimal")
+            contentType(ContentType.Application.Json)
+            setBody(patch.toString())
+        }
+        /* And the answer is READ. A `following` carrying a school
+           the CHECK constraint has not heard of is a 400 on the
+           whole patch, which is how every save on the site
+           answered "Could not save that" for two days: reporting
+           that as success would hide the same failure here. */
+        answer.status.isSuccess()
     } ?: false
 
     /* ---------- targets ---------- */

@@ -64,6 +64,7 @@ import uk.co.reiad.library.core.LessonPage
 import uk.co.reiad.library.core.NavGroup
 import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.School
+import uk.co.reiad.library.core.ProgressKeys
 import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.nav.Destination
@@ -177,6 +178,8 @@ import uk.co.reiad.library.ui.openOnSite
 import uk.co.reiad.library.ui.accentOf as tokenAccent
 import uk.co.reiad.library.ui.InfoCard
 import uk.co.reiad.library.ui.LocalReiad
+import uk.co.reiad.library.ui.SetupState
+import uk.co.reiad.library.ui.seeded
 import uk.co.reiad.library.ui.Pane
 import uk.co.reiad.library.ui.PieceScreen
 import uk.co.reiad.library.ui.Plate
@@ -974,6 +977,16 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     private val _targets = MutableStateFlow<List<Target>>(emptyList())
     val targets: StateFlow<List<Target>> = _targets.asStateFlow()
 
+    /** The three questions, as the reader is answering them.
+
+        The FORM's state rather than the row's: it is seeded from
+        the account and never over anything already typed, because
+        a reader who starts filling this in while the profile is
+        still in flight must not have it taken away underneath
+        them. */
+    private val _setup = MutableStateFlow(SetupState())
+    val setup: StateFlow<SetupState> = _setup.asStateFlow()
+
     private val _daysActive = MutableStateFlow<Set<String>>(emptySet())
     val daysActive: StateFlow<Set<String>> = _daysActive.asStateFlow()
 
@@ -1039,6 +1052,71 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             _kept.value = shelf.kept()
             _targets.value = shelf.targets()
             _daysActive.value = reiad.daysActive()
+            /* Seeded, never assigned: `seeded()` is a null-or-blank
+               test on every field for the reason above. The
+               reader's own name off the token is the fallback, so
+               somebody who has never saved sees their own name
+               rather than an empty box. */
+            _setup.value = _setup.value.seeded(
+                profile = shelf.profile(),
+                fallbackName = account?.reader?.first()?.name.orEmpty(),
+                started = startedIn(_ticks.value),
+            )
+        }
+    }
+
+    /** An ISO instant, for `setup_at`. Written out because
+        `java.time` needs API 26, which is this app's minimum, and
+        because the column is a `timestamptz`: a local time with
+        no zone on it is a time Postgres has to guess about. */
+    private fun nowIso(): String = java.time.Instant.now().toString()
+
+    fun editSetup(next: SetupState) { _setup.value = next }
+
+    /** Saves the three answers, and stamps `setup_at` so the
+        screen stops asking.
+
+        Set on the first save whether or not anything was ticked:
+        somebody who saves a name and nothing else has been
+        through setup. */
+    fun saveProfile(stampOnly: Boolean = false) {
+        val shelf = library ?: return
+        val now = _setup.value
+        if (!stampOnly && now.name.isBlank()) {
+            _setup.value = now.copy(note = "A name cannot be empty.", wrong = true)
+            return
+        }
+        _setup.value = now.copy(busy = true, note = null, wrong = false)
+        viewModelScope.launch {
+            val stamp = nowIso()
+            val ok = if (stampOnly) {
+                shelf.saveProfile(setupAt = stamp)
+            } else {
+                shelf.saveProfile(
+                    displayName = now.name.trim(),
+                    following = now.following.toList(),
+                    pace = now.pace,
+                    setupAt = stamp,
+                )
+            }
+            _setup.value = _setup.value.copy(
+                busy = false,
+                asked = _setup.value.asked || ok,
+                note = when {
+                    !ok -> "That did not save."
+                    stampOnly -> "Fine. Everything above is here whenever you want it."
+                    else -> "Saved."
+                },
+                wrong = !ok,
+            )
+        }
+    }
+
+    fun addTarget(target: Target) {
+        val shelf = library ?: return
+        viewModelScope.launch {
+            shelf.addTarget(target)
+            _targets.value = shelf.targets()
         }
     }
 
@@ -1356,6 +1434,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val linkSent by model.linkSent.collectAsState()
     val kept by model.kept.collectAsState()
     val targets by model.targets.collectAsState()
+    val setupState by model.setup.collectAsState()
     val daysActive by model.daysActive.collectAsState()
     val exported by model.exported.collectAsState()
     val erasing by model.erasing.collectAsState()
@@ -1587,6 +1666,21 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         onGoogle = { model.signInWith(context, "google") },
                         onLink = { model.sendLink(context, it) },
                         onSignOut = { model.signOut(context) },
+                        setup = setupState,
+                        /* Both vocabularies out of the MANIFEST.
+                           Each is a CHECK constraint in Postgres,
+                           so a fourth pace offered here that the
+                           constraint has not heard of is a 400 on
+                           the whole patch: one list, and it is the
+                           site's. */
+                        schools = site?.ladders.orEmpty(),
+                        paces = site?.profile?.paces.orEmpty(),
+                        targetKinds = site?.profile?.targetKinds.orEmpty(),
+                        started = startedIn(ticks),
+                        onSetupChange = { model.editSetup(it) },
+                        onSaveProfile = { model.saveProfile() },
+                        onNotNow = { model.saveProfile(stampOnly = true) },
+                        onAddTarget = { model.addTarget(it) },
                     )
                 }
 
@@ -1982,6 +2076,19 @@ internal fun goTo(
         else -> now
     }
 }
+
+/** Which schools have a tick on this phone.
+
+    The SCHOOL id, which is not the storage key: the money
+    school's ticks are still filed under `learn-read` and its id
+    has been `money` since it moved. `profiles.following` is
+    constrained to the ids, so sending a key would be a 400 on
+    the whole patch rather than one ignored field. */
+internal fun startedIn(ticks: Map<String, Set<String>>): Set<String> =
+    School.entries
+        .filter { !ticks[ProgressKeys.read(it)].isNullOrEmpty() }
+        .map { it.id }
+        .toSet()
 
 internal fun accentOf(school: LadderSchool): Accent =
     Accents.byToken(school.accent) ?: Accents.BY_KEY[school.key] ?: Accents.GREEN

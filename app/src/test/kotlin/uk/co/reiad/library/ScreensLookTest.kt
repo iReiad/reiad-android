@@ -19,9 +19,12 @@ import uk.co.reiad.library.ui.CalcState
 import uk.co.reiad.library.ui.CalculatorsScreen
 import uk.co.reiad.library.ui.Gap
 import uk.co.reiad.library.ui.LocalReiad
+import uk.co.reiad.library.ui.BodyView
+import uk.co.reiad.library.ui.PageHead
 import uk.co.reiad.library.ui.Problem
 import uk.co.reiad.library.ui.ReiadTheme
 import uk.co.reiad.library.ui.Shell
+import uk.co.reiad.library.ui.SetupState
 import uk.co.reiad.library.ui.ShellState
 import uk.co.reiad.library.ui.Skeleton
 import uk.co.reiad.library.ui.StockScreen
@@ -57,6 +60,8 @@ import uk.co.reiad.library.core.LessonResponse
 import uk.co.reiad.library.core.Lesson
 import uk.co.reiad.library.core.Stage
 import uk.co.reiad.library.core.LadderResponse
+import uk.co.reiad.library.core.BodyParser
+import uk.co.reiad.library.core.Reader
 
 /* Every screen, drawn, so a change to the design is something
    somebody can look at rather than something they have to guess
@@ -164,16 +169,57 @@ class ScreensLookTest {
         )
     }
 
-    @Test fun lesson() = page {
-        val page = fixture("lesson-papers.json", LessonResponse.serializer())
-        Reading(
-            school = site.ladders.first { it.key == "money" },
-            stage = Stage(slug = "basics-1", bn = "\u09ac\u09c7\u09b8\u09bf\u0995", en = "Basics"),
-            lesson = Lesson(slug = "x", bn = "\u09ac\u09bf\u0993 \u0985\u09cd\u09af\u09be\u0995\u09be\u0989\u09a8\u09cd\u099f"),
-            page = page.lesson,
-            ticked = false, isMoney = true,
-            onBack = {}, onTick = {}, checks = emptySet(), onCheck = {}, lessonKey = "k",
+    /** Signed in, with the three questions unanswered, which is
+        what a new reader meets. The vocabularies come out of the
+        fixture rather than being typed here, for the reason the
+        screen takes them as a parameter: they are a CHECK
+        constraint and there is one list. */
+    @Test fun accountSetup() = page {
+        AccountScreen(
+            reader = Reader(id = "r1", email = "you@example.com", name = "Rony Reiad"),
+            kept = emptyList(), targets = emptyList(),
+            daysActive = setOf("2026-08-21", "2026-08-22", "2026-08-23"),
+            ticksOf = { 0 },
+            onOpenKept = {}, onRemoveTarget = {}, onExport = {},
+            exported = null, onErase = {}, erasing = null,
+            problem = null, linkSent = false, bottomPadding = 96.dp,
+            onGoogle = {}, onLink = {}, onSignOut = {},
+            setup = SetupState(name = "Rony Reiad", following = setOf("money")),
+            schools = site.ladders,
+            paces = site.profile.paces,
+            targetKinds = site.profile.targetKinds,
+            started = setOf("money"),
         )
+    }
+
+    /** A lesson's prose, drawn from blocks parsed HERE.
+
+        It was `Reading()` and it was FLAKY, which is worse than
+        no snapshot: `Reading` parses the body on
+        `Dispatchers.Default` and draws a skeleton until that
+        lands, deliberately, because a long lesson parsed inside
+        composition is a hitch on the frame a reader is watching.
+        Whether Paparazzi caught the skeleton or the prose was a
+        race with a real thread pool, so the recorded image was
+        sometimes six grey bars and nothing failed.
+
+        The picture is of the PROSE, so the parse belongs in the
+        test. `ReadingSettlesTest` is what asserts that the screen
+        gets from one to the other. */
+    @Test fun lessonBody() = page {
+        val page = requireNotNull(
+            fixture("lesson-papers.json", LessonResponse.serializer()).lesson,
+        ) { "the lesson fixture has no page in it" }
+        val blocks = BodyParser.parse(page.body).blocks
+        Column(Modifier.padding(horizontal = Gap.s8)) {
+            PageHead(
+                title = "\u09ac\u09bf\u0993 \u0985\u09cd\u09af\u09be\u0995\u09be\u0989\u09a8\u09cd\u099f",
+                eyebrow = "BASICS",
+                lede = page.blurb,
+            )
+            Spacer(Modifier.height(Gap.s7))
+            BodyView(blocks)
+        }
     }
 
     @Test fun ladder() = page {
