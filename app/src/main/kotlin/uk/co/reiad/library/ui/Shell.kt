@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -211,6 +212,12 @@ fun Shell(
                             .testTag("topbar")
                             .onSizeChanged { topPx = it.height },
                         signedIn = state.signedIn,
+                        /* The key in `nav.ts`'s `you` group. Said
+                           here rather than passed in, because the
+                           bar reads the same field to decide the
+                           same question and two callers deciding
+                           it separately is how they part. */
+                        onAccountPage = state.current == "account",
                         onHome = onHome,
                         onSearch = onSearch,
                         onSettings = onSettings,
@@ -374,17 +381,44 @@ private fun BarScrim(height: Dp, fromTop: Boolean, modifier: Modifier = Modifier
     The target is still 44dp. What went is the ring around it,
     not the room to press it. */
 @Composable
-private fun RoundButton(icon: String, label: String, onClick: () -> Unit) {
+private fun RoundButton(
+    icon: String,
+    label: String,
+    onClick: () -> Unit,
+    /** Whether this is the place the reader is standing.
+
+        The bar says where you are and one control up here is a
+        destination too, so it has to be able to say the same
+        thing: a person button that looks identical on the account
+        page and off it is a reader pressing it to find out. */
+    here: Boolean = false,
+) {
     val c = LocalReiad.current
     Box(
         Modifier
             .size(Gap.tap)
             .clip(RoundedCornerShape(Corner.pill))
+            /* Only the one you are on has a ground, which is the
+               bar's own rule one level up and the site's
+               `--standing` axis: three circles with the same rest
+               state read as three boxes. */
+            .then(
+                if (!here) Modifier
+                else Modifier.material(
+                    kind = Kind.CHIP,
+                    colours = c,
+                    corner = Corner.pill,
+                    ground = c.accentSoft,
+                ),
+            )
             .clickable(role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = label },
+            .semantics {
+                contentDescription = label
+                if (here) selected = true
+            },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, size = 19.dp, tint = c.ink)
+        Icon(icon, size = 19.dp, tint = if (here) c.accent else c.ink)
     }
 }
 
@@ -410,6 +444,10 @@ fun TopBar(
         of what a reader learns from the control before pressing
         it. */
     signedIn: Boolean = false,
+    /** Whether the account is the page on screen. The bottom bar
+        deliberately never offers the account, so this control is
+        the only one that can say so. */
+    onAccountPage: Boolean = false,
     onHome: () -> Unit,
     onSearch: () -> Unit,
     onSettings: () -> Unit,
@@ -468,6 +506,7 @@ fun TopBar(
                 "Sign in to your account"
             },
             onClick = onAccount,
+            here = onAccountPage,
         )
     }
 }
@@ -626,61 +665,23 @@ internal fun tabLabel(label: String): String =
     This is not the audience switch hiding something: every group
     is in the drawer, one tap away, and the switch's own promise
     is about the MENU. A bar is not the menu, and saying so here
-    is cheaper than pretending a phone is a desktop. */
+    is cheaper than pretending a phone is a desktop.
+
+    **`you` IS NEVER ONE OF THEM, AND THAT IS THE RULE RATHER THAN
+    A CHOICE ABOUT SPACE.** Its one listed item is the account,
+    the account has a control of its own in the top bar, and the
+    displacement above put the two on screen at once: standing on
+    `/account`, a reader saw the person button lit at the top
+    right and an "আপনার" tab lit at the bottom, both going to the
+    page they were already on. Two controls for one destination is
+    a reader asking what the difference is, and there is none. */
 private fun barGroups(groups: List<NavGroup>, current: String?, slots: Int = 3): List<NavGroup> {
-    if (groups.size <= slots) return groups
-    val first = groups.take(slots)
-    val standing = groups.firstOrNull { g -> g.items.any { it.key != null && it.key == current } }
+    val offered = groups.filter { it.id != "you" }
+    if (offered.size <= slots) return offered
+    val first = offered.take(slots)
+    val standing = offered.firstOrNull { g -> g.items.any { it.key != null && it.key == current } }
     if (standing == null || standing in first) return first
     return first.dropLast(1) + standing
-}
-
-/** One place you can go. Flat until it is where you are. */
-@Composable
-private fun Destination(
-    icon: String,
-    label: String,
-    selected: Boolean,
-    accent: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    val c = LocalReiad.current
-    val glow = rememberGlow()
-    val lift by animateFloatAsState(
-        targetValue = if (selected) 1f else 0f,
-        animationSpec = tween(Motion.FAST_MS),
-        label = "selected",
-    )
-    Column(
-        modifier
-            .clip(RoundedCornerShape(Corner.pill))
-            .material(
-                kind = Kind.CHIP,
-                colours = c,
-                corner = Corner.pill,
-                /* Only the one you are on has a ground. Give all
-                   five the same rest state and the bar is five
-                   boxes in a row, which is the cage the site's
-                   `--standing` axis exists to prevent. */
-                ground = accent.copy(alpha = 0.14f * lift),
-                lit = { glow.lit },
-            )
-            .follows(glow)
-            .clickable(role = Role.Tab, onClick = onClick)
-            .padding(vertical = Gap.s4),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(icon, size = 22.dp, tint = if (selected) accent else c.inkSoft)
-        Spacer(Modifier.height(Gap.s2))
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (selected) accent else c.inkSoft,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
 }
 
 /* ---------- the rail ---------- */

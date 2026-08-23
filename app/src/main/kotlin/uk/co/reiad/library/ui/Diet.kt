@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -412,31 +411,17 @@ private fun Weighing(weightKg: Double?, onWeight: (Double) -> Unit) {
         )
         Spacer(Modifier.height(Gap.s6))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier
-                    .width(140.dp)
-                    .height(Gap.tap)
-                    .material(uk.co.reiad.library.core.Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
-                    .padding(horizontal = Gap.s7),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                if (typed.isEmpty()) {
-                    Text("kg", style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
-                }
-                BasicTextField(
+            Box(Modifier.width(140.dp)) {
+                Field(
                     value = typed,
-                    onValueChange = { typed = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = c.ink),
-                    cursorBrush = SolidColor(c.accent),
-                    keyboardOptions = KeyboardOptions(
+                    onValue = { typed = it },
+                    filter = decimalsOnly,
+                    description = "Today's weight in kilograms",
+                    hint = "kg",
+                    keyboard = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal,
                         imeAction = ImeAction.Done,
                     ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(Gap.tap)
-                        .semantics { contentDescription = "Today's weight in kilograms" },
                 )
             }
             Spacer(Modifier.width(Gap.s6))

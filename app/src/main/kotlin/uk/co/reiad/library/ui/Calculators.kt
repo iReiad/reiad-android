@@ -20,8 +20,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -403,22 +401,15 @@ private fun CalcField(
             LaunchedEffect(now) {
                 if (typed.toDoubleOrNull() != now) typed = plain(now)
             }
-            TextField(
+            Field(
                 value = typed,
-                onValueChange = { text ->
+                onValue = { text ->
                     typed = text
                     text.toDoubleOrNull()?.takeIf { it.isFinite() }?.let(::put)
                 },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = c.paperSunk,
-                    unfocusedContainerColor = c.paperSunk,
-                    focusedTextColor = c.ink,
-                    unfocusedTextColor = c.ink,
-                    cursorColor = c.accent,
-                ),
-                modifier = Modifier.fillMaxWidth(),
+                filter = decimalsOnly,
+                description = printed(field.name, now, words, lang),
+                keyboard = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             )
             return@Column
         }

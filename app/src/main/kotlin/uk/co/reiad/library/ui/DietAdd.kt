@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -130,10 +129,13 @@ fun FoodPicker(
             )
         }
 
-        SearchField(
-            typed = typed,
-            onTyped = { typed = it; chosen = null },
+        Field(
+            value = typed,
+            onValue = { typed = it; chosen = null },
+            description = if (lang == "bn") "খাবার খুঁজুন" else "Search the food list",
             hint = if (lang == "bn") "ভাত, ডাল, ডিম…" else "rice, dal, egg…",
+            icon = "search",
+            keyboard = KeyboardOptions(imeAction = ImeAction.Search),
         )
 
         val picked = chosen
@@ -277,41 +279,17 @@ private fun Amount(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier
-                    .width(110.dp)
-                    .height(Gap.tap)
-                    .material(Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
-                    .padding(horizontal = Gap.s7),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                if (typed.isEmpty()) {
-                    Text(
-                        if (lang == "bn") "কত" else "how much",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = c.inkSoft,
-                    )
-                }
-                BasicTextField(
+            Box(Modifier.width(110.dp)) {
+                Field(
                     value = typed,
-                    onValueChange = { typed = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = c.ink),
-                    cursorBrush = SolidColor(c.accent),
-                    keyboardOptions = KeyboardOptions(
+                    onValue = { typed = it },
+                    filter = decimalsOnly,
+                    description = if (lang == "bn") "কতটা খেয়েছেন" else "How much of it you ate",
+                    hint = if (lang == "bn") "কত" else "how much",
+                    keyboard = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal,
                         imeAction = ImeAction.Done,
                     ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(Gap.tap)
-                        .semantics {
-                            contentDescription = if (lang == "bn") {
-                                "কতটা খেয়েছেন"
-                            } else {
-                                "How much of it you ate"
-                            }
-                        },
                 )
             }
             Spacer(Modifier.width(Gap.s5))
@@ -390,42 +368,6 @@ private fun Amount(
             onClick = { ate?.let(onAdd) },
             icon = "check",
         )
-    }
-}
-
-/* ---------- the search box ---------- */
-
-@Composable
-private fun SearchField(typed: String, onTyped: (String) -> Unit, hint: String) {
-    val c = LocalReiad.current
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .height(Gap.tap)
-            .material(Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
-            .padding(horizontal = Gap.s7),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon("search", size = 16.dp, tint = c.inkSoft)
-            Spacer(Modifier.width(Gap.s5))
-            Box(Modifier.weight(1f)) {
-                if (typed.isEmpty()) {
-                    Text(hint, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
-                }
-                BasicTextField(
-                    value = typed,
-                    onValueChange = onTyped,
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = c.ink),
-                    cursorBrush = SolidColor(c.accent),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .semantics { contentDescription = hint },
-                )
-            }
-        }
     }
 }
 

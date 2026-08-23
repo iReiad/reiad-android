@@ -268,9 +268,14 @@ private fun Leave(placeholder: String, busy: Boolean, onSend: (String) -> Unit) 
     Column(Modifier.fillMaxWidth()) {
         Field(
             value = text,
-            onValueChange = { text = it },
-            label = placeholder,
-            placeholder = placeholder,
+            onValue = { text = it },
+            description = placeholder,
+            hint = placeholder,
+            /* A comment is a paragraph, so it gets the room for
+               one. It was a single line 44dp tall, which is a box
+               that says "one sentence" to somebody about to write
+               five. */
+            size = FieldSize.AREA,
             keyboard = KeyboardOptions(
                 keyboardType = KeyboardType.Text,
                 imeAction = ImeAction.Default,

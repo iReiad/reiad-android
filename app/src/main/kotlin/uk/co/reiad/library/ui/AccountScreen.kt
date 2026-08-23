@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -456,53 +455,19 @@ private fun EmailBox(sent: Boolean, onLink: (String) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(Gap.s5),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .weight(1f)
-                .height(Gap.tap)
-                /* A GROOVE, for the reason the site's `NOT_GLASS`
-                   note gives: a text field's affordance is the
-                   caret and the focus ring, and a lit resting rim
-                   on a box you type into is a box that looks like
-                   a button. */
-                .clip(RoundedCornerShape(Corner.pill))
-                .material(Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
-                .padding(horizontal = Gap.s7),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            if (email.isEmpty()) {
-                Text(
-                    "you@example.com",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = c.inkSoft,
-                )
-            }
-            BasicTextField(
+        Box(Modifier.weight(1f)) {
+            Field(
                 value = email,
-                onValueChange = { email = it },
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = c.ink),
-                cursorBrush = SolidColor(c.accent),
-                keyboardOptions = KeyboardOptions(
+                onValue = { email = it },
+                description = "Your email address",
+                hint = "you@example.com",
+                keyboard = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Send,
                 ),
-                modifier = Modifier
-                    /* The whole groove, not just its width. The
-                       field's own node is what carries the click,
-                       so a text field drawn one line tall inside
-                       a 44dp box is a 17dp target however tall
-                       the box is. */
-                    .fillMaxSize()
-                    /* The placeholder is drawn as a sibling Text
-                       so the field itself carries no label at
-                       all, and a screen reader reaches an empty
-                       edit box: "edit box", and nothing about
-                       what goes in it. The placeholder is a
-                       drawing; this is the name. */
-                    .semantics { contentDescription = "Your email address" },
             )
         }
+        Spacer(Modifier.width(Gap.s5))
         Control(
             modifier = Modifier
                 /* The same minimum `PillButton` carries: a short

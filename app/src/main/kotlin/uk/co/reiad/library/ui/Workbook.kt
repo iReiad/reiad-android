@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -384,26 +383,16 @@ private fun WritingBox(value: String, onChange: (String) -> Unit, lines: Int) {
         onChange(text)
     }
 
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = (lines * 26 + 20).dp)
-            .clip(RoundedCornerShape(Corner.field))
-            /* A GROOVE: a channel waiting to be filled, which is
-               exactly what a box you write into is. The site's
-               own `NOT_GLASS` note says why a text field is not a
-               slab: its affordance is the caret and the focus
-               ring, and a lit resting rim on a box you type into
-               is a box that looks like a button. */
-            .material(Kind.GROOVE, c, Corner.field, ground = c.paperSunk)
-            .padding(horizontal = Gap.s6, vertical = Gap.s5),
-    ) {
-        BasicTextField(
-            value = text,
-            onValueChange = { text = it },
-            textStyle = BanglaBody.copy(color = c.ink),
-            cursorBrush = SolidColor(c.accent),
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
+    Field(
+        value = text,
+        onValue = { text = it },
+        description = "What you write for this exercise",
+        /* A practice book asks for anything from one word to a
+           paragraph, and the exercise says which: `lines` is the
+           school's own number and this is the only box here whose
+           height is not one of the two. */
+        size = if (lines > 1) FieldSize.AREA else FieldSize.LINE,
+        modifier = Modifier.heightIn(min = (lines * 26 + 20).dp),
+        textStyle = BanglaBody,
+    )
 }

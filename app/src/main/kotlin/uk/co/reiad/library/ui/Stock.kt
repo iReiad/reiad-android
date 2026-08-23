@@ -25,8 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -968,22 +966,14 @@ private fun FieldRow(
             return@Column
         }
 
-        TextField(
+        Field(
             value = typed,
-            onValueChange = { text ->
+            onValue = { text ->
                 typed = text
                 onState(state.copy(inputs = withField(state.inputs, field.id, text)))
             },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = c.paperSunk,
-                unfocusedContainerColor = c.paperSunk,
-                focusedTextColor = c.ink,
-                unfocusedTextColor = c.ink,
-                cursorColor = c.accent,
-            ),
-            modifier = Modifier.fillMaxWidth(),
+            description = words.t("i.${field.id}", lang),
+            keyboard = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
 
         field.slider?.let { s ->
@@ -1092,9 +1082,15 @@ private fun SaveCheck(
             Box(Modifier.weight(1f)) {
                 Field(
                     value = name,
-                    onValueChange = { name = it.take(80); complaint = null },
-                    label = label,
-                    placeholder = "Beximco, August",
+                    onValue = { name = it; complaint = null },
+                    description = label,
+                    hint = "Beximco, August",
+                    /* The column is `char_length(name) <= 80`, so
+                       the cap is where the keystroke is rather
+                       than where the save is: a box that accepts
+                       ninety characters and rejects them on Save
+                       is a box that lied while you were typing. */
+                    filter = { it.take(80) },
                 )
             }
             PillButton(

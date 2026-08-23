@@ -24,8 +24,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -568,17 +566,12 @@ private fun NoteBox(today: String, note: String, onNote: (String) -> Unit) {
             color = c.inkSoft,
         )
         Spacer(Modifier.height(Gap.s4))
-        TextField(
+        Field(
             value = typed,
-            onValueChange = { typed = it; onNote(it) },
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = c.paperSunk,
-                unfocusedContainerColor = c.paperSunk,
-                focusedTextColor = c.ink,
-                unfocusedTextColor = c.ink,
-                cursorColor = c.accent,
-            ),
-            modifier = Modifier.fillMaxWidth(),
+            onValue = { typed = it; onNote(it) },
+            description = "Today's one line",
+            hint = "One line about today.",
+            size = FieldSize.AREA,
         )
     }
 }

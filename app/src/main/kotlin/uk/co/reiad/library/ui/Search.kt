@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -95,48 +94,25 @@ fun SearchScreen(
     ) {
         Spacer(Modifier.height(Gap.s7))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier
-                    .weight(1f)
-                    .height(Gap.tap)
-                    .clip(RoundedCornerShape(Corner.pill))
-                    /* A text field answers differently from
-                       everything else and the site says so in
-                       `NOT_GLASS`: its affordance is the caret
-                       and the focus ring, and a lit resting rim
-                       on a box you type into is a box that looks
-                       like a button. So it is a GROOVE: a channel
-                       waiting to be filled, which is exactly what
-                       it is. */
-                    .material(Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
-                    .padding(horizontal = Gap.s7),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon("search", size = 18.dp, tint = c.inkSoft)
-                    Spacer(Modifier.width(Gap.s5))
-                    Box(Modifier.weight(1f)) {
-                        if (query.isEmpty()) {
-                            Text(
-                                "Search the library",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = c.inkSoft,
-                            )
-                        }
-                        BasicTextField(
-                            value = query,
-                            onValueChange = { query = it },
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = c.ink),
-                            cursorBrush = SolidColor(c.accent),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(
-                                onSearch = { results.firstOrNull()?.let(onOpen) },
-                            ),
-                            modifier = Modifier.fillMaxWidth().focusRequester(focus),
-                        )
-                    }
-                }
+            Box(Modifier.weight(1f)) {
+                Field(
+                    value = query,
+                    onValue = { query = it },
+                    description = "Search the library",
+                    hint = "Search the library",
+                    /* The magnifier is what says this is the
+                       search box. It used to be a PILL, and the
+                       shape was doing that job: two shapes of
+                       text box on one app is a reader learning
+                       one and meeting another. */
+                    icon = "search",
+                    keyboard = KeyboardOptions(imeAction = ImeAction.Search),
+                    actions = KeyboardActions(
+                        onSearch = { results.firstOrNull()?.let(onOpen) },
+                    ),
+                    focusRequester = focus,
+                    textStyle = MaterialTheme.typography.bodyLarge,
+                )
             }
             Spacer(Modifier.width(Gap.s5))
             Box(
