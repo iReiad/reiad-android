@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
@@ -149,6 +150,35 @@ fun Modifier.pressGives(interaction: androidx.compose.foundation.interaction.Int
         scaleX = give
         scaleY = give
     }
+}
+
+/** A sideways row dissolves into the paper where it continues.
+
+    Every horizontally scrolling row here (the calculator topics,
+    a practice book's days, a hub's topic chips) used to cut its
+    last pill clean at the screen edge, which reads as a layout
+    mistake rather than as "more this way". Drawn OUTSIDE the
+    scroll (put this modifier before `horizontalScroll` in the
+    chain), so the fade holds still at the viewport's edge while
+    the content slides under it, and only while there is anything
+    left to slide to. */
+fun Modifier.fadesAtTheEnd(
+    slide: androidx.compose.foundation.ScrollState,
+    ground: androidx.compose.ui.graphics.Color,
+): Modifier = this.drawWithContent {
+    drawContent()
+    if (!slide.canScrollForward) return@drawWithContent
+    val breadth = 40.dp.toPx()
+    drawRect(
+        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+            0f to androidx.compose.ui.graphics.Color.Transparent,
+            1f to ground,
+            startX = size.width - breadth,
+            endX = size.width,
+        ),
+        topLeft = androidx.compose.ui.geometry.Offset(size.width - breadth, 0f),
+        size = androidx.compose.ui.geometry.Size(breadth, size.height),
+    )
 }
 
 /** The site's own four kinds, named for what a button IS rather

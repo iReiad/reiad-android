@@ -279,7 +279,10 @@ private fun Grown(flock: Int, garden: List<Plant>) {
         if (garden.isNotEmpty()) {
             Spacer(Modifier.height(Gap.s6))
             Row(
-                Modifier.horizontalScroll(rememberScrollState()),
+                rememberScrollState().let { slide ->
+                    Modifier.fadesAtTheEnd(slide, LocalReiad.current.paper)
+                        .horizontalScroll(slide)
+                },
                 horizontalArrangement = Arrangement.spacedBy(Gap.s5),
             ) {
                 for (plant in garden) {

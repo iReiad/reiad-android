@@ -234,6 +234,15 @@ private fun Reading(
     note: String? = null,
 ) {
     val c = LocalReiad.current
+    /* NO NAME, NO PLATE. Three heads on this page come down as
+       data with the site's other words, and `say()` answers null
+       until the table has arrived, so a phone meeting a manifest
+       without them drew the figure anyway: "0.51" alone in a
+       box, which a reader cannot interpret and a clinician can
+       only frown at. A number without its name is decoration,
+       and the page is honest with fewer readings. Every reading
+       that must always show passes a literal or a fallback. */
+    if (head.isNullOrBlank()) return
     Plate(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.Bottom) {
             Column(Modifier.weight(1f)) {

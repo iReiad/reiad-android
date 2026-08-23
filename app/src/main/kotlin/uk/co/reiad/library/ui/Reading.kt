@@ -106,7 +106,10 @@ fun ReadingHub(
         if (topics.isNotEmpty()) {
             item {
                 Row(
-                    Modifier.horizontalScroll(rememberScrollState()),
+                    rememberScrollState().let { slide ->
+                        Modifier.fadesAtTheEnd(slide, LocalReiad.current.paper)
+                            .horizontalScroll(slide)
+                    },
                     horizontalArrangement = Arrangement.spacedBy(Gap.s4),
                 ) {
                     TopicChip("All ${pieces.size}", topic == null) { topic = null }

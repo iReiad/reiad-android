@@ -189,7 +189,9 @@ private fun DayWalker(
     val c = LocalReiad.current
     Column {
         Row(
-            Modifier.horizontalScroll(rememberScrollState()),
+            rememberScrollState().let { slide ->
+                Modifier.fadesAtTheEnd(slide, LocalReiad.current.paper).horizontalScroll(slide)
+            },
             horizontalArrangement = Arrangement.spacedBy(Gap.s3),
         ) {
             for (day in book.days) {

@@ -148,32 +148,16 @@ fun CalculatorsScreen(
            into the paper reads as "more this way". */
         item {
             val slide = rememberScrollState()
-            Box {
-                Row(
-                    Modifier.horizontalScroll(slide),
-                    horizontalArrangement = Arrangement.spacedBy(Gap.s4),
-                ) {
-                    for (other in CALCULATORS) {
-                        PillButton(
-                            label = words.t("calc.${other.id}.short", lang),
-                            kind = ButtonKind.SOFT,
-                            pressed = other.id == calc.id,
-                            onClick = { onState(state.copy(open = other.id)) },
-                        )
-                    }
-                }
-                if (slide.canScrollForward) {
-                    Box(
-                        Modifier
-                            .align(Alignment.CenterEnd)
-                            .fillMaxHeight()
-                            .width(Gap.s10)
-                            .background(
-                                Brush.horizontalGradient(
-                                    0f to Color.Transparent,
-                                    1f to c.paper,
-                                ),
-                            ),
+            Row(
+                Modifier.fadesAtTheEnd(slide, c.paper).horizontalScroll(slide),
+                horizontalArrangement = Arrangement.spacedBy(Gap.s4),
+            ) {
+                for (other in CALCULATORS) {
+                    PillButton(
+                        label = words.t("calc.${other.id}.short", lang),
+                        kind = ButtonKind.SOFT,
+                        pressed = other.id == calc.id,
+                        onClick = { onState(state.copy(open = other.id)) },
                     )
                 }
             }
