@@ -379,12 +379,17 @@ fun ReiadTheme(
 data class GlassLook(val blur: androidx.compose.ui.unit.Dp, val veil: Float)
 
 fun glassLookOf(prefs: uk.co.reiad.library.core.Prefs): GlassLook = GlassLook(
-    blur = (prefs.blurRadius() * 22.0 / 14.0).dp,
+    /* Half again as deep as the bars first shipped with, because
+       the paint over the blur went from three tenths to one:
+       glass reads as glass when the BLUR carries it and the tint
+       only colours it, and a thin tint over a shallow blur is a
+       dirty window. */
+    blur = (prefs.blurRadius() * 32.0 / 14.0).dp,
     veil = if (prefs.finish == uk.co.reiad.library.core.Finish.PLAIN) 1f
-        else (prefs.veilAlpha() * 0.62 / 0.72).toFloat(),
+        else (prefs.veilAlpha() * 0.52 / 0.72).toFloat(),
 )
 
-val LocalGlassLook = staticCompositionLocalOf { GlassLook(22.dp, 0.62f) }
+val LocalGlassLook = staticCompositionLocalOf { GlassLook(32.dp, 0.52f) }
 
 /** Which type size is on, for the few things that size
     themselves rather than reading a `TextStyle`: the icon beside

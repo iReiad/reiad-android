@@ -146,7 +146,17 @@ fun Control(
 @Composable
 fun Modifier.pressGives(interaction: androidx.compose.foundation.interaction.InteractionSource): Modifier {
     val held by interaction.collectIsPressedAsState()
-    val give by androidx.compose.animation.core.animateFloatAsState(
+    /* Kept as a STATE and read in the layer, not unwrapped here.
+
+       `by` reads the animation in composition, so every frame of
+       every press recomposed the surface being pressed and
+       everything the modifier chain below it builds. A layer
+       lambda reads it at draw time instead: same give, same
+       spring, and the press costs a redraw rather than a
+       recomposition. Every card, row and button in the app takes
+       this modifier, so it is the cheapest single frame this app
+       can buy. */
+    val give = androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (held) 0.965f else 1f,
         animationSpec = androidx.compose.animation.core.spring(
             dampingRatio = 0.55f,
@@ -155,8 +165,8 @@ fun Modifier.pressGives(interaction: androidx.compose.foundation.interaction.Int
         label = "give",
     )
     return this.graphicsLayer {
-        scaleX = give
-        scaleY = give
+        scaleX = give.value
+        scaleY = give.value
     }
 }
 

@@ -156,7 +156,7 @@ fun WidgetFrame(
     /* One number for the whole lift, so the rise, the shadow and
        the fade of the jiggle all arrive together and leave
        together rather than as three separate opinions. */
-    val rise by androidx.compose.animation.core.animateFloatAsState(
+    val rise = androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (lifted) 1f else 0f,
         animationSpec = tween(uk.co.reiad.library.core.Motion.QUICK_MS),
         label = "rise",
@@ -186,17 +186,18 @@ fun WidgetFrame(
                     /* A card in the hand is off the board:
                        lifted, and slightly proud of the rest so
                        it is obvious which one is moving. */
-                    val grow = 1f + 0.03f * rise
+                    val lift = rise.value
+                    val grow = 1f + 0.03f * lift
                     scaleX = grow
                     scaleY = grow
-                    shadowElevation = 14f * rise
+                    shadowElevation = 14f * lift
                     shape = androidx.compose.foundation.shape.RoundedCornerShape(Corner.card)
                     clip = false
-                    alpha = if (rise > 0f) 1f else 0.9f
+                    alpha = if (lift > 0f) 1f else 0.9f
                     /* The jiggle fades out as the card rises, so
                        a widget being carried is steady in the
                        hand while the loose ones keep wobbling. */
-                    if (moving) rotationZ = lean * (1f - rise)
+                    if (moving) rotationZ = lean * (1f - lift)
                 },
         ) { body() }
 
@@ -216,7 +217,13 @@ fun WidgetFrame(
            CELL rather than the picture, so a card being carried
            does not drag its own controls across the board. */
         Row(
-            Modifier.align(Alignment.TopEnd).padding(Gap.s2).alpha(1f - rise),
+            Modifier
+                .align(Alignment.TopEnd)
+                .padding(Gap.s2)
+                /* In the layer, so a card being picked up does
+                   not recompose its own controls sixty times on
+                   the way up. */
+                .graphicsLayer { alpha = 1f - rise.value },
             horizontalArrangement = Arrangement.spacedBy(Gap.s2),
         ) {
             if (resize != null) {

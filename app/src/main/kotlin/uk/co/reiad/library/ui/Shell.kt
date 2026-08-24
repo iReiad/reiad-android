@@ -593,11 +593,24 @@ fun TopBar(
             .padding(horizontal = Gap.s7, vertical = Gap.s5)
             .clip(RoundedCornerShape(Corner.pill))
             .then(backdrop)
-            /* A TRANSLUCENT ground over the blur, where alone it
-               is opaque: the material's grain and edge still
-               paint, so the bar keeps the site's weave and gains
-               the page moving frosted beneath it. */
-            .material(Kind.PANE, c, Corner.pill, ground = c.paper.copy(alpha = 0.30f))
+            /* A BREATH of paper over the blur, and no more.
+
+               It was three tenths, on top of a tint that is
+               already six, which comes to about three quarters
+               of a sheet of paper: the blur was doing almost
+               none of the work and the bar read as a muddy slab
+               rather than as glass. The report was blunt about
+               it, and about the site performing better, which it
+               does partly because a browser's own frosted bar is
+               mostly blur.
+
+               The material's grain and edge still paint on top,
+               so the bar keeps the site's weave and its lit
+               edge, and now the page genuinely moves underneath
+               it. Where alone it is opaque: on a renderer with
+               no blur this falls back to the tint, which is the
+               translucent bar the app has always had. */
+            .material(Kind.PANE, c, Corner.pill, ground = c.paper.copy(alpha = 0.12f))
             .padding(horizontal = Gap.s5, vertical = Gap.s4),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -727,7 +740,8 @@ private fun Bar(
             .padding(horizontal = Gap.s7, vertical = Gap.s5)
             .clip(RoundedCornerShape(Corner.pill))
             .then(backdrop)
-            .material(Kind.PANE, c, Corner.pill, ground = c.paper.copy(alpha = 0.30f))
+            /* The same breath the top bar takes: see there. */
+            .material(Kind.PANE, c, Corner.pill, ground = c.paper.copy(alpha = 0.12f))
             .padding(Gap.s3),
     ) {
         /* One gesture across the whole bar, with the glass thumb
