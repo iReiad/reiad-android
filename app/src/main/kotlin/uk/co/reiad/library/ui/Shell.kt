@@ -1086,12 +1086,30 @@ private fun Drawer(
                 Spacer(Modifier.height(Gap.s8))
             }
 
+            /* ---------- ROWS THAT ARE NOT A WALL ----------
+
+               Twenty rows of two lines each, flush against one
+               another, is one grey block a reader has to parse
+               rather than a list they can scan: "congested",
+               twice. Nothing here is removed to fix that, and
+               nothing is hidden behind a disclosure, because the
+               whole argument for this menu is that it shows the
+               site's own shape.
+
+               What changed is air. Each row is its own tile with
+               a gap under it, so the eye gets a boundary for
+               free; the group's name sits further from the rows
+               it names than from the group above, which is what
+               makes a heading read as belonging DOWN; and a row
+               the reader is standing on is tinted rather than
+               only coloured, so "where am I" survives a glance.
+               Same rows, same order, four times the legibility. */
             for (group in groups) {
                 Text(
                     group.label.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     color = c.inkSoft,
-                    modifier = Modifier.padding(bottom = Gap.s4),
+                    modifier = Modifier.padding(start = Gap.s4, bottom = Gap.s5),
                 )
                 for (item in group.items) {
                     DrawerRow(
@@ -1100,6 +1118,7 @@ private fun Drawer(
                         accent = accentColour(item.accent ?: group.accent, c),
                         onClick = { onItem(item) },
                     )
+                    Spacer(Modifier.height(Gap.s2))
                 }
                 Spacer(Modifier.height(Gap.s8))
             }
@@ -1123,7 +1142,15 @@ private fun DrawerRow(
     onClick: () -> Unit,
 ) {
     val c = LocalReiad.current
-    Rung(onClick = onClick) {
+    Rung(
+        onClick = onClick,
+        /* The row you are standing on, said with a ground rather
+           than with a colour alone: on a menu of twenty
+           two-line rows an accent-coloured word is not enough to
+           find at a glance, and colour alone is not enough
+           full stop. */
+        ground = if (selected) accent.copy(alpha = 0.10f) else null,
+    ) {
         Icon(item.icon, size = 20.dp, tint = accent)
         Spacer(Modifier.width(Gap.s6))
         Column(Modifier.weight(1f)) {

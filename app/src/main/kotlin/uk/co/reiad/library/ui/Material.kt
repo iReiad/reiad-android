@@ -135,22 +135,31 @@ fun Modifier.material(
     val edge = edgeOf(kind).mapNotNull { it.prepare(kind, colours, shape, this) }
     val grain = grainBrush(colours, this)
     val tile = grainSide(this).toFloat()
-    /* The bed carries a breath of translucency on the two kinds
-       that HOLD a page's content, and only those. It is what
-       lets the ambient field through: a pane over the field
-       picks up the pool behind it the way a sheet of glass on a
-       desk picks up the wood, and two panes at different places
-       on the page stop being identical rectangles. Chips,
-       controls and grooves stay solid: they are small, they sit
-       ON the panes, and a translucent control over a translucent
-       pane over the field is the mud the nesting row of
-       `GlassSheetTest` exists to catch. An explicit `ground`
-       always wins, which is how the bars keep their own frost. */
-    val bed = ground ?: when (kind) {
-        Kind.PANE -> colours.panel.copy(alpha = 0.90f)
-        Kind.CARD -> colours.panel.copy(alpha = 0.94f)
-        else -> colours.panel
-    }
+    /* SOLID, all six of them, and that is a correction.
+
+       Panes and cards used to let a tenth of the field through
+       on the argument that a sheet of glass on a desk picks up
+       the wood. What it actually picked up was whichever ambient
+       pool happened to be behind it, which on a dark handset
+       read as a lamp switched on inside the card: reported twice,
+       the second time as "the light in the middle of all cards
+       etc is weirdly there".
+
+       It was the wrong place for the effect. The material's own
+       doctrine, written three files away, is that the face of a
+       slab is FLAT and the depth lives at the cut edge, and the
+       thing that makes these read as glass is the edge, the rim
+       and the light that arrives under a finger. The field
+       belongs BEHIND the content, in the gaps between the
+       cards, where it is atmosphere rather than a stain on the
+       thing you are trying to read.
+
+       The bars keep their frost, because an explicit `ground`
+       still wins and that is what the shell hands them: chrome
+       is where translucency says something (there is a page
+       under this and it is moving), and a card sitting on the
+       page is not chrome. */
+    val bed = ground ?: colours.panel
 
     onDrawBehind {
         val now = lit()

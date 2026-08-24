@@ -121,7 +121,13 @@ data class BoardActions(
     rule and the right one everywhere. What returns false is a
     kind with no renderer, which is the version gap above. */
 @Composable
-fun Widget(id: String, size: WidgetSize, data: BoardData, act: BoardActions): Boolean {
+fun Widget(
+    id: String,
+    size: WidgetSize,
+    data: BoardData,
+    act: BoardActions,
+    modifier: Modifier = Modifier,
+): Boolean {
     /* The SIZE reaches the kinds it genuinely changes. A feed at
        `wide` shows its first story and at `tall` the morning's
        worth; the two link bands show one row of places wide and
@@ -130,18 +136,18 @@ fun Widget(id: String, size: WidgetSize, data: BoardData, act: BoardActions): Bo
        one honest drawing ignore the argument rather than fake a
        second. */
     when (id) {
-        "continue" -> ContinueWidget(data, act)
-        "progress" -> ProgressWidget(data, act, size)
-        "pulse" -> PulseWidget(data, act, rows = if (size == WidgetSize.TALL) 4 else 1)
-        "market" -> MarketWidget(data, act, rows = if (size == WidgetSize.TALL) 5 else 3)
-        "schools" -> SchoolsWidget(data, act)
-        "tools" -> ToolsWidget(data, act)
-        "stock" -> StockWidget(data, act)
-        "streak" -> StreakWidget(data)
-        "routine" -> RoutineBoardWidget(data, act)
-        "diet" -> DietBoardWidget(data, act)
-        "target" -> TargetWidget(data, size)
-        "library" -> LibraryWidget(data, act, size)
+        "continue" -> ContinueWidget(data, act, modifier)
+        "progress" -> ProgressWidget(data, act, size, modifier)
+        "pulse" -> PulseWidget(data, act, rows = if (size == WidgetSize.TALL) 4 else 1, modifier = modifier)
+        "market" -> MarketWidget(data, act, rows = if (size == WidgetSize.TALL) 5 else 3, modifier = modifier)
+        "schools" -> SchoolsWidget(data, act, modifier)
+        "tools" -> ToolsWidget(data, act, modifier)
+        "stock" -> StockWidget(data, act, modifier)
+        "streak" -> StreakWidget(data, modifier)
+        "routine" -> RoutineBoardWidget(data, act, modifier)
+        "diet" -> DietBoardWidget(data, act, modifier)
+        "target" -> TargetWidget(data, size, modifier)
+        "library" -> LibraryWidget(data, act, size, modifier)
         else -> return false
     }
     return true
@@ -174,7 +180,7 @@ private fun WidgetHead(title: String, note: String? = null) {
     a time and a board that says "you were here, and here, and
     here" is asking them to choose rather than answering. */
 @Composable
-private fun ContinueWidget(data: BoardData, act: BoardActions) {
+private fun ContinueWidget(data: BoardData, act: BoardActions, modifier: Modifier = Modifier) {
     val latest = data.bookmarks.entries
         .filter { it.value.title.isNotBlank() }
         .maxByOrNull { it.value.ts }
@@ -187,6 +193,7 @@ private fun ContinueWidget(data: BoardData, act: BoardActions) {
            nothing has not failed at anything: this says what will
            be here and how it gets here. */
         InfoCard(
+            modifier = modifier,
             title = if (data.lang == "bn") "এখানে আপনার পাঠ থাকবে" else "Your lesson will be here",
             dek = if (data.lang == "bn") {
                 "যে কোনো একটা স্কুলের পাঠ খুললেই, পরের বার এখান থেকেই ধরতে পারবেন।"
@@ -231,13 +238,13 @@ private fun ContinueWidget(data: BoardData, act: BoardActions) {
     So it says the true thing it can say. The hub two taps away
     has the ring, the ladder and the denominator. */
 @Composable
-private fun ProgressWidget(data: BoardData, act: BoardActions, size: WidgetSize) {
+private fun ProgressWidget(data: BoardData, act: BoardActions, size: WidgetSize, modifier: Modifier = Modifier) {
     val c = LocalReiad.current
     val schools = data.site?.ladders.orEmpty()
     if (schools.isEmpty()) return
     val any = schools.any { data.ticks[it.key].orEmpty().isNotEmpty() }
 
-    Pane(Modifier.fillMaxWidth()) {
+    Pane(modifier.fillMaxWidth(), arrangement = Arrangement.SpaceBetween) {
         WidgetHead(
             if (data.lang == "bn") "কতটা হলো" else "How far you are",
             if (any || size == WidgetSize.SMALL) {
@@ -294,10 +301,11 @@ private fun ProgressWidget(data: BoardData, act: BoardActions, size: WidgetSize)
 /* ---------- the latest writing ---------- */
 
 @Composable
-private fun PulseWidget(data: BoardData, act: BoardActions, rows: Int) {
+private fun PulseWidget(data: BoardData, act: BoardActions, rows: Int, modifier: Modifier = Modifier) {
     val live = data.pieces.filter { it.status == "live" }.take(rows)
     if (live.isEmpty()) {
         InfoCard(
+            modifier = modifier,
             title = if (data.lang == "bn") "নতুন লেখা এখানে আসবে" else "New writing lands here",
             dek = if (data.lang == "bn") {
                 "নেটওয়ার্ক পেলেই সবচেয়ে নতুন লেখাগুলো এখানে দেখা যাবে।"
@@ -307,7 +315,7 @@ private fun PulseWidget(data: BoardData, act: BoardActions, rows: Int) {
         )
         return
     }
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Gap.s4)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Gap.s4)) {
         WidgetHead(if (data.lang == "bn") "নতুন লেখা" else "Latest writing")
         for (piece in live) {
             RowCard(
@@ -351,11 +359,12 @@ private fun MinutesTag(minutes: Int, lang: String) {
     can read is still better than a gap where the news should
     be. */
 @Composable
-private fun MarketWidget(data: BoardData, act: BoardActions, rows: Int) {
+private fun MarketWidget(data: BoardData, act: BoardActions, rows: Int, modifier: Modifier = Modifier) {
     val c = LocalReiad.current
     val stories = data.news.take(rows)
     if (stories.isEmpty()) {
         InfoCard(
+            modifier = modifier,
             title = if (data.lang == "bn") "বাজারের খবর এখানে আসবে" else "Market pulse lands here",
             dek = if (data.lang == "bn") {
                 "তিনটা সূত্র থেকে বাছাই করা শিরোনাম, নেটওয়ার্ক পেলেই।"
@@ -365,7 +374,7 @@ private fun MarketWidget(data: BoardData, act: BoardActions, rows: Int) {
         )
         return
     }
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Gap.s4)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Gap.s4)) {
         WidgetHead(if (data.lang == "bn") "বাজারের খবর" else "Market pulse")
         for (story in stories) {
             RowCard(
@@ -398,10 +407,10 @@ private fun SourceTag(source: String) {
 /* ---------- the schools ---------- */
 
 @Composable
-private fun SchoolsWidget(data: BoardData, act: BoardActions) {
+private fun SchoolsWidget(data: BoardData, act: BoardActions, modifier: Modifier = Modifier) {
     val schools = data.site?.ladders.orEmpty()
     if (schools.isEmpty()) return
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Gap.s6)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Gap.s6)) {
         WidgetHead(if (data.lang == "bn") "যা যা শেখানো হয়" else "The schools")
         for (school in schools) {
             SchoolCard(
@@ -418,11 +427,11 @@ private fun SchoolsWidget(data: BoardData, act: BoardActions) {
 /* ---------- the tools ---------- */
 
 @Composable
-private fun ToolsWidget(data: BoardData, act: BoardActions) {
+private fun ToolsWidget(data: BoardData, act: BoardActions, modifier: Modifier = Modifier) {
     val group: NavGroup = data.site?.nav.orEmpty().firstOrNull { it.id == "make" } ?: return
     val rows = rowsOf(group)
     if (rows.isEmpty()) return
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Gap.s4)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Gap.s4)) {
         WidgetHead(if (data.lang == "bn") "যন্ত্রপাতি" else "The tools")
         for (item in rows) {
             RowCard(
@@ -447,10 +456,11 @@ private fun ToolsWidget(data: BoardData, act: BoardActions) {
     So this is the door, and what makes it worth a slot rather
     than a link is that it says what is behind it. */
 @Composable
-private fun StockWidget(data: BoardData, act: BoardActions) {
+private fun StockWidget(data: BoardData, act: BoardActions, modifier: Modifier = Modifier) {
     val item = data.site?.nav.orEmpty()
         .flatMap { it.items }.firstOrNull { it.key == "stock" } ?: return
     GoCard(
+        modifier = modifier,
         title = item.sub?.ifBlank { null } ?: item.label,
         dek = if (data.lang == "bn") {
             "একটা টিকার লিখুন, ৪৪টা অনুপাত আর একটা রায়।"
@@ -487,8 +497,8 @@ fun Halved(content: @Composable () -> Unit) {
     for this reading, kept on the front page too. Signed out the
     set is simply empty, and an empty year is an honest one. */
 @Composable
-private fun StreakWidget(data: BoardData) {
-    Pane(Modifier.fillMaxWidth()) {
+private fun StreakWidget(data: BoardData, modifier: Modifier = Modifier) {
+    Pane(modifier.fillMaxWidth(), arrangement = Arrangement.SpaceBetween) {
         WidgetHead(if (data.lang == "bn") "যে দিনগুলো এসেছেন" else "A year of days")
         YearOfDays(data.daysActive)
     }
@@ -502,13 +512,13 @@ private fun StreakWidget(data: BoardData) {
     The same two refusals as the launcher's: yesterday's summary
     is the invitation, and an unmarked day is never a nought. */
 @Composable
-private fun RoutineBoardWidget(data: BoardData, act: BoardActions) {
+private fun RoutineBoardWidget(data: BoardData, act: BoardActions, modifier: Modifier = Modifier) {
     val c = LocalReiad.current
     val glance = data.routine?.takeIf { it.date == data.today && it.of > 0 }
     val item = data.site?.nav.orEmpty()
         .flatMap { it.items }.firstOrNull { it.key == "routine" } ?: return
 
-    Pane(Modifier.fillMaxWidth()) {
+    Pane(modifier.fillMaxWidth(), arrangement = Arrangement.SpaceBetween) {
         WidgetHead(if (data.lang == "bn") "আজকের রুটিন" else "Today's routine")
         Tap(onClick = { act.onItem(item) }, label = item.label) {
             Row(
@@ -561,13 +571,13 @@ private fun RoutineBoardWidget(data: BoardData, act: BoardActions) {
     decoration; a total with a target says both numbers and
     draws the groove. A nought is never printed. */
 @Composable
-private fun DietBoardWidget(data: BoardData, act: BoardActions) {
+private fun DietBoardWidget(data: BoardData, act: BoardActions, modifier: Modifier = Modifier) {
     val c = LocalReiad.current
     val glance = data.diet?.takeIf { it.date == data.today }
     val item = data.site?.nav.orEmpty()
         .flatMap { it.items }.firstOrNull { it.key == "diet" } ?: return
 
-    Pane(Modifier.fillMaxWidth()) {
+    Pane(modifier.fillMaxWidth(), arrangement = Arrangement.SpaceBetween) {
         WidgetHead(if (data.lang == "bn") "আজকের খাওয়া" else "Today's log")
         Tap(onClick = { act.onItem(item) }, label = item.label) {
             Column(Modifier.fillMaxWidth().padding(vertical = Gap.s3)) {
@@ -630,9 +640,9 @@ private fun DietBoardWidget(data: BoardData, act: BoardActions) {
     names itself and points at the page that computes it, rather
     than drawing a bar this widget would have to guess. */
 @Composable
-private fun TargetWidget(data: BoardData, size: WidgetSize) {
+private fun TargetWidget(data: BoardData, size: WidgetSize, modifier: Modifier = Modifier) {
     val c = LocalReiad.current
-    Pane(Modifier.fillMaxWidth()) {
+    Pane(modifier.fillMaxWidth(), arrangement = Arrangement.SpaceBetween) {
         WidgetHead(if (data.lang == "bn") "লক্ষ্য" else "A target")
         val rows = data.targets.filter { it.doneAt == null }
         if (rows.isEmpty()) {
@@ -684,9 +694,9 @@ private fun trim(n: Double): String =
 /** The reading list, on the board: the saved pieces waiting,
     newest first, each opening where it lives. */
 @Composable
-private fun LibraryWidget(data: BoardData, act: BoardActions, size: WidgetSize) {
+private fun LibraryWidget(data: BoardData, act: BoardActions, size: WidgetSize, modifier: Modifier = Modifier) {
     val c = LocalReiad.current
-    Pane(Modifier.fillMaxWidth()) {
+    Pane(modifier.fillMaxWidth(), arrangement = Arrangement.SpaceBetween) {
         WidgetHead(if (data.lang == "bn") "পরে পড়ব" else "Saved to read")
         val saved = data.kept.filter { it.saved == true }
         if (saved.isEmpty()) {

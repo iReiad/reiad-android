@@ -3530,13 +3530,19 @@ fun Home(
                     val square = if (spanOf(p.size) == 1) maxWidth
                         else (maxWidth - Gap.s7) / 2
                     val units = unitsOf(p.size)
-                    Box(
-                        Modifier.heightIn(
+                    /* The floor goes to the WIDGET, not around
+                       it. Wrapping it in a taller box left the
+                       card its own content height with dead
+                       board showing underneath, which is a
+                       reserved space that looks like a mistake
+                       rather than a tile. Every kind takes a
+                       modifier for exactly this. */
+                    Widget(
+                        p.id, p.size, data, act,
+                        modifier = Modifier.heightIn(
                             min = square * units + Gap.s7 * (units - 1),
                         ),
-                    ) {
-                        Widget(p.id, p.size, data, act)
-                    }
+                    )
                 }
             }
         }
