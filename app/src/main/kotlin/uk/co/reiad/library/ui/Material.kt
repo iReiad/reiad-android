@@ -135,7 +135,22 @@ fun Modifier.material(
     val edge = edgeOf(kind).mapNotNull { it.prepare(kind, colours, shape, this) }
     val grain = grainBrush(colours, this)
     val tile = grainSide(this).toFloat()
-    val bed = ground ?: colours.panel
+    /* The bed carries a breath of translucency on the two kinds
+       that HOLD a page's content, and only those. It is what
+       lets the ambient field through: a pane over the field
+       picks up the pool behind it the way a sheet of glass on a
+       desk picks up the wood, and two panes at different places
+       on the page stop being identical rectangles. Chips,
+       controls and grooves stay solid: they are small, they sit
+       ON the panes, and a translucent control over a translucent
+       pane over the field is the mud the nesting row of
+       `GlassSheetTest` exists to catch. An explicit `ground`
+       always wins, which is how the bars keep their own frost. */
+    val bed = ground ?: when (kind) {
+        Kind.PANE -> colours.panel.copy(alpha = 0.90f)
+        Kind.CARD -> colours.panel.copy(alpha = 0.94f)
+        else -> colours.panel
+    }
 
     onDrawBehind {
         val now = lit()

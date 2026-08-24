@@ -10,6 +10,8 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -107,14 +109,39 @@ class Days(private val account: Account) {
         json.decodeFromString(ListSerializer(Entry.serializer()), text)
     }.orEmpty()
 
-    /** One day, saved whole.
+    /**
+     * One day, saved whole. Null on success, a sentence on
+     * failure.
+     *
+     * **IT USED TO RETURN A BOOLEAN AND THAT IS WHY A WHOLE DAY
+     * WENT MISSING.** `routine_entries.user_id` was `not null`
+     * with no default, so every insert this made was a null in a
+     * not-null column: PostgREST answered 400, this answered
+     * `false`, and the caller dropped it on the floor. The screen
+     * had already drawn the marks. A reader marked a full day,
+     * opened the site, and found nothing.
+     *
+     * So the type is the fix as much as the column is. A save
+     * that can fail must be able to SAY so, and a caller holding
+     * a `Boolean` it does not read is the same bug waiting for
+     * the next table.
+     *
+     * An UPSERT on `(user_id, entry_date)`, which the unique
+     * index makes the whole of saving. `user_id` is still not
+     * named here: `20260823124900_own_rows_by_default.sql` gives
+     * the column `default auth.uid()`, so it fills itself in from
+     * the token and this device cannot get it wrong or be talked
+     * into getting it wrong.
+     */
+    suspend fun save(routineId: String, entry: Entry): String? = withContext(Dispatchers.IO) {
+        /* NOT through `withToken`, and that is deliberate. It
+           answers `null` for "no token" AND for "the block threw"
+           AND, here, for "it worked", which is three different
+           things collapsed into one value. Collapsing them is
+           what this whole function is being rewritten to stop. */
+        val token = account.token()
+            ?: return@withContext "You are not signed in, so today is on this phone only."
 
-        An UPSERT on `(user_id, entry_date)`, which the unique
-        index makes the whole of saving. `user_id` is the column's
-        default from the token, so this device never names whose
-        row it is writing: it cannot get that wrong and cannot be
-        talked into writing somebody else's. */
-    suspend fun save(routineId: String, entry: Entry): Boolean = withToken { token ->
         val body = json.encodeToString(
             ListSerializer(Written.serializer()),
             listOf(
@@ -132,15 +159,29 @@ class Days(private val account: Account) {
                 ),
             ),
         )
-        val answer = http.post("${Supabase.REST}/routine_entries?on_conflict=user_id,entry_date") {
-            header("apikey", Supabase.KEY)
-            header("Authorization", "Bearer $token")
-            header("Prefer", "resolution=merge-duplicates,return=minimal")
-            contentType(ContentType.Application.Json)
-            setBody(body)
-        }
-        answer.status.value in 200..299
-    } ?: false
+
+        runCatching {
+            val answer = http.post(
+                "${Supabase.REST}/routine_entries?on_conflict=user_id,entry_date",
+            ) {
+                header("apikey", Supabase.KEY)
+                header("Authorization", "Bearer $token")
+                header("Prefer", "resolution=merge-duplicates,return=minimal")
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+            if (answer.status.value in 200..299) {
+                null
+            } else {
+                /* What the database actually said. A reader
+                   cannot act on "not saved" and the next person
+                   reading a report can act on the sentence
+                   Postgres wrote. */
+                "Today was not saved (${answer.status.value}). " +
+                    answer.bodyAsText().take(160)
+            }
+        }.getOrElse { "Today was not saved: ${it.message ?: "no connection"}." }
+    }
 
     @Serializable
     private data class Written(

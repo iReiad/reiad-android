@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -157,38 +158,32 @@ fun GoCard(
 ) {
     val c = LocalReiad.current
     val glow = rememberGlow()
+    val touch = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Box(
         modifier
             .fillMaxWidth()
+            .pressGives(touch)
             .then(if (sway != null) Modifier.leaning(sway) else Modifier)
             .clip(RoundedCornerShape(Corner.card))
             .material(
                 kind = Kind.CARD,
                 colours = c,
                 corner = Corner.card,
-                /* The wash that arrives under a finger, out of the
-                   corner the arrow is in. It is the card's OWN
-                   gradient, which is exactly what `--surface-image`
-                   exists for: the material paints the background,
-                   so a card that painted its own would lose it. */
-                /* TWO washes, and the resting one is what the app
-                   was missing.
+                /* ONE wash, and it only arrives under a finger.
 
-                   `.gate-tile` carries `linear-gradient(150deg,
-                   accent-soft, panel 55%)` AT REST, which is what
-                   makes a card on this site look like a card of
-                   its section rather than a grey box with a
-                   coloured line beside it. The radial out of the
-                   arrow's corner is `::after`, and it only
-                   arrives under a finger. */
+                   There was a resting one, ported from the site's
+                   `.gate-tile` gradient, and it was reported twice
+                   as "that unnecessary light in the middle of
+                   cards": what sits quietly inside a browser tile
+                   reads as a lamp on a six-inch OLED, and the
+                   material's own doctrine says the face of a slab
+                   is FLAT, the depth lives at the cut edge. The
+                   section's colour is already said three ways on
+                   this card (the rail, the chip, the drawn mark)
+                   and a fourth way behind it (the ambient field),
+                   so at rest the face now says nothing. */
                 wash = { now ->
-                    val rest = Brush.linearGradient(
-                        0f to c.accentSoft,
-                        0.55f to c.panel,
-                        start = Offset.Zero,
-                        end = Offset(0f, Float.POSITIVE_INFINITY),
-                    )
-                    if (now.a <= 0f) rest
+                    if (now.a <= 0f) null
                     else Brush.radialGradient(
                         0f to c.accent.copy(alpha = 0.14f * now.a),
                         0.6f to Color.Transparent,
@@ -197,7 +192,12 @@ fun GoCard(
                 lit = { glow.lit },
             )
             .follows(glow)
-            .clickable(role = Role.Button, onClick = onOpen),
+            .clickable(
+                interactionSource = touch,
+                indication = androidx.compose.foundation.LocalIndication.current,
+                role = Role.Button,
+                onClick = onOpen,
+            ),
     ) {
         /* The rail: three pixels of the card's own accent down the
            left edge, and the one mark every interactive card here
@@ -375,22 +375,21 @@ fun RowCard(
 ) {
     val c = LocalReiad.current
     val glow = rememberGlow()
+    val touch = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Box(
         modifier
             .fillMaxWidth()
+            .pressGives(touch)
             .clip(RoundedCornerShape(Corner.pill))
             .material(
                 kind = Kind.CARD,
                 colours = c,
                 corner = Corner.pill,
+                /* Flat at rest, for the reason the card above
+                   gives: the resting gradient was the reported
+                   "light in the middle of cards". */
                 wash = { now ->
-                    val rest = Brush.linearGradient(
-                        0f to c.accentSoft,
-                        0.55f to c.panel,
-                        start = Offset.Zero,
-                        end = Offset(0f, Float.POSITIVE_INFINITY),
-                    )
-                    if (now.a <= 0f) rest
+                    if (now.a <= 0f) null
                     else Brush.radialGradient(
                         0f to c.accent.copy(alpha = 0.14f * now.a),
                         0.6f to Color.Transparent,
@@ -399,7 +398,12 @@ fun RowCard(
                 lit = { glow.lit },
             )
             .follows(glow)
-            .clickable(role = Role.Button, onClick = onOpen),
+            .clickable(
+                interactionSource = touch,
+                indication = androidx.compose.foundation.LocalIndication.current,
+                role = Role.Button,
+                onClick = onOpen,
+            ),
     ) {
         Box(Modifier.matchParentSize()) {
             Box(Modifier.width(3.dp).fillMaxHeight().background(c.accent))

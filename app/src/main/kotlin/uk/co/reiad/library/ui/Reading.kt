@@ -86,7 +86,7 @@ fun ReadingHub(
 
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
+        contentPadding = PaddingValues(top = topClearance(), bottom = bottomPadding),
     ) {
         item {
             PageHead(
@@ -106,7 +106,10 @@ fun ReadingHub(
         if (topics.isNotEmpty()) {
             item {
                 Row(
-                    Modifier.horizontalScroll(rememberScrollState()),
+                    rememberScrollState().let { slide ->
+                        Modifier.fadesAtTheEnd(slide, LocalReiad.current.paper)
+                            .horizontalScroll(slide)
+                    },
                     horizontalArrangement = Arrangement.spacedBy(Gap.s4),
                 ) {
                     TopicChip("All ${pieces.size}", topic == null) { topic = null }
@@ -226,7 +229,7 @@ fun PrevNext(
     val c = LocalReiad.current
     Column(modifier.fillMaxWidth()) {
         previous?.let {
-            Rung(Modifier.clickable(role = Role.Button) { onOpen(it) }) {
+            Rung(onClick = { onOpen(it) }) {
                 Text("←", style = MaterialTheme.typography.labelLarge, color = c.accent)
                 Spacer(Modifier.width(Gap.s6))
                 Column(Modifier.weight(1f)) {
@@ -246,7 +249,7 @@ fun PrevNext(
             }
         }
         next?.let {
-            Rung(Modifier.clickable(role = Role.Button) { onOpen(it) }) {
+            Rung(onClick = { onOpen(it) }) {
                 Column(Modifier.weight(1f)) {
                     Text("NEXT", style = MaterialTheme.typography.labelSmall, color = c.inkSoft)
                     Text(

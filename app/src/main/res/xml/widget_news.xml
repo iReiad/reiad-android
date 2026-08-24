@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The market board, on the home screen.
+
+  Three headlines of two lines each, so this is the tallest of the
+  three and the widest: a Bangla headline wraps twice in anything
+  narrower than three cells.
+
+  `updatePeriodMillis="0"` for the same reason the other two carry
+  it, and it is worth saying here because this one LOOKS like it
+  wants a poll. It does not: the feed is cached at the edge for
+  half an hour and this reads what the app last stored, so a
+  wake-up would redraw the same three headlines. It is redrawn
+  when the app fetches, which is when the answer changes.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="110dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_news_description"
+    android:updatePeriodMillis="0" />

@@ -1,5 +1,6 @@
 package uk.co.reiad.library.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,25 +21,31 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import uk.co.reiad.library.core.diet.Ate
 import uk.co.reiad.library.core.diet.Body
 import uk.co.reiad.library.core.diet.DietDay
 import uk.co.reiad.library.core.diet.DietEntry
 import uk.co.reiad.library.core.diet.DietProfile
 import uk.co.reiad.library.core.diet.FloorHit
+import uk.co.reiad.library.core.diet.FoodLibrary
+import uk.co.reiad.library.core.diet.Portion
 import uk.co.reiad.library.core.diet.Target
 import uk.co.reiad.library.core.diet.bmi
 import uk.co.reiad.library.core.diet.bmiBand
-import uk.co.reiad.library.core.diet.totalOf
+import uk.co.reiad.library.core.diet.DayTotal
+import uk.co.reiad.library.core.diet.totalFor
 import uk.co.reiad.library.core.diet.whtr
 import uk.co.reiad.library.core.diet.whtrBand
 
@@ -64,10 +70,23 @@ import uk.co.reiad.library.core.diet.whtrBand
    phrase for it: a lie of omission.
    ============================================================ */
 
+/** What a day's macros are called, for the one moment before the
+    library has arrived.
+
+    The list is the site's and comes down in `/api/foods`; this is
+    the fallback so a screen opened offline on a first run still
+    adds a day up rather than showing four blanks. It is NOT a
+    second source of truth: `library.macros` wins wherever it
+    exists, which is every run after the first. */
+private val DEFAULT_MACROS = listOf("protein", "carbs", "fat", "fibre")
+
 data class DietState(
     val loading: Boolean = true,
     val signedOut: Boolean = false,
     val today: String = "",
+    /** The day on screen. Today unless the reader walked back;
+        never the future. */
+    val shownDate: String = "",
     val profile: DietProfile? = null,
     val day: DietDay? = null,
     val entries: List<DietEntry> = emptyList(),
@@ -75,6 +94,17 @@ data class DietState(
     val target: Target? = null,
     val maintenance: Double? = null,
     val saving: Boolean = false,
+    /** The portion library, out of `/api/foods`. Null until it has
+        arrived, which on a first run with no signal it never
+        does: the picker says so rather than showing an empty
+        list. */
+    val library: FoodLibrary? = null,
+    /** The smoothed weight and the week's slope, out of the same
+        fortnight `openDiet` already fetched. Null until there are
+        enough mornings on the scale to say anything: `fit()`'s
+        own refusal, passed through rather than papered over. */
+    val trendKg: Double? = null,
+    val perWeek: uk.co.reiad.library.core.diet.Range? = null,
 )
 
 @Composable
@@ -82,12 +112,57 @@ fun DietScreen(
     state: DietState,
     onWeight: (Double) -> Unit,
     onRemove: (String) -> Unit,
+    onAdd: (Portion, Ate) -> Unit,
+    onDay: (String) -> Unit = {},
     onOpenSite: () -> Unit,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
+    /** The tool's own words, out of `/api/site`, so nothing about
+        a body is written in Kotlin. */
+    words: uk.co.reiad.library.core.DietWords = uk.co.reiad.library.core.DietWords(),
+    lang: String = "bn",
 ) {
     val c = LocalReiad.current
-    val eaten = remember(state.entries) { totalOf(state.entries) }
+    /* Three of the tool's fourteen pages, and the switch says
+       which: today's log, what it held, and what the measurements
+       say. The other eleven are the site's until they are
+       ported. */
+    var page by rememberSaveable { mutableStateOf("today") }
+    /* Adding is an ACTION rather than a fourth peer page, so it
+       is a state of the today page and not a segment: a switch
+       whose third position is a task is a switch that cannot be
+       switched back out of. Back closes it, which is why there is
+       a handler rather than only a Close. */
+    var picking by rememberSaveable { mutableStateOf(false) }
+    /* ONE arithmetic for the whole screen, and it is the site's.
+       `totalOf` summed every row's kcal, including a PLANNED one,
+       so a reader who planned tomorrow's dinner on the site read
+       today's total as both days. `totalFor` filters, and it is
+       also what the nutrient page adds up: a figure and the panel
+       under it must not be able to disagree about what today
+       was. */
+    val day = remember(state.entries, state.library) {
+        totalFor(state.entries, state.library?.macros ?: DEFAULT_MACROS)
+    }
+    BackHandler(enabled = picking) { picking = false }
+
+    /* The picker owns a scroll of its own, so it replaces the
+       page rather than sitting in it: a list with a `weight`
+       inside a lazy item has no height to take a fraction of, and
+       a picker whose search box scrolls away is one where fixing
+       a typo means scrolling back. */
+    if (picking && !state.signedOut && !state.loading) {
+        FoodPicker(
+            library = state.library,
+            place = state.profile?.place ?: state.library?.place ?: "bd",
+            lang = lang,
+            onAdd = { row, ate -> onAdd(row, ate); picking = false },
+            onClose = { picking = false },
+            onOpenSite = onOpenSite,
+            modifier = modifier.fillMaxWidth().padding(contentPadding),
+        )
+        return
+    }
 
     LazyColumn(
         modifier.fillMaxWidth(),
@@ -117,43 +192,144 @@ fun DietScreen(
             return@LazyColumn
         }
 
+        item("day") {
+            /* The date walk: back a day at a time, forward only
+               as far as today. The label is the whole state, so
+               the walker and the list can never disagree about
+               which day is on screen. */
+            val shown = state.shownDate.ifBlank { state.today }
+            val isToday = shown == state.today
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Tap(
+                    onClick = { onDay(dayShift(shown, -1)) },
+                    label = if (lang == "bn") "আগের দিন" else "The day before",
+                ) { Icon("chevron", size = 15.dp, tint = c.inkSoft, modifier = Modifier.flipX()) }
+                Text(
+                    when {
+                        isToday && lang == "bn" -> "আজ"
+                        isToday -> "Today"
+                        else -> shown
+                    },
+                    style = MaterialTheme.typography.titleSmall,
+                    color = c.ink,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+                if (!isToday) {
+                    Tap(
+                        onClick = { onDay(dayShift(shown, 1)) },
+                        label = if (lang == "bn") "পরের দিন" else "The day after",
+                    ) { Icon("chevron", size = 15.dp, tint = c.inkSoft) }
+                } else {
+                    /* The same width as the control it replaces,
+                       so today's label does not jump left when
+                       the forward arrow earns its place. */
+                    Spacer(Modifier.width(Gap.tap))
+                }
+            }
+            Spacer(Modifier.height(Gap.s4))
+        }
+
+        item("pages") {
+            val pages = listOf(
+                "today" to (if (lang == "bn") "আজ" else "Today"),
+                "held" to (if (lang == "bn") "পুষ্টি" else "Held"),
+                "you" to (if (lang == "bn") "শরীর" else "You"),
+            )
+            Segmented(
+                options = pages,
+                chosen = pages.firstOrNull { it.first == page },
+                onChoose = { page = it.first; picking = false },
+                height = Gap.tap,
+                label = { it.second },
+            ) { option, on ->
+                Text(
+                    option.second,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (on) c.paper else c.inkSoft,
+                )
+            }
+            Spacer(Modifier.height(Gap.s6))
+        }
+
+        if (page == "you") {
+            item("body") {
+                DietBodyPanel(
+                    body = state.body,
+                    words = words,
+                    lang = lang,
+                    onOpenSite = onOpenSite,
+                    trendKg = state.trendKg,
+                    perWeek = state.perWeek,
+                )
+            }
+            return@LazyColumn
+        }
+
+        if (page == "held") {
+            item("held") {
+                DietNutrientPanel(
+                    entries = state.entries,
+                    library = state.library,
+                    lang = lang,
+                    onOpenSite = onOpenSite,
+                )
+            }
+            return@LazyColumn
+        }
+
         /* ---------- where the day stands ---------- */
-        item("standing") { Standing(state, eaten) }
+        item("standing") { Standing(state, day) }
 
         /* ---------- the scale ---------- */
         item("weight") { Weighing(state.day?.weightKg, onWeight) }
 
         /* ---------- what was eaten ---------- */
-        /* The heading only where there is a list under it. With
-           none, the card above already says the day is empty and
-           a second heading saying so is the same sentence
-           twice. */
-        if (state.entries.isNotEmpty()) {
-            item("eaten-head") {
-                Spacer(Modifier.height(Gap.s5))
+        item("add") {
+            Spacer(Modifier.height(Gap.s5))
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "What you logged",
+                    if (lang == "bn") "যা লিখেছেন" else "What you logged",
                     style = MaterialTheme.typography.titleSmall,
                     color = c.ink,
-                    modifier = Modifier.semantics { heading() },
+                    modifier = Modifier.weight(1f).semantics { heading() },
+                )
+                PillButton(
+                    label = if (lang == "bn") "যোগ করুন" else "Add food",
+                    onClick = { picking = true },
+                    icon = "plus",
+                    kind = if (state.entries.isEmpty()) ButtonKind.SOLID else ButtonKind.GHOST,
                 )
             }
         }
 
         if (state.entries.isEmpty()) {
             item("empty") {
-                /* An InfoCard rather than an empty list: the end
-                   of the road, and it says where the rest of the
-                   tool is rather than pretending this screen is
-                   all of it. */
+                /* An InfoCard rather than an empty list, and it no
+                   longer sends the reader away: the portion
+                   library is on this phone. What it still says is
+                   what this list is SHORT of, because §22 is a
+                   list of what people actually eat rather than a
+                   food database, and a barcode is the site's. */
                 InfoCard(
-                    title = "The food search is on the site",
-                    dek = "Barcodes, the portion library and your own items are all "
-                        + "there. This screen shows the day and takes a weight; the "
-                        + "rest of the log is one tap away.",
+                    title = if (lang == "bn") {
+                        "আজ এখনো কিছু লেখা হয়নি"
+                    } else {
+                        "Nothing logged yet today"
+                    },
+                    dek = if (lang == "bn") {
+                        "তালিকা থেকে বেছে নিন। বারকোড আর বড় দুটো ডাটাবেস সাইটে আছে।"
+                    } else {
+                        "Pick from the portion library. Barcodes and the two public " +
+                            "databases are on the site."
+                    },
                 ) {
                     Spacer(Modifier.height(Gap.s6))
-                    PillButton("Open the log", onOpenSite, icon = "arrow")
+                    PillButton(
+                        if (lang == "bn") "সাইটে খুলুন" else "Open the log on the site",
+                        onOpenSite,
+                        icon = "arrow",
+                    )
                 }
             }
         }
@@ -167,9 +343,10 @@ fun DietScreen(
 /* ---------- the day, in one card ---------- */
 
 @Composable
-private fun Standing(state: DietState, eaten: Double) {
+private fun Standing(state: DietState, day: DayTotal) {
     val c = LocalReiad.current
     val target = state.target
+    val eaten = day.kcal
     Pane {
         if (state.entries.isEmpty()) {
             /* The sentence, never a nought. A reader opening this
@@ -195,6 +372,20 @@ private fun Standing(state: DietState, eaten: Double) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = c.inkSoft,
                     modifier = Modifier.padding(bottom = 4.dp),
+                )
+            }
+            if (day.spread > 0) {
+                Spacer(Modifier.height(Gap.s3))
+                /* How wide the day's estimates are. A restaurant
+                   plate is somewhere between 700 and 1100 and
+                   anybody who says 863 is reading a number
+                   invented by a website: the midpoint is in the
+                   total above and this is the rest of the truth
+                   about it. */
+                Text(
+                    "± ${whole(day.spread / 2)} kcal",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.inkSoft,
                 )
             }
             if (target != null && target.kcal > 0) {
@@ -271,37 +462,23 @@ private fun Weighing(weightKg: Double?, onWeight: (Double) -> Unit) {
         )
         Spacer(Modifier.height(Gap.s6))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier
-                    .width(140.dp)
-                    .height(Gap.tap)
-                    .material(uk.co.reiad.library.core.Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
-                    .padding(horizontal = Gap.s7),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                if (typed.isEmpty()) {
-                    Text("kg", style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
-                }
-                BasicTextField(
+            Box(Modifier.width(140.dp)) {
+                Field(
                     value = typed,
-                    onValueChange = { typed = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = c.ink),
-                    cursorBrush = SolidColor(c.accent),
-                    keyboardOptions = KeyboardOptions(
+                    onValue = { typed = it },
+                    filter = decimalsOnly,
+                    description = "Today's weight in kilograms",
+                    hint = "kg",
+                    keyboard = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal,
                         imeAction = ImeAction.Done,
                     ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(Gap.tap)
-                        .semantics { contentDescription = "Today's weight in kilograms" },
                 )
             }
             Spacer(Modifier.width(Gap.s6))
             PillButton(
                 label = "Save",
-                filled = typed.toDoubleOrNull() != null,
+                kind = if (typed.toDoubleOrNull() != null) ButtonKind.SOLID else ButtonKind.GHOST,
                 onClick = { typed.toDoubleOrNull()?.let(onWeight) },
             )
         }
@@ -388,6 +565,16 @@ private fun floorWords(t: Target): String {
     }
     return "This is not the figure you asked for: " + said.joinToString(", and ") + "."
 }
+
+/** A date one day along, without a calendar library: the walk is
+    small and `LocalDate` is right here. */
+private fun dayShift(date: String, by: Long): String =
+    runCatching { java.time.LocalDate.parse(date).plusDays(by).toString() }.getOrDefault(date)
+
+/** The one chevron, facing the other way. */
+private fun Modifier.flipX(): Modifier = this.then(
+    Modifier.graphicsLayer { scaleX = -1f },
+)
 
 private fun whole(v: Double): String = v.toLong().toString()
 

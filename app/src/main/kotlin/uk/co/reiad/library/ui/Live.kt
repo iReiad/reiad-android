@@ -73,6 +73,11 @@ data class LiveState(
 fun LiveScreen(
     state: LiveState,
     onConnect: () -> Unit,
+    /** Ask again. A failure that offers nothing is a dead end,
+        and the one page that cannot be read offline is exactly
+        where a reader will be pressing retry as the train leaves
+        the tunnel. */
+    onRetry: () -> Unit = {},
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
@@ -146,7 +151,7 @@ fun LiveScreen(
                 }
             }
             state.loading -> item { Skeleton(lines = 3, label = "Reading the portfolio") }
-            else -> item { Sorry(state.trouble) }
+            else -> item { Sorry(state.trouble, onRetry) }
         }
 
         /* ---------- the offer, where it is one ---------- */
@@ -447,7 +452,7 @@ private fun Connect(standing: Standing?, trouble: Trouble?, onConnect: () -> Uni
 }
 
 @Composable
-private fun Sorry(trouble: Trouble?) {
+private fun Sorry(trouble: Trouble?, onRetry: () -> Unit = {}) {
     val c = LocalReiad.current
     Plate {
         Text(
@@ -464,6 +469,13 @@ private fun Sorry(trouble: Trouble?) {
             style = MaterialTheme.typography.bodyMedium,
             color = c.inkSoft,
         )
+        /* Not for "not-configured": retrying a portfolio the site
+           has not connected is a button that can only disappoint
+           twice. */
+        if (trouble?.reason != "not-configured") {
+            Spacer(Modifier.height(Gap.s5))
+            PillButton("Try again", onRetry)
+        }
     }
 }
 

@@ -74,27 +74,53 @@ class ProfileTest {
     }
 
     @Test fun theProfileWriteNamesTheReaderToo() {
-        val write = request("suspend fun saveProfile(")
+        val at = code.indexOf("suspend fun saveProfile(")
+        assertTrue(at >= 0, "saveProfile is gone from Library.kt")
+        val body = code.substring(at, code.indexOf("suspend fun ", at + 10))
         assertTrue(
-            "id=eq." in write,
+            "profiles?id=eq." in body,
             "the profile PATCH has no id filter. The update policy already makes it " +
                 "impossible to touch anyone else's row, so this is a second lock on a " +
                 "door that never opens, and it stays because the READ is the one with " +
-                "no second lock:\n  " + write.trim(),
+                "no second lock.",
         )
     }
 
-    /** And the answer is read, on both. A 400 reported as success
-        is the failure the site had for two days, when `following`
-        named a school the CHECK constraint had not heard of. */
+    /** And the answer is read, on EVERY write. A 400 reported as
+        success is the failure the site had for two days, when
+        `following` named a school the CHECK constraint had not
+        heard of, and it is the failure that lost a day of routine
+        marks in this app: a write whose status nobody reads.
+
+        The status is read in ONE place now, the `write` helper,
+        so this asserts the delegation and the helper: every
+        Boolean-shaped escape from it would show up as an http
+        verb outside it. */
     @Test fun aRefusedSaveIsNotReportedAsSuccess() {
-        val at = code.indexOf("suspend fun saveProfile(")
-        val body = code.substring(at, code.indexOf("suspend fun ", at + 10))
+        val at = code.indexOf("private suspend fun write(")
+        assertTrue(at >= 0, "the write helper is gone from Library.kt")
+        val helper = code.substring(at, code.indexOf("suspend fun ", at + 30))
         assertTrue(
-            "isSuccess()" in body,
-            "saveProfile does not read the answer, so a 400 on the whole patch " +
-                "reports as saved",
+            "isSuccess()" in helper,
+            "the write helper does not read the answer, so a 400 on any write in " +
+                "this file reports as saved",
         )
+        assertTrue(
+            ": Boolean = withToken" !in code,
+            "a write in Library.kt answers with a Boolean again. The routine lost a " +
+                "day of marks to a Boolean nobody read: answer with a sentence or " +
+                "null through the write helper, and make the screen show the sentence.",
+        )
+        for (fn in listOf("saveProfile", "keep", "saveScenario", "addTarget", "removeTarget")) {
+            val here = code.indexOf("suspend fun $fn(")
+            assertTrue(here >= 0, "$fn is gone from Library.kt")
+            val body = code.substring(here, code.indexOf("suspend fun ", here + 10))
+            assertTrue(
+                "write(" in body,
+                "$fn does not go through the write helper, so its status is read " +
+                    "nowhere and a refused save reports as success",
+            )
+        }
     }
 
     /* ---------- the id that is not the key ---------- */

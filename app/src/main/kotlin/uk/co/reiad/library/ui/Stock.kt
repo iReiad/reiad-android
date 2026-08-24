@@ -25,8 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -199,13 +197,11 @@ fun StockScreen(
                    same choice as choosing it on the site and it
                    travels between devices like any other. */
                 Spacer(Modifier.height(Gap.s5))
-                Row(horizontalArrangement = Arrangement.spacedBy(Gap.s3)) {
-                    for ((id, label) in listOf("en" to "English", "bn" to "বাংলা")) {
-                        Tap(onClick = { onLang(id) }) {
-                            Chip(label, tone = if (lang == id) c.accent else c.inkSoft)
-                        }
-                    }
-                }
+                /* The same switch as everywhere else: hold and
+                   slide. Two loose chips were two separate hit
+                   targets, which is the shape that stopped six
+                   preferences working; see `Segmented.kt`. */
+                LangSwitch(lang, onLang)
             }
         }
 
@@ -248,27 +244,15 @@ fun StockScreen(
         item {
             Column {
                 Row(horizontalArrangement = Arrangement.spacedBy(Gap.s5)) {
-                    Control(Modifier.clickable { onCopyLink() }) {
-                        Text(
-                            t(Keys.COPY_LINK),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = c.ink,
-                            maxLines = 1,
-                        )
-                    }
-                    Control(Modifier.clickable { onExport() }) {
-                        Text(
-                            t(Keys.DOWNLOAD),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = c.ink,
-                            maxLines = 1,
-                        )
-                    }
+                    PillButton(t(Keys.COPY_LINK), onCopyLink, kind = ButtonKind.SOFT)
+                    PillButton(t(Keys.DOWNLOAD), onExport, kind = ButtonKind.SOFT)
                 }
                 Spacer(Modifier.height(Gap.s4))
-                Control(Modifier.clickable { onState(StockState(lang = state.lang)) }) {
-                    Text(t(Keys.RESET), style = MaterialTheme.typography.labelLarge, color = c.ink)
-                }
+                PillButton(
+                    t(Keys.RESET),
+                    { onState(StockState(lang = state.lang)) },
+                    kind = ButtonKind.SOFT,
+                )
                 if (onSave != null) {
                     Spacer(Modifier.height(Gap.s7))
                     SaveCheck(
@@ -970,22 +954,14 @@ private fun FieldRow(
             return@Column
         }
 
-        TextField(
+        Field(
             value = typed,
-            onValueChange = { text ->
+            onValue = { text ->
                 typed = text
                 onState(state.copy(inputs = withField(state.inputs, field.id, text)))
             },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = c.paperSunk,
-                unfocusedContainerColor = c.paperSunk,
-                focusedTextColor = c.ink,
-                unfocusedTextColor = c.ink,
-                cursorColor = c.accent,
-            ),
-            modifier = Modifier.fillMaxWidth(),
+            description = words.t("i.${field.id}", lang),
+            keyboard = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
 
         field.slider?.let { s ->
@@ -1094,9 +1070,15 @@ private fun SaveCheck(
             Box(Modifier.weight(1f)) {
                 Field(
                     value = name,
-                    onValueChange = { name = it.take(80); complaint = null },
-                    label = label,
-                    placeholder = "Beximco, August",
+                    onValue = { name = it; complaint = null },
+                    description = label,
+                    hint = "Beximco, August",
+                    /* The column is `char_length(name) <= 80`, so
+                       the cap is where the keystroke is rather
+                       than where the save is: a box that accepts
+                       ninety characters and rejects them on Save
+                       is a box that lied while you were typing. */
+                    filter = { it.take(80) },
                 )
             }
             PillButton(

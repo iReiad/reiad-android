@@ -171,6 +171,34 @@ Its own block because `ROUTINE.md` is 523 lines and it deserves
 the room: bands, tasks, marks, the year view, the jar, the
 garden, the six seasons, quick entry.
 
+### Block 7b. The diet tool
+
+Not in the original list, and it earned its place by being the
+biggest single gap between what the site does and what the app
+did: `/tools/diet` is fourteen pages and the app had one, which
+could show a day and could not add a thing to it. A log you
+cannot write to is a screen that describes a tool rather than
+being one.
+
+Three of the fourteen now: today, what the day held, and what the
+measurements say. The portion library arrives from `/api/foods`
+and no food, no nutrient and no unit is named anywhere in this
+repository, so a dish added on the site is on the phone at the
+next fetch. What is still the site's is the barcode scanner, the
+two public food databases, and the eleven reference pages.
+
+The arithmetic is `shared/diet.ts`'s, ported: `totalFor`,
+`readingFor` and the coverage floor, which is the rule the whole
+tool turns on. Under half the day known, NOTHING is drawn: a
+confident number that is missing a third of the day is more
+dangerous than no number, and a phone that drew it anyway would
+be the more dangerous of the two.
+
+Coverage is weighted by ENERGY and never by the number of rows,
+which is the one thing here that would have shipped wrong and
+looked right. A 780 kcal restaurant plate beside a cup of rice is
+not a half-known day.
+
 ### Block 8. Offline as a feature
 
 - Download a school: every lesson body, every photo, with a size

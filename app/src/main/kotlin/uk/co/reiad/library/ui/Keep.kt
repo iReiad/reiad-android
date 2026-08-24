@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -76,32 +75,19 @@ fun Keep(
     val c = LocalReiad.current
     var writing by remember(state.url) { mutableStateOf(state.note.isNotBlank()) }
 
-    val touch = rememberTouch()
     Column(modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.spacedBy(Gap.s5)) {
-            Control(
-                modifier = Modifier.clickable(role = Role.Checkbox) {
-                    touch.latch(!state.saved)
-                    onSave(!state.saved)
-                },
-                ground = if (state.saved) c.accent else c.panel,
-            ) {
-                Text(
-                    if (state.saved) "Saved ✓" else "Save",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (state.saved) c.paper else c.accent,
-                )
-            }
-            Control(
-                modifier = Modifier.clickable(role = Role.Button) { writing = !writing },
-                ground = c.panel,
-            ) {
-                Text(
-                    if (state.note.isNotBlank()) "Note" else "Add a note",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = c.accent,
-                )
-            }
+            PillButton(
+                if (state.saved) "Saved ✓" else "Save",
+                { onSave(!state.saved) },
+                kind = ButtonKind.SOFT,
+                pressed = state.saved,
+            )
+            PillButton(
+                if (state.note.isNotBlank()) "Note" else "Add a note",
+                { writing = !writing },
+                kind = ButtonKind.SOFT,
+            )
         }
 
         if (writing) {
@@ -125,36 +111,21 @@ private fun NoteBox(url: String, note: String, onNote: (String) -> Unit) {
         onNote(text)
     }
 
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .heightIn(min = 96.dp)
-            .clip(RoundedCornerShape(Corner.field))
-            .material(Kind.GROOVE, c, Corner.field, ground = c.paperSunk)
-            .padding(horizontal = Gap.s6, vertical = Gap.s5),
-    ) {
-        if (text.isEmpty()) {
-            Text(
-                "Whatever you want to remember about this.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = c.inkSoft,
-            )
-        }
-        BasicTextField(
-            value = text,
-            /* The same 20,000 the column checks and the site's
-               own editor stops at. About eight pages: far past a
-               margin note and far short of anything that costs
-               this project money. Stopped HERE as well, because a
-               reader whose note is silently truncated by the
-               database has lost words they watched themselves
-               type. */
-            onValueChange = { if (it.length <= 20_000) text = it },
-            textStyle = BanglaBody.copy(color = c.ink),
-            cursorBrush = SolidColor(c.accent),
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
+    Field(
+        value = text,
+        /* The same 20,000 the column checks and the site's own
+           editor stops at. About eight pages: far past a margin
+           note and far short of anything that costs this project
+           money. Stopped HERE as well, because a reader whose
+           note is silently truncated by the database has lost
+           words they watched themselves type. */
+        onValue = { text = it },
+        filter = { it.take(20_000) },
+        description = "Your note about this piece",
+        hint = "Whatever you want to remember about this.",
+        size = FieldSize.AREA,
+        textStyle = BanglaBody,
+    )
 }
 
 /** A year of days, drawn.

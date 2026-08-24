@@ -84,8 +84,8 @@ rather than a cut, the sheets rise over the page and stop below
 the clock instead of behind it, every three-way choice is one
 thumb sliding in its groove, a meter pours to its number, and a
 pressed surface gives two per cent under the finger on the
-light's own curve. A state change hums through the vibrator — a
-tick, a latch, a segment — and plain navigation stays silent,
+light's own curve. A state change (a tick, a latch, a segment)
+hums through the vibrator, and plain navigation stays silent,
 because a reading app that buzzes on every row is a reading app
 somebody turns the vibrator off for, and then the ticks lose
 their voice too. Reduced motion snaps all of it, as everywhere.
@@ -117,8 +117,8 @@ The parser reads like a browser reads. Pretty-printed source no
 longer breaks a sentence where the author's editor wrapped the
 line, a dissolved block leaves a line break at its edges rather
 than gluing a German sentence to its Bangla meaning, and the
-German school's own furniture — the `.muster` pattern box, the
-`.satz` sentence pairs, the `.merke` rail — renders as itself
+German school's own furniture (the `.muster` pattern box, the
+`.satz` sentence pairs, the `.merke` rail) renders as itself
 rather than as loose grey prose, off the site's own rules.
 `lesson-satzbau.json` is the fixture that holds all three. A
 table sits on its own piece of glass, its columns as wide as the
@@ -251,6 +251,7 @@ its words and reports itself.
 ```sh
 cd core/src/test/resources/fixtures
 curl -sS -o site.json          https://reiad.co.uk/api/site
+curl -sS -o foods.json         https://reiad.co.uk/api/foods
 curl -sS -o money.json         https://reiad.co.uk/api/schools/money
 curl -sS -o lesson-share.json  https://reiad.co.uk/api/schools/money/basics-1/share
 ```
@@ -258,3 +259,11 @@ curl -sS -o lesson-share.json  https://reiad.co.uk/api/schools/money/basics-1/sh
 Everything the app reads is public, so this needs no credential.
 A refresh that turns a test red is the app finding out the site
 changed, which is what they are for.
+
+`foods.json` earns that sentence more than any of them.
+`FoodSurfaceTest` fails on a field the endpoint sends and this app
+does not carry, and `FoodsTest` walks every numeric field on all
+eighty-three rows: a nutrient added to `shared/foods.ts` has to
+reach a screen here with no release, which is only true while
+nothing in `Foods.kt` names one. Refresh it and the tests say
+whether that is still so.

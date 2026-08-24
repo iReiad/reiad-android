@@ -109,6 +109,17 @@ object ProgressKeys {
     const val COURSES_ANSWERS = "courses-answers"
     const val DAYS_ACTIVE = "days-active"
     const val READER_PREFS = "reader-prefs"
+
+    /** What the reader arranged their front page into: an
+        ordered list of `"<widget>:<size>"`.
+
+        A key like any other, so it travels between devices, and
+        a `MARK` rather than a `SET` for the reason `reader-prefs`
+        is one. A board is REPLACED, not accumulated: the union of
+        two devices' boards holds everything either ever had, so a
+        widget removed on a phone would come back off the laptop,
+        and again, and again, with nothing looking broken. */
+    const val HOME_BOARD = "home-board"
 }
 
 /** Every key that travels to the account, with the rule that
@@ -130,6 +141,7 @@ object SyncKeys {
         put(ProgressKeys.COURSES_ANSWERS, MergeRule.SET)
         put(ProgressKeys.DAYS_ACTIVE, MergeRule.SET)
         put(ProgressKeys.READER_PREFS, MergeRule.MARK)
+        put(ProgressKeys.HOME_BOARD, MergeRule.MARK)
     }
 
     fun ruleOf(key: String): MergeRule? = ALL[key]

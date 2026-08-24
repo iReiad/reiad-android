@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -62,53 +61,6 @@ import uk.co.reiad.library.core.Target
    with no app release, and one spelled here would be a 400 on
    the whole patch the day the two disagreed.
    ============================================================ */
-
-/** A labelled box somebody types into.
-
-    A GROOVE, for the reason the site's `NOT_GLASS` note gives: a
-    text field's affordance is the caret and the focus ring, and a
-    lit resting rim on a box you type into is a box that looks
-    like a button. */
-@Composable
-fun Field(
-    value: String,
-    onValueChange: (String) -> Unit,
-    /** What a screen reader says. The placeholder is a DRAWING:
-        a field carrying no label at all reads out as "edit box"
-        and nothing about what goes in it. */
-    label: String,
-    modifier: Modifier = Modifier,
-    placeholder: String = "",
-    keyboard: KeyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-) {
-    val c = LocalReiad.current
-    Box(
-        modifier
-            .fillMaxWidth()
-            .height(Gap.tap)
-            .clip(RoundedCornerShape(Corner.pill))
-            .material(Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
-            .padding(horizontal = Gap.s7),
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        if (value.isEmpty() && placeholder.isNotBlank()) {
-            Text(placeholder, style = MaterialTheme.typography.bodyMedium, color = c.inkSoft)
-        }
-        BasicTextField(
-            value = value,
-            onValueChange = onValueChange,
-            singleLine = true,
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = c.ink),
-            cursorBrush = SolidColor(c.accent),
-            keyboardOptions = keyboard,
-            /* The whole groove, not just its width: the field's
-               own node carries the click, so one drawn a line
-               tall inside a 44dp box is a 17dp target however
-               tall the box is. */
-            modifier = Modifier.fillMaxSize().semantics { contentDescription = label },
-        )
-    }
-}
 
 /** A question: what is being asked, why it is being asked, and
     the answers.
@@ -276,9 +228,11 @@ fun SetupPanel(
         ) {
             Field(
                 value = state.name,
-                onValueChange = { onChange(state.copy(name = it)) },
-                label = "Your name",
-                placeholder = "Your name",
+                onValue = { onChange(state.copy(name = it)) },
+                description = "Your name",
+                /* No hint. `Question` above it already asks for a
+                   name, and a placeholder repeating the label is
+                   the same sentence twice in two type sizes. */
                 keyboard = KeyboardOptions(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Next,
@@ -338,7 +292,7 @@ fun SetupPanel(
         ) {
             PillButton(
                 label = if (state.busy) "Saving…" else "Save",
-                filled = true,
+                kind = ButtonKind.SOLID,
                 onClick = { if (!state.busy) onSave() },
             )
             if (setup) {
@@ -471,9 +425,9 @@ fun AddTarget(
         Question(ask = "Call it what?", why = "How it will read on this screen.") {
             Field(
                 value = draft.label,
-                onValueChange = { draft = draft.copy(label = it.take(80)) },
-                label = "What to call this target",
-                placeholder = "Finish the money school",
+                onValue = { draft = draft.copy(label = it.take(80)) },
+                description = "What to call this target",
+                hint = "Finish the money school",
             )
         }
         Spacer(Modifier.height(Gap.s7))
@@ -488,7 +442,7 @@ fun AddTarget(
         ) {
             Field(
                 value = draft.target,
-                onValueChange = { typed ->
+                onValue = { typed ->
                     /* Digits and one point. A number field on
                        Android still admits a minus sign and a
                        second separator on some keyboards, and
@@ -496,8 +450,8 @@ fun AddTarget(
                        preference. */
                     draft = draft.copy(target = typed.filter { it.isDigit() || it == '.' })
                 },
-                label = "The number to aim at",
-                placeholder = "60",
+                description = "The number to aim at",
+                hint = "60",
                 keyboard = KeyboardOptions(
                     keyboardType = KeyboardType.Decimal,
                     imeAction = ImeAction.Next,
@@ -506,9 +460,9 @@ fun AddTarget(
             if (draft.kind == "metric") {
                 Field(
                     value = draft.unit,
-                    onValueChange = { draft = draft.copy(unit = it.take(20)) },
-                    label = "The unit, if it has one",
-                    placeholder = "kg, hours, pages",
+                    onValue = { draft = draft.copy(unit = it.take(20)) },
+                    description = "The unit, if it has one",
+                    hint = "kg, hours, pages",
                 )
             }
         }
@@ -517,7 +471,7 @@ fun AddTarget(
         Row(horizontalArrangement = Arrangement.spacedBy(Gap.s5)) {
             PillButton(
                 label = "Add it",
-                filled = true,
+                kind = ButtonKind.SOLID,
                 onClick = {
                     if (draft.ready()) {
                         onAdd(draft.asTarget())
@@ -582,7 +536,7 @@ fun RoutinePanel(line: RoutineLine, onOpen: () -> Unit) {
             color = c.inkSoft,
         )
         Spacer(Modifier.height(Gap.s6))
-        PillButton(label = "Open today", filled = true, onClick = onOpen)
+        PillButton(label = "Open today", kind = ButtonKind.SOLID, onClick = onOpen)
         Spacer(Modifier.height(Gap.s5))
         Text(
             "Your routine is on your account, so it is the same on every device " +

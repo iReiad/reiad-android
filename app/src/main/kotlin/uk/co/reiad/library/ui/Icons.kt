@@ -39,26 +39,59 @@ internal val SHAPES: Map<String, String> = mapOf(
     "home" to "M3 11l9-8 9 8M5 9.5V21h14V9.5",
     "skills" to "M12 3l9 5-9 5-9-5 9-5zM5 11v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5",
     "coins" to "M12 7c4.4 0 8-1.3 8-2s-3.6-2-8-2-8 1.3-8 2 3.6 2 8 2zM4 5v6c0 .7 3.6 2 8 2s8-1.3 8-2V5M4 11v6c0 .7 3.6 2 8 2s8-1.3 8-2v-6",
-    "book" to "M4 4h6a3 3 0 013 3v13a2.5 2.5 0 00-2.5-2.5H4zM20 4h-6a3 3 0 00-3 3v13a2.5 2.5 0 012.5-2.5H20z",
-    "scroll" to "M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2zM9 8h6M9 12h6M9 16h3",
+    "book" to "M4 4h6a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0 -2.5-2.5H4zM20 4h-6a3 3 0 0 0 -3 3v13a2.5 2.5 0 0 1 2.5-2.5H20z",
+    "scroll" to "M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2H7a2 2 0 0 1 -2-2V6a2 2 0 0 1 2-2zM9 8h6M9 12h6M9 16h3",
     "signpost" to "M12 3v18M12 6h7l2 2.5L19 11h-7zM12 13H5l-2 2.5L5 18h7",
-    "cart" to "M3 4h2l2.5 11h10L20 7H6M9 20a1 1 0 100-2 1 1 0 000 2zM17 20a1 1 0 100-2 1 1 0 000 2z",
-    "compass" to "M12 21a9 9 0 100-18 9 9 0 000 18zM15.5 8.5l-2 5-5 2 2-5z",
-    "calculator" to "M6 3h12a1 1 0 011 1v16a1 1 0 01-1 1H6a1 1 0 01-1-1V4a1 1 0 011-1zM8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M16 15h0",
-    "gauge" to "M4 18a8 8 0 1116 0M12 18l4-5",
+    "cart" to "M3 4h2l2.5 11h10L20 7H6M9 20a1 1 0 1 0 0-2 1 1 0 000 2zM17 20a1 1 0 1 0 0-2 1 1 0 000 2z",
+    "compass" to "M12 21a9 9 0 1 0 0-18 9 9 0 000 18zM15.5 8.5l-2 5-5 2 2-5z",
+    "calculator" to "M6 3h12a1 1 0 0 1 1 1v16a1 1 0 0 1 -1 1H6a1 1 0 0 1 -1-1V4a1 1 0 0 1 1-1zM8 7h8M8 11h2M12 11h2M16 11h0M8 15h2M12 15h2M16 15h0",
+    "gauge" to "M3.5 17 A 8.5 8.5 0 1 1 20.5 17 M12 17 L16 10 M13.4 17 A 1.4 1.4 0 1 0 10.6 17 A 1.4 1.4 0 1 0 13.4 17",
     /* The site's own mark, beside its name in the top bar:
        three bars of a chart, which is what a finance library
        draws rather than a monogram. */
     "bars" to "M5 20V11M12 20V4M19 20v-6",
     "pen" to "M4 20l1-4L16 5l3 3L8 19zM14 7l3 3",
-    "briefcase" to "M4 8h16a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1zM9 8V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V8",
-    "person" to "M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-3.9 3.6-6 8-6s8 2.1 8 6",
+    "briefcase" to "M4 8h16a1 1 0 0 1 1 1v10a1 1 0 0 1 -1 1H4a1 1 0 0 1 -1-1V9a1 1 0 0 1 1-1zM9 8V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V8",
+    "person" to "M12 12a4 4 0 1 0 0-8 4 4 0 000 8zM4 21c0-3.9 3.6-6 8-6s8 2.1 8 6",
     "mail" to "M3 6h18v12H3zM3 7l9 6 9-6",
-    "user" to "M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c0-3.9 3.6-6 8-6s8 2.1 8 6",
-    "search" to "M11 18a7 7 0 100-14 7 7 0 000 14zM16 16l5 5",
-    "magnifier" to "M11 18a7 7 0 100-14 7 7 0 000 14zM16 16l5 5",
-    "theme" to "M12 3a9 9 0 100 18 9 9 0 000-18zM12 3v18",
+    "user" to "M12 12a4 4 0 1 0 0-8 4 4 0 000 8zM4 21c0-3.9 3.6-6 8-6s8 2.1 8 6",
+    /* The site's own proportions, out of `next/components/icons.tsx`:
+       r 6.3 at (10.8, 10.8) with the handle from 15.4 to 20.5. It
+       was r 7 at (11, 11) with a handle running to 21, which is a
+       lens filling the whole grid and a stub poking out of it, and
+       at 19dp in a round button it reads as a letter P. */
+    "search" to "M9.5 14.5 A 5 5 0 1 0 9.5 4.5 A 5 5 0 1 0 9.5 14.5 M13.6 13.6 L20 20",
+    "magnifier" to "M9.5 14.5 A 5 5 0 1 0 9.5 4.5 A 5 5 0 1 0 9.5 14.5 M13.6 13.6 L20 20",
+    /* A crescent, not the site's half-filled circle.
+
+       `icons.tsx` draws a circle with the left half FILLED, which
+       is the contrast mark everybody knows. Everything here is
+       STROKED, so that drawing arrives as a circle with a line
+       down the middle of it, which is the international sign for
+       "no". It was in the top bar at 19dp for three releases and
+       was reported as one. A crescent survives being stroked. */
+    "theme" to "M15.6 3.6 A 8.5 8.5 0 1 0 20.4 14.5 A 7 7 0 0 1 15.6 3.6 Z",
+    /* Settings, which is what the top bar's second button opens.
+       It was `theme` there, and a theme mark on a screen holding
+       type size, measure, theme and language names one row of
+       four. */
+    "sliders" to "M4 7h9M17 7h3M4 17h3M11 17h9M15 4v6M8 14v6",
     "chevron" to "M9 5l7 7-7 7",
+    /* The board's arranging strip. Up, down, and the two that
+       say which way a widget is about to change width: an arrow
+       pointing in for narrower and out for wider, because a
+       reader has to know what a control does BEFORE pressing it
+       and "resize" alone does not say which way. */
+    "chevron-up" to "M5 15l7-7 7 7",
+    "chevron-down" to "M5 9l7 7 7-7",
+    "shrink" to "M9.5 4.5v5h-5M14.5 19.5v-5h5M9.5 9.5L4 4M14.5 14.5L20 20",
+    "grow" to "M4.5 9.5v-5h5M19.5 14.5v5h-5M4.5 4.5L10 10M19.5 19.5L14 14",
+    /* The Save under a byline, and the reading-list widget. The
+       site draws this one as `keep`, and the catalogue in
+       `shared/widgets.ts` is shared, so the NAME has to be the
+       site's. */
+    "keep" to "M6.5 3.5h11v17l-5.5-4-5.5 4z",
+    "leaf" to "M19 5c0 7.2-4.4 11.5-9.6 11.9C7 17.1 5 15.2 5 12.6 5 7.7 10.4 5 19 5zM16 8L5.5 18.5",
     "arrow" to "M4 12h15M13.5 6.5L20 12l-6.5 5.5",
     "menu" to "M4 7h16M4 12h16M4 17h16",
     "close" to "M6 6l12 12M18 6L6 18",
@@ -70,11 +103,11 @@ internal val SHAPES: Map<String, String> = mapOf(
     "bird" to "M4 14c3-6 8-8 12-8 0 5-2 8-5 9l-2 5M9 15l-3 4M8 6h.01",
     "seed" to "M12 21c0-6 3-10 8-11-1 6-4 9-8 11zM12 21C8 19 5 16 4 10c5 1 8 5 8 11z",
     "cap" to "M12 3l9 5-9 5-9-5 9-5zM7 11v4c0 1.4 2.2 2.5 5 2.5s5-1.1 5-2.5v-4",
-    "microscope" to "M9 4h4l1 8H8zM6 20h13M8 16h6a4 4 0 000-8M11 12v4",
-    "wallet" to "M4 7h14a2 2 0 012 2v8a2 2 0 01-2 2H4a1 1 0 01-1-1V6a2 2 0 012-2h11M17 13h.01",
-    "id" to "M3 6h18v12H3zM9 12a2 2 0 100-4 2 2 0 000 4zM6 16c.6-1.6 1.8-2.4 3-2.4s2.4.8 3 2.4M15 10h4M15 13h3",
+    "microscope" to "M9 4h4l1 8H8zM6 20h13M8 16h6a4 4 0 0 0 0-8M11 12v4",
+    "wallet" to "M4 7h14a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2H4a1 1 0 0 1 -1-1V6a2 2 0 0 1 2-2h11M17 13h.01",
+    "id" to "M3 6h18v12H3zM9 12a2 2 0 1 0 0-4 2 2 0 000 4zM6 16c.6-1.6 1.8-2.4 3-2.4s2.4.8 3 2.4M15 10h4M15 13h3",
     "shield" to "M12 3l8 3v6c0 4.4-3.2 7.7-8 9-4.8-1.3-8-4.6-8-9V6z",
-    "door" to "M6 3h9a1 1 0 011 1v16a1 1 0 01-1 1H6zM12 12h.01M15 3h3v18h-3",
+    "door" to "M6 3h9a1 1 0 0 1 1 1v16a1 1 0 0 1 -1 1H6zM12 12h.01M15 3h3v18h-3",
     "calendar" to "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
     "warning" to "M12 4l9 16H3zM12 10v4M12 17h.01",
 )

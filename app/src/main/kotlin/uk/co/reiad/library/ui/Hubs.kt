@@ -84,11 +84,14 @@ fun SkillsScreen(
     onOpen: (NavItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val rows = group?.items.orEmpty().filter { it.key != "skills" }
+    /* `hub` off the nav table rather than this screen's own key.
+       The site filtered on the key too, in `/skills`, which is
+       one page holding a fact two readers need. */
+    val rows = group?.items.orEmpty().filter { !it.hub }
 
     LazyColumn(
         modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
+        contentPadding = PaddingValues(top = topClearance(), bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(Gap.s6),
     ) {
         item("head") {
@@ -145,7 +148,7 @@ fun PortfolioScreen(
 ) {
     LazyColumn(
         modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
+        contentPadding = PaddingValues(top = topClearance(), bottom = bottomPadding),
         verticalArrangement = Arrangement.spacedBy(Gap.s6),
     ) {
         item("head") {

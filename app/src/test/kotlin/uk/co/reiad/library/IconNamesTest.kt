@@ -72,4 +72,35 @@ class IconNamesTest {
             "${spare.size} reached only through the manifest: ${spare.joinToString(", ")}")
         assertTrue(SHAPES.isNotEmpty())
     }
+    /** No arc packs its flags.
+
+        The SVG grammar lets `a8.5 8.5 0 1117 0` stand for
+        large-arc 1, sweep 1, x 17, y 0, and Compose's PathParser
+        reads that inconsistently: four icons here had arcs that
+        simply never drew. The dial was a stray tick, the moon was
+        two dots, and the magnifier was a circle with a line
+        through it, which at 19dp in the top bar is the
+        international sign for "no". All three were reported from
+        photographs of a real phone, twice, because nothing that
+        reads source can see a shape.
+
+        So every flag gets its own space. This finds the packed
+        form: an `a` or `A`, its two radii and rotation, then two
+        flags run together with what follows.
+
+        `IconSheetTest` is the other half and the one that catches
+        a WRONG drawing rather than an unreadable one: it renders
+        every icon at the size a bar draws it, to be looked at. */
+    @Test fun noArcPacksItsFlags() {
+        val packed = Regex("""[aA]\s*[\d.]+[\s,]+[\d.]+[\s,]+[\d.]+[\s,]+[01][01]""")
+        val bad = SHAPES.filter { (_, path) -> packed.containsMatchIn(path) }
+        assertTrue(
+            bad.isEmpty(),
+            "these arcs pack their flags, which Compose's PathParser reads " +
+                "inconsistently and which has silently dropped whole arcs here " +
+                "before:\n  " + bad.keys.sorted().joinToString("\n  ") +
+                "\nWrite each flag with its own space: `A 8.5 8.5 0 1 1 20.5 17`.",
+        )
+    }
+
 }

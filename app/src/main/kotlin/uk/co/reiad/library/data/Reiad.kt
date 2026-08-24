@@ -21,15 +21,21 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 import uk.co.reiad.library.core.LadderResponse
 import uk.co.reiad.library.core.LessonResponse
 import uk.co.reiad.library.core.AUDIENCE_KEY
+import uk.co.reiad.library.core.BOARD_KEY
+import uk.co.reiad.library.core.BoardRecord
 import uk.co.reiad.library.core.PREFS_KEY
+import uk.co.reiad.library.core.REMIND_KEY
 import uk.co.reiad.library.core.Prefs
 import uk.co.reiad.library.core.Bookmark
 import uk.co.reiad.library.core.BookKeyResponse
 import uk.co.reiad.library.core.BookResponse
 import uk.co.reiad.library.core.PieceResponse
+import uk.co.reiad.library.core.NewsResponse
 import uk.co.reiad.library.core.PiecesResponse
 import uk.co.reiad.library.core.stock.ToolWords
 import uk.co.reiad.library.core.ProgressKeys
@@ -79,6 +85,29 @@ import uk.co.reiad.library.core.SyncKeys
     declarations over one name give two objects and DataStore
     throws on the second read. */
 internal val Context.store by preferencesDataStore(name = "reiad")
+
+/** Today's routine, as much of it as a launcher may hold. */
+@Serializable
+data class RoutineGlance(
+    val date: String = "",
+    val marked: Int = 0,
+    val of: Int = 0,
+)
+
+/** Today's food log, the same way: the day's total and the
+    target it sits against, and nothing else. `target` is 0 where
+    the reader has not set one, which draws as the total alone
+    rather than as a bar against an invented denominator. */
+@Serializable
+data class DietGlance(
+    val date: String = "",
+    val kcal: Int = 0,
+    val target: Int = 0,
+    /** How many things were logged: the difference between "0
+        kcal" and "nothing logged", which are different
+        sentences. */
+    val entries: Int = 0,
+)
 
 class Reiad(private val context: Context) {
 
@@ -141,6 +170,70 @@ class Reiad(private val context: Context) {
         of six pieces should not pull six bodies. */
     suspend fun pieces(): Cached<PiecesResponse> =
         fetch("$SITE_ORIGIN/api/articles", "cache:pieces", PiecesResponse.serializer())
+
+    /** The market board: three RSS feeds, read and scored on the
+        server, cached at the edge for half an hour.
+
+        Cached HERE as well, under the same rule everything else
+        follows, and for this one the stale copy is worth more
+        than most: yesterday's headlines with a date on them are
+        a board, and an empty box is not. */
+    suspend fun news(): Cached<NewsResponse> =
+        fetch("$SITE_ORIGIN/api/news", "cache:news", NewsResponse.serializer())
+
+    /**
+     * The portion library: eighty-three bilingual rows, the
+     * nineteen nutrients and the two lists that split a scaled
+     * row.
+     *
+     * A route of its own rather than a field on `/api/site`,
+     * because it is 57 KB needed by one screen: a reader who
+     * never opens the diet tool should not download the food
+     * library to see the front page.
+     *
+     * **Decoded as a `JsonObject`, deliberately.** Nothing in
+     * `FoodLibrary` names a nutrient, so a figure added to
+     * `shared/foods.ts` next year is scaled and drawn by THIS
+     * build. A `@Serializable` class with nineteen fields on it
+     * would decode the new row perfectly and drop the new
+     * number, which is a copy of a vocabulary wearing a
+     * serialiser.
+     */
+    suspend fun foods(): Cached<JsonObject> =
+        fetch("$SITE_ORIGIN/api/foods", "cache:foods", JsonObject.serializer())
+
+    suspend fun cachedFoods(): JsonObject? = cached("cache:foods", JsonObject.serializer())
+
+    /* ---------- the routine, summarised for the launcher ----------
+
+       A home-screen widget runs in the LAUNCHER's process and
+       reads only what this app last stored. The routine is the
+       one screen whose state lives behind the account and was
+       cached nowhere, so its widget had nothing honest to draw.
+       This is the smallest true summary: which day, how many of
+       its counting tasks are marked, and out of how many. Written
+       by the model every time the day is read or a mark lands,
+       so the widget and the screen cannot disagree. */
+
+    suspend fun keepRoutineGlance(glance: RoutineGlance) {
+        context.store.edit {
+            it[stringPreferencesKey("cache:routine-today")] =
+                json.encodeToString(RoutineGlance.serializer(), glance)
+        }
+    }
+
+    suspend fun cachedRoutineGlance(): RoutineGlance? =
+        cached("cache:routine-today", RoutineGlance.serializer())
+
+    suspend fun keepDietGlance(glance: DietGlance) {
+        context.store.edit {
+            it[stringPreferencesKey("cache:diet-today")] =
+                json.encodeToString(DietGlance.serializer(), glance)
+        }
+    }
+
+    suspend fun cachedDietGlance(): DietGlance? =
+        cached("cache:diet-today", DietGlance.serializer())
 
     /** One piece, body included. Cached under its own slug, so a
         piece read once is readable on a train. */
@@ -235,6 +328,27 @@ class Reiad(private val context: Context) {
         val fromCache = runCatching { json.decodeFromString(serializer, saved) }
         Cached(fromCache.getOrNull(), stale = true, failed = live.exceptionOrNull())
     }
+
+    /** What the last successful fetch stored, and nothing else.
+
+        **For a home-screen widget, which cannot afford a round
+        trip.** A widget is drawn in the launcher's process and
+        its update is a broadcast with a timeout on it, so a
+        `fetch()` that hangs on a slow connection is a widget that
+        shows nothing at all until it gives up. Everything a
+        widget says is something the app has already fetched and
+        stored, so reading the store is also what keeps the widget
+        and the screen behind it from ever disagreeing.
+
+        Null where nothing has been stored yet, which for a widget
+        means the invitation rather than a blank. */
+    suspend fun <T> cached(cacheKey: String, serializer: DeserializationStrategy<T>): T? {
+        val saved = context.store.data.first()[stringPreferencesKey(cacheKey)] ?: return null
+        return runCatching { json.decodeFromString(serializer, saved) }.getOrNull()
+    }
+
+    suspend fun cachedManifest(): SiteManifest? = cached("cache:site", SiteManifest.serializer())
+    suspend fun cachedNews(): NewsResponse? = cached("cache:news", NewsResponse.serializer())
 
     /* ---------- what the reader did ----------
 
@@ -352,6 +466,57 @@ class Reiad(private val context: Context) {
             if (next.themeChoice == Theme.SYSTEM) stored.remove(key(THEME_KEY))
             else stored[key(THEME_KEY)] = next.themeChoice.id
             stored[key(TOOL_LANG_KEY)] = next.lang
+        }
+    }
+
+    /* ---------- the board the reader arranged ----------
+
+       `home-board`, a synced key like any other, holding
+       `{"board": ["continue:full", ...], "ts": ...}`. The `ts` is
+       what makes it a MARK: a board is replaced rather than
+       accumulated, so the newer of two devices wins and the union
+       of them would be a board holding everything either ever
+       had.
+
+       Null is a real answer here and it is not the same as empty.
+       Null is "never arranged" and gets the site's own default;
+       an empty list is a reader who took everything off, and
+       filling that back in would be the page overruling them. */
+
+    val board: Flow<List<String>?> = context.store.data.map { stored ->
+        val raw = stored[key(BOARD_KEY)]
+        if (raw.isNullOrBlank()) return@map null
+        runCatching {
+            json.decodeFromString(BoardRecord.serializer(), raw).board
+        }.getOrNull()
+    }
+
+    suspend fun saveBoard(next: List<String>) {
+        context.store.edit { stored ->
+            stored[key(BOARD_KEY)] = json.encodeToString(
+                BoardRecord.serializer(),
+                BoardRecord(board = next, ts = System.currentTimeMillis()),
+            )
+        }
+    }
+
+    /** Back to whatever the site's default is, which is not the
+        same as an empty board: the key is REMOVED, so the next
+        read says "never arranged" and the default answers. */
+    suspend fun resetBoard() {
+        context.store.edit { it.remove(key(BOARD_KEY)) }
+    }
+
+    /* ---------- the daily reminder ----------
+
+       This handset's, and not the account's. See `REMIND_KEY`. */
+
+    val remindAt: Flow<String?> = context.store.data.map { it[key(REMIND_KEY)] }
+
+    suspend fun setRemindAt(value: String?) {
+        context.store.edit { stored ->
+            if (value == null) stored.remove(key(REMIND_KEY))
+            else stored[key(REMIND_KEY)] = value
         }
     }
 

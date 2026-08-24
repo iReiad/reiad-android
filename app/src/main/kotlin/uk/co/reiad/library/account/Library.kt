@@ -96,6 +96,36 @@ class Library(private val account: Account) {
         json.decodeFromString(ListSerializer(Kept.serializer()), text)
     }.orEmpty()
 
+    /* ---------- how a write answers ----------
+
+       A SENTENCE OR NULL, never a Boolean, on every write in
+       this file. The routine lost a whole day to a Boolean
+       nobody read (`Days.kt` tells it in full), and two writes
+       here were worse than that: `keep` and `removeScenario`
+       returned `true` without looking at the status at all, so a
+       note that hit a 400 was reported saved to the caller AND
+       to the reader.
+
+       The sentence carries what the database actually said,
+       because "not saved" is not actionable and "violates check
+       constraint profiles_pace_check" is. */
+    private suspend fun write(
+        what: String,
+        block: suspend (String) -> io.ktor.client.statement.HttpResponse,
+    ): String? {
+        val token = account.token()
+            ?: return "You are not signed in, so $what stayed on this phone."
+        return runCatching {
+            val answer = block(token)
+            if (answer.status.isSuccess()) {
+                null
+            } else {
+                "Could not save $what (${answer.status.value}). " +
+                    answer.bodyAsText().take(160)
+            }
+        }.getOrElse { "Could not save $what: ${it.message ?: "no connection"}." }
+    }
+
     /** Saves, unsaves, or writes a note.
 
         An UPSERT rather than a read-then-decide, which is one
@@ -115,7 +145,7 @@ class Library(private val account: Account) {
         kind: String,
         saved: Boolean? = null,
         note: String? = null,
-    ): Boolean = withToken { token ->
+    ): String? = write(if (note != null) "your note" else "that") { token ->
         val row = buildJsonObject {
             put("url", url)
             put("title", title)
@@ -130,8 +160,7 @@ class Library(private val account: Account) {
             contentType(ContentType.Application.Json)
             setBody(buildJsonArray { add(row) }.toString())
         }
-        true
-    } ?: false
+    }
 
     /* ---------- saved scenarios ---------- */
 
@@ -162,31 +191,29 @@ class Library(private val account: Account) {
         name: String,
         query: String,
         summary: String,
-    ): Boolean = withToken { token ->
+    ): String? = write("the scenario") { token ->
         val row = buildJsonObject {
             put("tool", tool)
             put("name", name.trim().take(80))
             putJsonObject("inputs") { put("query", query) }
             put("summary", summary.take(200))
         }
-        val answer = http.post("${Supabase.REST}/scenarios") {
+        http.post("${Supabase.REST}/scenarios") {
             header("apikey", Supabase.KEY)
             header("Authorization", "Bearer $token")
             header("Prefer", "return=minimal")
             contentType(ContentType.Application.Json)
             setBody(buildJsonArray { add(row) }.toString())
         }
-        answer.status.isSuccess()
-    } ?: false
+    }
 
-    suspend fun removeScenario(id: String): Boolean = withToken { token ->
+    suspend fun removeScenario(id: String): String? = write("that change") { token ->
         http.delete("${Supabase.REST}/scenarios?id=eq.${encodeComponent(id)}") {
             header("apikey", Supabase.KEY)
             header("Authorization", "Bearer $token")
             header("Prefer", "return=minimal")
         }
-        true
-    } ?: false
+    }
 
     /* ---------- the profile, and the one filter that matters ---------- */
 
@@ -245,8 +272,9 @@ class Library(private val account: Account) {
         following: List<String>? = null,
         pace: String? = null,
         setupAt: String? = null,
-    ): Boolean = withToken { token ->
-        val me = account.reader.first()?.id ?: return@withToken false
+    ): String? {
+        val me = account.reader.first()?.id
+            ?: return "You are not signed in, so your settings stayed on this phone."
         val patch = buildJsonObject {
             displayName?.let { put("display_name", it) }
             following?.let { list ->
@@ -255,22 +283,24 @@ class Library(private val account: Account) {
             pace?.let { put("pace", it) }
             setupAt?.let { put("setup_at", it) }
         }
-        val answer = http.patch(
-            "${Supabase.REST}/profiles?id=eq.${encodeComponent(me)}",
-        ) {
-            header("apikey", Supabase.KEY)
-            header("Authorization", "Bearer $token")
-            header("Prefer", "return=minimal")
-            contentType(ContentType.Application.Json)
-            setBody(patch.toString())
+        /* And the answer is READ, through `write`. A `following`
+           carrying a school the CHECK constraint has not heard of
+           is a 400 on the whole patch, which is how every save on
+           the site answered "Could not save that" for two days.
+           What `write` adds is the constraint's own name in the
+           sentence, which is the difference between a reader
+           reporting "it says could not save" and one reporting
+           the line that names the bug. */
+        return write("your settings") { token ->
+            http.patch("${Supabase.REST}/profiles?id=eq.${encodeComponent(me)}") {
+                header("apikey", Supabase.KEY)
+                header("Authorization", "Bearer $token")
+                header("Prefer", "return=minimal")
+                contentType(ContentType.Application.Json)
+                setBody(patch.toString())
+            }
         }
-        /* And the answer is READ. A `following` carrying a school
-           the CHECK constraint has not heard of is a 400 on the
-           whole patch, which is how every save on the site
-           answered "Could not save that" for two days: reporting
-           that as success would hide the same failure here. */
-        answer.status.isSuccess()
-    } ?: false
+    }
 
     /* ---------- targets ---------- */
 
@@ -285,7 +315,7 @@ class Library(private val account: Account) {
         json.decodeFromString(ListSerializer(Target.serializer()), text)
     }.orEmpty()
 
-    suspend fun addTarget(target: Target): Boolean = withToken { token ->
+    suspend fun addTarget(target: Target): String? = write("the target") { token ->
         http.post("${Supabase.REST}/targets") {
             header("apikey", Supabase.KEY)
             header("Authorization", "Bearer $token")
@@ -310,8 +340,7 @@ class Library(private val account: Account) {
                 }.toString(),
             )
         }
-        true
-    } ?: false
+    }
 
     /** Every row this account holds, gone.
 
@@ -327,29 +356,40 @@ class Library(private val account: Account) {
         for. `user_id` is never named: the row-level policy is
         `auth.uid() = user_id`, so a delete with no filter can
         only ever reach this reader's own rows. */
-    suspend fun eraseAll(): Boolean = withToken { token ->
-        var whole = true
+    suspend fun eraseAll(): String? {
+        val token = account.token()
+            ?: return "You are not signed in, so there is nothing of yours to erase."
+        /* Table by table, and the STATUS is read on each: the old
+           version asked only whether the request threw, so a 400
+           counted as erased, on the one operation where reporting
+           false success means somebody walks away believing their
+           rows are gone. */
+        val left = mutableListOf<String>()
         for (table in listOf("library", "targets", "scenarios", "progress")) {
             val gone = runCatching {
                 http.delete("${Supabase.REST}/$table?user_id=not.is.null") {
                     header("apikey", Supabase.KEY)
                     header("Authorization", "Bearer $token")
                     header("Prefer", "return=minimal")
-                }
-            }.isSuccess
-            if (!gone) whole = false
+                }.status.isSuccess()
+            }.getOrDefault(false)
+            if (!gone) left.add(table)
         }
-        whole
-    } ?: false
+        return if (left.isEmpty()) {
+            null
+        } else {
+            "Not everything was erased: ${left.joinToString(", ")} did not answer. " +
+                "Try again, and if it keeps failing say so rather than assuming it is gone."
+        }
+    }
 
-    suspend fun removeTarget(id: String): Boolean = withToken { token ->
+    suspend fun removeTarget(id: String): String? = write("that change") { token ->
         http.delete("${Supabase.REST}/targets?id=eq.${encodeComponent(id)}") {
             header("apikey", Supabase.KEY)
             header("Authorization", "Bearer $token")
             header("Prefer", "return=minimal")
         }
-        true
-    } ?: false
+    }
 }
 
 /* ============================================================

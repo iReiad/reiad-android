@@ -402,8 +402,8 @@ object BodyParser {
     /* ---------- node to inline ---------- */
 
     /** Tags that own a line wherever they appear. When one has to
-        DISSOLVE into a run of inlines — a paragraph inside a table
-        cell, a dt/dd pair inside a wrapper nobody has met — its
+        DISSOLVE into a run of inlines (a paragraph inside a table
+        cell, a dt/dd pair inside a wrapper nobody has met) its
         edges become line breaks, because two block children joined
         with nothing turn a sentence and its meaning into one word. */
     private val BLOCKISH = setOf(
@@ -601,7 +601,7 @@ object BodyParser {
                collapses the indentation under `white-space:
                normal`; nothing here did, so every line the author
                wrapped arrived as a line break in the middle of a
-               sentence — "তোমার / বন্ধু" split mid-phrase in the
+               sentence: "তোমার / বন্ধু" split mid-phrase in the
                satzbau lesson was this. One space is what CSS
                leaves. */
             val decoded = unescape(text).replace(WHITESPACE, " ")

@@ -49,6 +49,26 @@ val DARK: DeviceConfig = HANDSET.copy(nightMode = NightMode.NIGHT)
     where it breaks on a real phone. Only the frame is longer. */
 val TALL: DeviceConfig = HANDSET.copy(screenHeight = 915 * 3 * 3)
 
+/* ---------- the phones this has to work on ----------
+
+   "It should work perfectly throughout all phones" is the ask,
+   and the checkable half of it is that a screen laid out for one
+   width is not laid out for another. Three real shapes:
+
+     SMALL   a 360dp phone, which is still the commonest width in
+             Bangladesh and the one every truncation shows up on
+             first. A Bangla lesson title is long.
+     HANDSET the 412dp the site's own screenshots are taken at.
+     TABLET  wide enough that the shell swaps its bottom bar for a
+             rail, which is a different layout rather than the
+             same one stretched.
+
+   A screen that reads at all three is a screen whose problems
+   are content rather than geometry. */
+val SMALL: DeviceConfig = HANDSET.copy(screenWidth = 360 * 3, screenHeight = 780 * 3)
+
+val TABLET: DeviceConfig = HANDSET.copy(screenWidth = 840 * 3, screenHeight = 1100 * 3)
+
 fun paparazzi(device: DeviceConfig = HANDSET): Paparazzi = Paparazzi(
     deviceConfig = device,
     /* The real faces are in `app/src/main/res/font`, so the render
@@ -72,6 +92,22 @@ internal val json = Json {
 fun <T> fixture(name: String, serializer: kotlinx.serialization.DeserializationStrategy<T>): T {
     val file = File("../core/src/test/resources/fixtures/$name")
     return json.decodeFromString(serializer, file.readText())
+}
+
+/** The portion library out of `/api/foods`'s own payload.
+
+    Built through `FoodLibrary.from` rather than decoded, because
+    that IS the thing under test everywhere it is used: nothing in
+    the app names a nutrient, so a drawing made from a hand-written
+    library would prove nothing about whether the real one reaches
+    the screen. */
+fun fixtureFoods(): uk.co.reiad.library.core.diet.FoodLibrary {
+    val file = File("../core/src/test/resources/fixtures/foods.json")
+    val root = json.parseToJsonElement(file.readText())
+        as kotlinx.serialization.json.JsonObject
+    return checkNotNull(uk.co.reiad.library.core.diet.FoodLibrary.from(root)) {
+        "the endpoint's own payload did not parse"
+    }
 }
 
 /** One field of a fixture, for an endpoint that wraps what a

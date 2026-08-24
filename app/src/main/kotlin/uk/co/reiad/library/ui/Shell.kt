@@ -2,7 +2,14 @@ package uk.co.reiad.library.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +21,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,14 +38,29 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.HazeStyle
+import dev.chrisbanes.haze.HazeTint
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -142,11 +165,58 @@ fun Shell(
         More and four groups of drawer. */
     onAccount: () -> Unit,
     onAudience: (String) -> Unit,
+    /** The handset's own lean, for the ambient field's parallax.
+        Passed in where the caller already holds one so the
+        sensor is registered once, defaulted for every mount that
+        does not care. */
+    sway: Sway = rememberSway(),
     content: @Composable () -> Unit,
 ) {
     val chrome = rememberChrome()
     val groups = groupsFor(state.site, state.audience)
 
+    /* What the two floating bars actually came to, in pixels,
+       fed back so a page knows how far to keep clear. Nought
+       until the first layout pass, which is what the seeded
+       default in `LocalChromeGaps` is for. */
+    var topPx by remember { mutableIntStateOf(0) }
+    var bottomPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    val gaps = ChromeGaps(
+        top = if (topPx > 0) with(density) { topPx.toDp() } + Gap.s6 else TOP_BAR_ONLY,
+        bottom = if (bottomPx > 0) with(density) { bottomPx.toDp() } + Gap.s6 else BOTTOM_BAR_ONLY,
+    )
+    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val navBar = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+
+    /* ---------- the glass ----------
+
+       The page is the SOURCE and the two floating bars are the
+       EFFECT, so prose scrolls under them and shows through
+       frosted. That is the one thing the site's glass cannot do
+       and a phone's can: a browser's backdrop-filter stops at
+       the viewport, and a native bar blurs the page actually
+       moving beneath it.
+
+       The tint is the paper at just over half, NOT an opaque
+       ground: the material's grain and edge still paint on top,
+       so the bars keep the site's weave and gain the depth. The
+       noise is nought because the grain is already ours.
+
+       Where RenderEffect is not there (Android 11, a snapshot
+       renderer), haze paints the tint alone, which is exactly
+       the translucent bar this replaces: the fallback IS the old
+       design. */
+    val c = LocalReiad.current
+    val glass = remember { HazeState() }
+    val glassStyle = HazeStyle(
+        backgroundColor = c.paper,
+        tint = HazeTint(c.paper.copy(alpha = 0.62f)),
+        blurRadius = 22.dp,
+        noiseFactor = 0f,
+    )
+
+    CompositionLocalProvider(LocalChromeGaps provides gaps) {
     Box(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxSize()) {
             if (chrome != Chrome.BAR && groups.isNotEmpty()) {
@@ -156,19 +226,13 @@ fun Shell(
                 )
             }
             Box(Modifier.weight(1f).fillMaxHeight()) {
-                content()
-                /* The page fades out under each floating bar
-                   rather than being cut off by it. Both bars are
-                   glass and the page scrolls through them, which
-                   is the design — but between the status bar and
-                   the pill there was a strip where prose floated
-                   over nothing, colliding with the clock. A
-                   breath of the paper's own colour under each
-                   end says "the page continues under here" the
-                   way the site's veil does. */
-                if (chrome == Chrome.BAR) {
-                    EdgeFade(Modifier.align(Alignment.TopCenter), top = true)
-                    EdgeFade(Modifier.align(Alignment.BottomCenter), top = false)
+                Box(Modifier.fillMaxSize().hazeSource(glass)) {
+                    /* Under everything and inside the haze
+                       source, so the bars and the menu frost it:
+                       the field is most of what they differ from.
+                       See `Ambient.kt`. */
+                    AmbientGround(sway, Modifier.matchParentSize())
+                    content()
                 }
                 if (chrome == Chrome.BAR) {
                     /* The site's own top bar, and it is the app's
@@ -178,31 +242,107 @@ fun Shell(
                        are not destinations. The app had neither,
                        so search was reachable only through a
                        drawer nobody opens for it. */
+                    /* Under the bar and over the page, so prose
+                       leaves before it reaches the clock. */
+                    BarScrim(
+                        /* Down past the bar's own top edge, so the
+                           strip between the system's bar and this
+                           one is covered too, and the SOLID run
+                           (seven tenths of this) clears the whole
+                           status inset on its own. */
+                        height = statusBar + Gap.s5 + Gap.s6 + Gap.s7,
+                        fromTop = true,
+                        modifier = Modifier.align(Alignment.TopCenter),
+                    )
                     TopBar(
                         name = state.site?.site?.name ?: "Reiad's Library",
-                        modifier = Modifier.align(Alignment.TopCenter),
+                        backdrop = Modifier.hazeEffect(glass, glassStyle),
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            /* `ChromeGapTest` reads this back: the
+                               clearance a page keeps has to be
+                               what the bar came to. */
+                            .testTag("topbar")
+                            .onSizeChanged { topPx = it.height },
                         signedIn = state.signedIn,
+                        /* The key in `nav.ts`'s `you` group. Said
+                           here rather than passed in, because the
+                           bar reads the same field to decide the
+                           same question and two callers deciding
+                           it separately is how they part. */
+                        onAccountPage = state.current == "account",
                         onHome = onHome,
                         onSearch = onSearch,
                         onSettings = onSettings,
                         onAccount = onAccount,
                     )
                 }
+                /* THE MENU SITS UNDER THE BAR. It used to mount
+                   over the whole screen, so opening it swallowed
+                   the one control a reader had just learned to
+                   stand on. Now the bar keeps the top layer: the
+                   sheet rises to meet it and stops a breath
+                   above, More stays lit and pressable as the way
+                   back out, and any other tab both navigates and
+                   closes. */
+                if (chrome == Chrome.BAR) {
+                    Drawer(
+                        open = state.drawerOpen && groups.isNotEmpty(),
+                        site = state.site,
+                        groups = groups,
+                        current = state.current,
+                        audience = state.audience,
+                        backdrop = Modifier.hazeEffect(glass, glassStyle),
+                        clearBelow = gaps.bottom,
+                        onItem = { onDrawer(false); onItem(it) },
+                        onAudience = onAudience,
+                        onSettings = { onDrawer(false); onSettings() },
+                        onClose = { onDrawer(false) },
+                    )
+                }
                 if (chrome == Chrome.BAR && groups.isNotEmpty()) {
+                    BarScrim(
+                        height = navBar + Gap.s5 + Gap.s6,
+                        fromTop = false,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
                     Bar(
                         groups = groups,
                         current = state.current,
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                        onHome = onHome,
-                        onGroup = onGroup,
-                        onMore = { onDrawer(true) },
+                        menuOpen = state.drawerOpen,
+                        backdrop = Modifier.hazeEffect(glass, glassStyle),
+                        /* The thumb is a LENS, not a state: its
+                           own frost is clearer and deeper than
+                           the bar around it, so the page reads
+                           differently through it and the pill is
+                           a thing riding ON the glass. */
+                        thumbBackdrop = Modifier.hazeEffect(
+                            glass,
+                            HazeStyle(
+                                backgroundColor = c.paper,
+                                tint = HazeTint(c.paper.copy(alpha = 0.32f)),
+                                blurRadius = 30.dp,
+                                noiseFactor = 0f,
+                            ),
+                        ),
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .testTag("bottombar")
+                            .onSizeChanged { bottomPx = it.height },
+                        onHome = { if (state.drawerOpen) onDrawer(false); onHome() },
+                        onGroup = { if (state.drawerOpen) onDrawer(false); onGroup(it) },
+                        onMore = { onDrawer(!state.drawerOpen) },
                     )
                 }
             }
         }
 
-        if (state.drawerOpen) {
+        /* A rail-width screen keeps the old arrangement: the
+           drawer is bar chrome, and without a bar there is
+           nothing it could hide behind. */
+        if (state.drawerOpen && chrome != Chrome.BAR) {
             Drawer(
+                open = true,
                 site = state.site,
                 groups = groups,
                 current = state.current,
@@ -214,27 +354,7 @@ fun Shell(
             )
         }
     }
-}
-
-/** The soft ground behind a floating bar's end of the screen.
-
-    A vertical gradient of the page's own paper: solid where the
-    system's clock and gesture bar live, gone by the time the
-    page's prose is fully out from under the glass. Drawn between
-    the content and the bars, so both stay legible over anything
-    that scrolls past. */
-@Composable
-private fun EdgeFade(modifier: Modifier, top: Boolean) {
-    val c = LocalReiad.current
-    val colours =
-        if (top) listOf(c.paper.copy(alpha = 0.92f), c.paper.copy(alpha = 0f))
-        else listOf(c.paper.copy(alpha = 0f), c.paper.copy(alpha = 0.92f))
-    Box(
-        modifier
-            .fillMaxWidth()
-            .height(if (top) 64.dp else 56.dp)
-            .background(androidx.compose.ui.graphics.Brush.verticalGradient(colours)),
-    )
+    }
 }
 
 /* ---------- how far a page has to keep clear ----------
@@ -250,11 +370,48 @@ private fun EdgeFade(modifier: Modifier, top: Boolean) {
    every one of them opened at the old distance and every one of
    them had its heading cut in half. */
 
-/** Clear of the top bar. */
-val TOP_CLEARANCE = 84.dp
+/** What the bar is on its own, before the system's own bars are
+    added to it. Not the answer: `topClearance()` is. */
+private val TOP_BAR_ONLY = 84.dp
+private val BOTTOM_BAR_ONLY = 96.dp
 
-/** Clear of the bottom bar. */
-val BAR_CLEARANCE = 96.dp
+/** How tall each floating bar actually measured, plus a gap.
+
+    **Measured rather than written down, and that is the whole
+    fix.** Both of these were constants, and both were wrong on
+    every phone with a notch: a bar carries
+    `windowInsetsPadding(statusBars)`, so its bottom edge sits
+    that much lower than the number said, and the page opened
+    UNDER it. The first heading of every screen was cut in half
+    and prose ran into the clock. It is worse than a fixed number
+    that is merely too small, because it is right on whatever
+    device it was tuned on: an emulator with no cutout.
+
+    A bar's height is not a constant for a second reason. It holds
+    text, and the reader chooses the type size, so at 150% the bar
+    grows and a constant cannot follow it.
+
+    Seeded with the analytic guess so the first frame is close and
+    nothing jumps, then replaced by what the bar measured. */
+data class ChromeGaps(val top: Dp, val bottom: Dp)
+
+val LocalChromeGaps = compositionLocalOf { ChromeGaps(TOP_BAR_ONLY, BOTTOM_BAR_ONLY) }
+
+/** How far below the top of the window a page's first line goes. */
+@Composable
+fun topClearance(): Dp =
+    if (rememberChrome() == Chrome.BAR) LocalChromeGaps.current.top else Gap.s10
+
+/** How far above the bottom of the window a page's last line
+    ends. A rail has no bottom bar, so there only the system's own
+    navigation bar has to be cleared. */
+@Composable
+fun barClearance(): Dp =
+    if (rememberChrome() == Chrome.BAR) {
+        LocalChromeGaps.current.bottom
+    } else {
+        WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + Gap.s8
+    }
 
 /** What a scrolling page's `contentPadding` should be.
 
@@ -265,42 +422,120 @@ fun pagePadding(horizontal: Dp = Gap.s8, extraTop: Dp = 0.dp): PaddingValues =
     PaddingValues(
         start = horizontal,
         end = horizontal,
-        top = (if (rememberChrome() == Chrome.BAR) TOP_CLEARANCE else Gap.s10) + extraTop,
-        bottom = BAR_CLEARANCE,
+        top = topClearance() + extraTop,
+        bottom = barClearance(),
     )
+
+/** The fade behind a system bar.
+
+    A glass bar that floats lets a reader see prose through it,
+    which is the point. The system's own bar is not glass and does
+    not move: the clock and the battery are painted on top of
+    whatever scrolls under them, so a line of Bangla arriving
+    there collides with the time and both become unreadable. This
+    is the page's own ground fading out under it, so text leaves
+    rather than crashes.
+
+    Not a solid block, because a hard edge across the top of the
+    screen is a title bar, and this site does not have one. */
+@Composable
+private fun BarScrim(height: Dp, fromTop: Boolean, modifier: Modifier = Modifier) {
+    if (height <= 0.dp) return
+    val c = LocalReiad.current
+    /* Solid for most of its height and then a short fade, rather
+       than fading the whole way. A gradient that starts fading at
+       the top leaves prose legible right up to the bar's edge,
+       which is what a photograph of a real phone showed: a line
+       of Bangla ending under the clock. */
+    /* Solid for seven tenths, then out. It faded from a third,
+       and a third of this strip is less than the status inset:
+       a scrolled headline sat legible under the clock, which a
+       report called the upper margin problem and was right to.
+       The clock's row is the system's; nothing of the page may
+       read there. */
+    val stops = arrayOf(
+        0.0f to c.paper,
+        0.7f to c.paper,
+        0.87f to c.paper.copy(alpha = 0.6f),
+        1.0f to Color.Transparent,
+    )
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(height)
+            .background(
+                if (fromTop) {
+                    Brush.verticalGradient(*stops)
+                } else {
+                    Brush.verticalGradient(
+                        *stops.map { (at, colour) -> 1f - at to colour }
+                            .reversed().toTypedArray(),
+                    )
+                },
+            ),
+    )
+}
 
 /* ---------- the top bar ---------- */
 
 /** One of the round buttons in the top bar.
 
-    A `control`, because it is one of two on a bar and each acts
-    on its own: the site's rule is that a lone button has to look
-    pressable because nothing else says it is. */
+    **Not a `control`, and that is the design system's own
+    answer rather than a saving.** `--standing` is the axis for
+    exactly this: a LONE button has to look pressable because
+    nothing else says it is, and a row of them does not, because
+    the row is the affordance. Three 44dp circles of glass, each
+    with its own hairline rim, ten apart, read as one
+    three-lobed object and were reported twice as congested.
+
+    The target is still 44dp. What went is the ring around it,
+    not the room to press it. */
 @Composable
-private fun RoundButton(icon: String, label: String, onClick: () -> Unit) {
+private fun RoundButton(
+    icon: String,
+    label: String,
+    onClick: () -> Unit,
+    /** Whether this is the place the reader is standing.
+
+        The bar says where you are and one control up here is a
+        destination too, so it has to be able to say the same
+        thing: a person button that looks identical on the account
+        page and off it is a reader pressing it to find out. */
+    here: Boolean = false,
+) {
     val c = LocalReiad.current
-    val glow = rememberGlow()
-    val touch = rememberTouch()
+    val touch = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Box(
         Modifier
             .size(Gap.tap)
-            .pressing(glow)
+            .pressGives(touch)
             .clip(RoundedCornerShape(Corner.pill))
-            .material(Kind.CONTROL, c, Corner.pill, lit = { glow.lit })
-            .follows(glow)
-            /* A visible rim. The material gives a control its
-               lit edge, and at 44dp against a pane of the same
-               glass that edge is not enough to say "this is a
-               button": the site draws a hairline circle. */
-            .border(1.dp, c.hairline, RoundedCornerShape(Corner.pill))
-            .clickable(role = Role.Button) {
-                touch.tap()
-                onClick()
-            }
-            .semantics { contentDescription = label },
+            /* Only the one you are on has a ground, which is the
+               bar's own rule one level up and the site's
+               `--standing` axis: three circles with the same rest
+               state read as three boxes. */
+            .then(
+                if (!here) Modifier
+                else Modifier.material(
+                    kind = Kind.CHIP,
+                    colours = c,
+                    corner = Corner.pill,
+                    ground = c.accentSoft,
+                ),
+            )
+            .clickable(
+                interactionSource = touch,
+                indication = androidx.compose.foundation.LocalIndication.current,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .semantics {
+                contentDescription = label
+                if (here) selected = true
+            },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, size = 19.dp, tint = c.ink)
+        Icon(icon, size = 19.dp, tint = if (here) c.accent else c.ink)
     }
 }
 
@@ -326,6 +561,17 @@ fun TopBar(
         of what a reader learns from the control before pressing
         it. */
     signedIn: Boolean = false,
+    /** Whether the account is the page on screen. The bottom bar
+        deliberately never offers the account, so this control is
+        the only one that can say so. */
+    onAccountPage: Boolean = false,
+    /** The frosted backdrop, applied AFTER the clip so the blur
+        is bounded by the pill: unclipped, the effect paints its
+        rectangle and the corners read as a pane of dirtier
+        glass behind the bar. The shell owns the haze state, so
+        this arrives as a modifier rather than the bar knowing
+        the machinery. */
+    backdrop: Modifier = Modifier,
     onHome: () -> Unit,
     onSearch: () -> Unit,
     onSettings: () -> Unit,
@@ -338,7 +584,12 @@ fun TopBar(
             .windowInsetsPadding(WindowInsets.statusBars)
             .padding(horizontal = Gap.s7, vertical = Gap.s5)
             .clip(RoundedCornerShape(Corner.pill))
-            .material(Kind.PANE, c, Corner.pill)
+            .then(backdrop)
+            /* A TRANSLUCENT ground over the blur, where alone it
+               is opaque: the material's grain and edge still
+               paint, so the bar keeps the site's weave and gains
+               the page moving frosted beneath it. */
+            .material(Kind.PANE, c, Corner.pill, ground = c.paper.copy(alpha = 0.30f))
             .padding(horizontal = Gap.s5, vertical = Gap.s4),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -361,10 +612,14 @@ fun TopBar(
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        /* One step wider than they were. Three 44dp circles, each
+           with its own hairline rim, eight apart read as one
+           three-lobed object rather than three buttons. */
+        Spacer(Modifier.width(Gap.s5))
         RoundButton("search", "Search", onSearch)
-        Spacer(Modifier.width(Gap.s4))
-        RoundButton("theme", "Settings", onSettings)
-        Spacer(Modifier.width(Gap.s4))
+        Spacer(Modifier.width(Gap.s5))
+        RoundButton("sliders", "Settings", onSettings)
+        Spacer(Modifier.width(Gap.s5))
         /* Third and last, which is where `aab/src/signin.ts`
            appends it on the site: after the theme toggle, so the
            order does not change for anybody used to it.
@@ -380,6 +635,7 @@ fun TopBar(
                 "Sign in to your account"
             },
             onClick = onAccount,
+            here = onAccountPage,
         )
     }
 }
@@ -402,67 +658,124 @@ private fun Bar(
     groups: List<NavGroup>,
     current: String?,
     modifier: Modifier = Modifier,
+    /** See `TopBar.backdrop`: the frosted glass, clipped to the
+        pill by arriving after the clip. */
+    backdrop: Modifier = Modifier,
+    /** The thumb's own glass. See the call site. */
+    thumbBackdrop: Modifier = Modifier,
+    /** The menu is open, so More is where the reader stands and
+        pressing it again is the way back out. */
+    menuOpen: Boolean = false,
     onHome: () -> Unit,
     onGroup: (NavGroup) -> Unit,
     onMore: () -> Unit,
 ) {
     val c = LocalReiad.current
-    Row(
+
+    /* Home first, and it is not in the nav table.
+
+       The site has no home ENTRY: its rail draws the link
+       separately because a table of destinations does not need a
+       row saying "the top". On a phone it does: with only group
+       tabs, a reader who opened a group could get back to the
+       front page by system back and by nothing else, which is a
+       way out that leaves no mark on screen. */
+    val stops = buildList {
+            add(BarStop("home", "Home", c.accent, null, onHome))
+            for (group in barGroups(groups, current)) {
+                add(
+                    BarStop(
+                        /* A group has no icon of its own in the
+                           site's table, so it wears its first
+                           item's. That is a choice rather than a
+                           fact, and it works because the first
+                           item of a group is the one the group is
+                           named after. */
+                        icon = group.items.firstOrNull()?.icon ?: "home",
+                        label = tabLabel(group.label),
+                        accent = accentColour(group.accent, c),
+                        key = group.id,
+                        open = { onGroup(group) },
+                    ),
+                )
+            }
+        add(BarStop("menu", "More", c.accent, null, onMore))
+    }
+
+    val here = if (menuOpen) {
+        stops.lastOrNull()
+    } else {
+        stops.firstOrNull { stop ->
+            if (stop.key == null) current == null && stop.label == "Home"
+            else groups.firstOrNull { it.id == stop.key }
+                ?.items?.any { it.key != null && it.key == current } == true
+        }
+    }
+
+    Box(
         modifier
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(horizontal = Gap.s7, vertical = Gap.s5)
             .clip(RoundedCornerShape(Corner.pill))
-            .material(Kind.PANE, c, Corner.pill)
-            .padding(horizontal = Gap.s4, vertical = Gap.s3),
-        /* A breath between the five, so each is its own target
-           rather than one striped bar. The gap costs nothing —
-           each destination keeps its equal share — and it is
-           where the selected pill's edge lives. */
-        horizontalArrangement = Arrangement.spacedBy(Gap.s2),
-        verticalAlignment = Alignment.CenterVertically,
+            .then(backdrop)
+            .material(Kind.PANE, c, Corner.pill, ground = c.paper.copy(alpha = 0.30f))
+            .padding(Gap.s3),
     ) {
-        /* Home first, and it is not in the nav table.
+        /* One gesture across the whole bar, with the glass thumb
+           under the finger the whole way: press and slide through
+           the destinations, and it opens the one you let go over.
+           A tap is the same gesture with no travel in it.
 
-           The site has no home ENTRY: its rail draws the link
-           separately because a table of destinations does not
-           need a row saying "the top". On a phone it does: with
-           only group tabs, a reader who opened a group could get
-           back to the front page by system back and by nothing
-           else, which is a way out that leaves no mark on screen. */
-        Destination(
-            icon = "home",
-            label = "Home",
-            selected = current == null,
-            accent = c.accent,
-            modifier = Modifier.weight(1f),
-            onClick = onHome,
-        )
-        for (group in barGroups(groups, current)) {
-            Destination(
-                /* A group has no icon of its own in the site's
-                   table, so it wears its first item's. That is a
-                   choice rather than a fact, and it works because
-                   the first item of a group is the one the group
-                   is named after. */
-                icon = group.items.firstOrNull()?.icon ?: "home",
-                label = tabLabel(group.label),
-                selected = group.items.any { it.key != null && it.key == current },
-                accent = accentColour(group.accent, c),
-                modifier = Modifier.weight(1f),
-                onClick = { onGroup(group) },
-            )
+           `Segmented` is the same control every switch on this
+           site uses now, for the reason its own head gives: a row
+           of separate hit targets is where a press ends up on the
+           wrong one. */
+        Segmented(
+            options = stops,
+            chosen = here,
+            onChoose = { it.open() },
+            height = Gap.tap + Gap.s3,
+            label = { it.label },
+            thumbBackdrop = thumbBackdrop,
+            /* The thumb is a quiet panel rather than the accent:
+               on a bar the accent belongs to the icon, and five
+               accent tiles in a row is a bar with no answer to
+               "which one am I on". */
+            thumbGround = c.accentSoft,
+            thumbInset = 0.dp,
+        ) { stop, on ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Icon(stop.icon, size = 19.dp, tint = if (on) stop.accent else c.inkSoft)
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    stop.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (on) stop.accent else c.inkSoft,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
-        Destination(
-            icon = "menu",
-            label = "More",
-            selected = false,
-            accent = c.accent,
-            modifier = Modifier.weight(1f),
-            onClick = onMore,
-        )
     }
 }
+
+/** One destination on the bar.
+
+    `key` is the group's id, or null for the two that are not
+    groups: Home and More. It is what says which stop the reader
+    is standing on, and it is an id rather than a label because a
+    label is bilingual and gets cut down to fit. */
+private data class BarStop(
+    val icon: String,
+    val label: String,
+    val accent: Color,
+    val key: String?,
+    val open: () -> Unit,
+)
 
 /**
  * A group's name, cut down to something a tab can hold.
@@ -495,70 +808,23 @@ internal fun tabLabel(label: String): String =
     This is not the audience switch hiding something: every group
     is in the drawer, one tap away, and the switch's own promise
     is about the MENU. A bar is not the menu, and saying so here
-    is cheaper than pretending a phone is a desktop. */
+    is cheaper than pretending a phone is a desktop.
+
+    **`you` IS NEVER ONE OF THEM, AND THAT IS THE RULE RATHER THAN
+    A CHOICE ABOUT SPACE.** Its one listed item is the account,
+    the account has a control of its own in the top bar, and the
+    displacement above put the two on screen at once: standing on
+    `/account`, a reader saw the person button lit at the top
+    right and an "আপনার" tab lit at the bottom, both going to the
+    page they were already on. Two controls for one destination is
+    a reader asking what the difference is, and there is none. */
 private fun barGroups(groups: List<NavGroup>, current: String?, slots: Int = 3): List<NavGroup> {
-    if (groups.size <= slots) return groups
-    val first = groups.take(slots)
-    val standing = groups.firstOrNull { g -> g.items.any { it.key != null && it.key == current } }
+    val offered = groups.filter { it.id != "you" }
+    if (offered.size <= slots) return offered
+    val first = offered.take(slots)
+    val standing = offered.firstOrNull { g -> g.items.any { it.key != null && it.key == current } }
     if (standing == null || standing in first) return first
     return first.dropLast(1) + standing
-}
-
-/** One place you can go. Flat until it is where you are. */
-@Composable
-private fun Destination(
-    icon: String,
-    label: String,
-    selected: Boolean,
-    accent: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    val c = LocalReiad.current
-    val glow = rememberGlow()
-    val touch = rememberTouch()
-    val lift by animateFloatAsState(
-        targetValue = if (selected) 1f else 0f,
-        animationSpec = tween(Motion.FAST_MS),
-        label = "selected",
-    )
-    /* The ink follows the lift rather than jumping, so arriving
-       somewhere is one movement: the ground comes up and the icon
-       warms into the accent together. */
-    val ink = androidx.compose.ui.graphics.lerp(c.inkSoft, accent, lift)
-    Column(
-        modifier
-            .clip(RoundedCornerShape(Corner.pill))
-            .material(
-                kind = Kind.CHIP,
-                colours = c,
-                corner = Corner.pill,
-                /* Only the one you are on has a ground. Give all
-                   five the same rest state and the bar is five
-                   boxes in a row, which is the cage the site's
-                   `--standing` axis exists to prevent. */
-                ground = accent.copy(alpha = 0.14f * lift),
-                lit = { glow.lit },
-            )
-            .follows(glow)
-            .pressing(glow)
-            .clickable(role = Role.Tab) {
-                if (!selected) touch.tick()
-                onClick()
-            }
-            .padding(vertical = Gap.s4),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(icon, size = 22.dp, tint = ink)
-        Spacer(Modifier.height(Gap.s2))
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            color = ink,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
 }
 
 /* ---------- the rail ---------- */
@@ -583,8 +849,6 @@ private fun Rail(
             .padding(vertical = Gap.s7, horizontal = Gap.s5)
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = if (open) Alignment.Start else Alignment.CenterHorizontally,
-        /* The same breath the drawer's rows get. */
-        verticalArrangement = Arrangement.spacedBy(Gap.s2),
     ) {
         RailRow("home", "Home", current == null, c.accent, open, onHome)
         RailRow("search", "Search", false, c.accent, open, onSearch)
@@ -681,33 +945,121 @@ private fun RailRow(
     What it is NOT is a different menu: it reads the same list. */
 @Composable
 private fun Drawer(
+    open: Boolean,
     site: SiteManifest?,
     groups: List<NavGroup>,
     current: String?,
     audience: String?,
+    /** The same frost the bars wear. The sheet floats over the
+        page, so the page shows through it the way it shows
+        through the bar it rises to meet. */
+    backdrop: Modifier = Modifier,
+    /** How far above the bottom edge the sheet stops: the bar's
+        own clearance, so the bar stays visible and pressable
+        with the menu open. Nought where there is no bar. */
+    clearBelow: Dp = 0.dp,
     onItem: (NavItem) -> Unit,
     onAudience: (String) -> Unit,
     onSettings: () -> Unit,
     onClose: () -> Unit,
 ) {
     val c = LocalReiad.current
-    Sheet(onClose = onClose) { _ ->
-        site?.audiences?.takeIf { it.size > 1 }?.let { audiences ->
-            AudienceSwitch(audiences.map { it.id to it.label }, audience, onAudience)
-            Spacer(Modifier.height(Gap.s8))
-        }
+    val reduced = rememberReducedMotion()
+    val retreat = rememberRetreat(onBack = onClose)
 
-        for (group in groups) {
-            Text(
-                group.label.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = c.inkSoft,
-                modifier = Modifier.padding(bottom = Gap.s4),
+    /* Mounted through AnimatedVisibility so it RISES: a menu
+       that pops fully-formed is furniture appearing, one that
+       comes up from the bar it belongs to is the bar answering.
+       Reduced motion cuts, exactly like the screen switch. */
+    /* Seeded with `open` so a shell COMPOSED with the menu
+       already up renders it up: the enter plays only on a real
+       toggle. A snapshot is the caller this matters for, and a
+       drawer that rendered one frame into its own slide would
+       photograph as absent. */
+    val seen = remember { androidx.compose.animation.core.MutableTransitionState(open) }
+    seen.targetState = open
+    androidx.compose.animation.AnimatedVisibility(
+        visibleState = seen,
+        enter = if (reduced) EnterTransition.None else {
+            fadeIn(tween(160)) + slideInVertically(
+                animationSpec = spring(
+                    dampingRatio = 0.82f,
+                    stiffness = Spring.StiffnessMediumLow,
+                ),
+                initialOffsetY = { it / 3 },
             )
-            /* A breath between rows. Flush, twenty rows read as
-               one column of text with lines on it; two pixels
-               apart they read as twenty things you can press. */
-            Column(verticalArrangement = Arrangement.spacedBy(Gap.s2)) {
+        },
+        exit = if (reduced) ExitTransition.None else {
+            fadeOut(tween(140)) + slideOutVertically(tween(180)) { it / 3 }
+        },
+    ) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            /* The scrim closes it. Not a decoration: on a phone
+               the outside of a sheet is the biggest and most
+               obvious target there is. Lighter than it was,
+               because the sheet frosts what is under it now and
+               a heavy scrim on top of frost reads as a power
+               cut. */
+            .background(Color.Black.copy(alpha = 0.35f))
+            .clickable(
+                indication = null,
+                interactionSource = remembering(),
+                onClick = onClose,
+            ),
+    ) {
+        Column(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(horizontal = Gap.s5)
+                /* THE SHEET HAS A CEILING. Its natural height is
+                   its content, and a long menu's content is the
+                   whole screen: it rose until the audience switch
+                   sat under the clock, which was the red strike
+                   across the report's screenshot. A sheet stops
+                   below the status area the same way it stops
+                   above the bar, and what does not fit scrolls,
+                   which is what the scroll was for. */
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(top = Gap.s7)
+                .padding(bottom = if (clearBelow > 0.dp) clearBelow else 0.dp)
+                .let {
+                    if (clearBelow > 0.dp) it
+                    else it.windowInsetsPadding(WindowInsets.navigationBars)
+                }
+                .retreating(retreat, reduced)
+                .clip(RoundedCornerShape(Corner.lg))
+                .then(backdrop)
+                .material(Kind.PANE, c, Corner.lg, ground = c.paper.copy(alpha = 0.42f))
+                .clickable(indication = null, interactionSource = remembering()) { }
+                .padding(horizontal = Gap.s8, vertical = Gap.s8)
+                .verticalScroll(rememberScrollState()),
+        ) {
+            /* The handle, which every sheet on a phone wears: it
+               says "this rises and falls" without a word. */
+            Box(
+                Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = Gap.s6)
+                    .width(36.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(Corner.pill))
+                    .background(c.inkSoft.copy(alpha = 0.4f)),
+            )
+            site?.audiences?.takeIf { it.size > 1 }?.let { audiences ->
+                AudienceSwitch(audiences.map { it.id to it.label }, audience, onAudience)
+                Spacer(Modifier.height(Gap.s8))
+            }
+
+            for (group in groups) {
+                Text(
+                    group.label.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.inkSoft,
+                    modifier = Modifier.padding(bottom = Gap.s4),
+                )
                 for (item in group.items) {
                     DrawerRow(
                         item = item,
@@ -716,15 +1068,17 @@ private fun Drawer(
                         onClick = { onItem(item) },
                     )
                 }
+                Spacer(Modifier.height(Gap.s8))
             }
-            Spacer(Modifier.height(Gap.s7))
-        }
 
-        Rung(Modifier.clickable(role = Role.Button, onClick = onSettings)) {
-            Icon("theme", size = 20.dp, tint = c.inkSoft)
-            Spacer(Modifier.width(Gap.s6))
-            Text("Settings", style = MaterialTheme.typography.bodyLarge, color = c.ink)
+            Rung(onClick = onSettings) {
+                Icon("theme", size = 20.dp, tint = c.inkSoft)
+                Spacer(Modifier.width(Gap.s6))
+                Text("Settings", style = MaterialTheme.typography.bodyLarge, color = c.ink)
+            }
+            Spacer(Modifier.height(Gap.s8))
         }
+    }
     }
 }
 
@@ -736,7 +1090,7 @@ private fun DrawerRow(
     onClick: () -> Unit,
 ) {
     val c = LocalReiad.current
-    Rung(Modifier.clickable(role = Role.Button, onClick = onClick)) {
+    Rung(onClick = onClick) {
         Icon(item.icon, size = 20.dp, tint = accent)
         Spacer(Modifier.width(Gap.s6))
         Column(Modifier.weight(1f)) {
@@ -760,10 +1114,27 @@ private fun DrawerRow(
                 )
             }
         }
-        /* A school still being written APPEARS, and says so. The
-           site's own rule: a thing promised and not delivered is
-           worse hidden than shown. */
-        if (item.soon) Chip("আসছে")
+        /* The right of the row, which was empty on every one of
+           twenty rows: an icon and two lines hard against the
+           left edge of a full-width tile, and then nothing. It
+           was reported by somebody drawing on a photograph of it.
+
+           What goes there is what the row IS, out of the nav
+           table's own `kind`, and then a chevron. Both are facts
+           rather than filler: the chip says whether this is a
+           course or a piece of writing, and the chevron says the
+           row goes somewhere, which on a list where some rows
+           open in the app and some leave for the browser is worth
+           saying. */
+        if (item.soon) {
+            Chip("আসছে")
+        } else {
+            item.kind?.takeIf { it.isNotBlank() }?.let { kind ->
+                Chip(kind, tone = c.inkSoft)
+                Spacer(Modifier.width(Gap.s5))
+            }
+            Icon("chevron", size = 15.dp, tint = c.inkSoft)
+        }
     }
 }
 
@@ -771,8 +1142,7 @@ private fun DrawerRow(
 
 /** A groove with a control riding in it, which is the site's own
     segmented control said in the material's words: the track is
-    a channel cut in and the thumb is a thing sitting on it —
-    `Segmented`, so the thumb SLIDES between the two answers.
+    a channel cut in and the thumb is a thing sitting on it.
 
     It REORDERS and never hides, and the label under it says so,
     because a switch whose effect a reader cannot predict is a
@@ -785,17 +1155,22 @@ fun AudienceSwitch(
 ) {
     val c = LocalReiad.current
     Column {
+        /* Hold and slide, like every other switch here. The
+           groove is a tap taller than a tap, because what rides
+           in it is the target: at `Gap.tap` with the channel's
+           own padding the two thumbs came to 36dp each. */
         Segmented(
             options = options,
             chosen = options.firstOrNull { it.first == chosen },
             onChoose = { onChoose(it.first) },
             label = { it.second },
-            /* A tap taller than a tap, because what rides in the
-               groove is the target: at `Gap.tap` with the
-               channel's own padding the two thumbs came to 36dp
-               each. */
-            height = Gap.tap + Gap.s4,
-        )
+        ) { option, on ->
+            Text(
+                option.second,
+                style = MaterialTheme.typography.labelLarge,
+                color = if (on) c.paper else c.inkSoft,
+            )
+        }
         Spacer(Modifier.height(Gap.s4))
         Text(
             "This reorders the menu. Nothing is hidden either way.",
@@ -803,47 +1178,6 @@ fun AudienceSwitch(
             color = c.inkSoft,
         )
     }
-}
-
-/* ---------- how a screen replaces a screen ---------- */
-
-/**
- * Screens change with a breath rather than a cut.
- *
- * The whole app switched screens by recomposing a `when`, which
- * is a hard cut: the ladder vanishes and the lesson IS there, in
- * one frame, with nothing saying which way the reader moved. The
- * arriving screen now rises a little as it fades in, in the
- * material's own enter step, and the leaving one gets out of the
- * way quickly — the same asymmetry as the light, because arriving
- * matters and leaving should not be watched.
- *
- * Reduced motion swaps in one frame, which is the cut back, on
- * purpose.
- */
-@Composable
-fun <T> ScreenSwitch(
-    at: T,
-    modifier: Modifier = Modifier,
-    content: @Composable (T) -> Unit,
-) {
-    val reduced = rememberReducedMotion()
-    androidx.compose.animation.AnimatedContent(
-        targetState = at,
-        modifier = modifier,
-        transitionSpec = {
-            if (reduced) {
-                androidx.compose.animation.EnterTransition.None togetherWith
-                    androidx.compose.animation.ExitTransition.None
-            } else {
-                (
-                    androidx.compose.animation.fadeIn(tween(Motion.ENTER_MS)) +
-                        androidx.compose.animation.slideInVertically(tween(Motion.ENTER_MS)) { it / 28 }
-                    ) togetherWith androidx.compose.animation.fadeOut(tween(Motion.QUICK_MS))
-            }
-        },
-        label = "screen",
-    ) { here -> content(here) }
 }
 
 /* ---------- odds ---------- */
@@ -859,3 +1193,7 @@ fun accentColour(token: String?, colours: ReiadColours): Color {
     return coloursOf(accent, colours.isDark).accent
 }
 
+@Composable
+private fun remembering() = androidx.compose.runtime.remember {
+    androidx.compose.foundation.interaction.MutableInteractionSource()
+}

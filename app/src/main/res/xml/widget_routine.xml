@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Today's routine, on the home screen: how many of the counting
+  tasks are ticked, out of how many, and a tap into the day page.
+
+  One cell tall, because it says one figure. `updatePeriodMillis`
+  is 0 like its three neighbours: nothing polls, it is redrawn
+  when the app writes a mark, which is the only moment its answer
+  changes. The date guard is in the widget itself, so a morning
+  glance never shows yesterday's count: with no redraw since
+  midnight it shows the invitation, which is the true state of an
+  unmarked day.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="60dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="1"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="60dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_routine_description"
+    android:updatePeriodMillis="0" />

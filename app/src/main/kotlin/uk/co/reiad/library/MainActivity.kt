@@ -1,5 +1,13 @@
 package uk.co.reiad.library
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,8 +23,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -79,6 +89,7 @@ import uk.co.reiad.library.core.stock.summarise
 import uk.co.reiad.library.core.ProgressKeys
 import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.SiteManifest
+import uk.co.reiad.library.core.Story
 import uk.co.reiad.library.core.resolveHref
 import uk.co.reiad.library.core.nav.Destination
 import uk.co.reiad.library.core.nav.LIVE_KEY
@@ -111,7 +122,10 @@ import uk.co.reiad.library.core.Target
 import uk.co.reiad.library.data.Held
 import androidx.glance.appwidget.updateAll
 import uk.co.reiad.library.data.Reiad
+import uk.co.reiad.library.read.RemindWorker
 import uk.co.reiad.library.widget.ContinueWidget
+import uk.co.reiad.library.widget.NewsWidget
+import uk.co.reiad.library.widget.ProgressWidget
 import uk.co.reiad.library.data.SchoolWorker
 import uk.co.reiad.library.data.Shelf
 import uk.co.reiad.library.data.forgetHeld
@@ -142,13 +156,17 @@ import uk.co.reiad.library.ui.RoutineScreen
 import uk.co.reiad.library.ui.RoutineState
 import uk.co.reiad.library.diet.Log
 import uk.co.reiad.library.routine.Days
+import uk.co.reiad.library.core.diet.Ate
 import uk.co.reiad.library.core.diet.DietDay
 import uk.co.reiad.library.core.diet.DietEntry
 import uk.co.reiad.library.core.diet.DietProfile
+import uk.co.reiad.library.core.diet.FoodLibrary
 import uk.co.reiad.library.core.diet.GoalKind
+import uk.co.reiad.library.core.diet.Portion
 import uk.co.reiad.library.core.diet.activityFactor
 import uk.co.reiad.library.core.diet.bodyOf
 import uk.co.reiad.library.core.diet.estimatedBurn
+import uk.co.reiad.library.core.diet.loggedFrom
 import uk.co.reiad.library.core.diet.restingBurn
 import uk.co.reiad.library.core.diet.target
 import uk.co.reiad.library.ui.DietScreen
@@ -179,8 +197,36 @@ import uk.co.reiad.library.ui.AccountScreen
 import uk.co.reiad.library.ui.BodyView
 import uk.co.reiad.library.ui.Faces
 import uk.co.reiad.library.ui.Checkpoints
-import uk.co.reiad.library.ui.BAR_CLEARANCE
-import uk.co.reiad.library.ui.TOP_CLEARANCE
+import uk.co.reiad.library.ui.barClearance
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import uk.co.reiad.library.core.BOARD_FLOOR
+import uk.co.reiad.library.core.Placed
+import uk.co.reiad.library.core.pairSmalls
+import uk.co.reiad.library.core.kindOf
+import uk.co.reiad.library.core.layoutOf
+import uk.co.reiad.library.core.moved
+import uk.co.reiad.library.core.storedOf
+import uk.co.reiad.library.ui.BoardActions
+import uk.co.reiad.library.ui.BoardData
+import uk.co.reiad.library.ui.DRAWABLE
+import uk.co.reiad.library.core.Motion
+import uk.co.reiad.library.ui.ButtonKind
+import uk.co.reiad.library.ui.PillButton
+import uk.co.reiad.library.ui.rememberReducedMotion
+import uk.co.reiad.library.ui.Widget
+import uk.co.reiad.library.ui.WidgetFrame
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
+import uk.co.reiad.library.ui.WidgetPicker
+import uk.co.reiad.library.ui.dragHandle
+import uk.co.reiad.library.ui.rememberBoardDrag
+import uk.co.reiad.library.ui.topClearance
 import uk.co.reiad.library.ui.Chip
 import uk.co.reiad.library.ui.Control
 import uk.co.reiad.library.ui.Corner
@@ -222,7 +268,6 @@ import uk.co.reiad.library.ui.Shell
 import uk.co.reiad.library.ui.ShellState
 import uk.co.reiad.library.ui.LocalOpenLink
 import uk.co.reiad.library.ui.ReiadColours
-import uk.co.reiad.library.ui.ScreenSwitch
 import uk.co.reiad.library.ui.arriving
 import uk.co.reiad.library.ui.Sway
 import uk.co.reiad.library.ui.rememberSway
@@ -288,6 +333,38 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         arrival.value = addressIn(intent)
+
+        /* Two launch deaths in a row: the normal screen is what
+           is dying, so the one drawn INSTEAD is the report. See
+           `Guard.kt`, which exists because the only diagnosis a
+           phone could offer was "doesn't open, just crashes". */
+        if (ReiadApp.troubled(this)) {
+            val stack = ReiadApp.lastCrash(this).orEmpty()
+            setContent {
+                uk.co.reiad.library.ui.ReiadTheme {
+                    CrashScreen(
+                        stack = stack,
+                        onCopy = {
+                            val clip = getSystemService(android.content.ClipboardManager::class.java)
+                            clip?.setPrimaryClip(
+                                android.content.ClipData.newPlainText("crash", stack),
+                            )
+                        },
+                        onTryAgain = {
+                            ReiadApp.forgetCrash(this)
+                            recreate()
+                        },
+                    )
+                }
+            }
+            return
+        }
+
+        /* The screen came up and stayed up: whatever this counter
+           held, it is not a crash LOOP. Ten seconds, matching the
+           window `ReiadApp` counts an early death inside. */
+        window.decorView.postDelayed({ ReiadApp.settled(this) }, ReiadApp.EARLY_MS)
+
         setContent { App(arrival) }
     }
 
@@ -630,6 +707,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             }
             val entries = store.entries(dayBefore(today, 365))
             _routine.value = readRoutine(row, entries, today)
+            keepRoutineGlance(context)
         }
     }
 
@@ -641,22 +719,120 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
      * reason the routine's own loader gives: a figure and the bar
      * under it must not be able to disagree about what today is.
      */
-    fun openDiet(context: android.content.Context) {
+    /** @param date the day to show. Today by default, and NEVER
+        the future: a log is a record, and a plate that has not
+        been eaten has no business in one. The screen's arrows
+        stop at today for the same reason. */
+    fun openDiet(context: android.content.Context, date: String? = null) {
         val store = dietStore ?: Log(account(context)).also { dietStore = it }
-        _diet.value = DietState(loading = true)
+        val today = java.time.LocalDate.now().toString()
+        val shown = (date ?: _diet.value.shownDate.ifBlank { today })
+            .let { if (it > today) today else it }
+        _diet.value = DietState(loading = true, shownDate = shown)
         viewModelScope.launch {
             if (account(context).token() == null) {
                 _diet.value = DietState(loading = false, signedOut = true)
                 return@launch
             }
-            val today = java.time.LocalDate.now().toString()
             val profile = store.profile()
-            /* A fortnight, which is the shortest window the trend
-               means anything over and the longest one this screen
-               needs: the long view is `/tools/diet/trend`. */
+            /* A fortnight behind TODAY, whichever day is shown:
+               the trend and the body readings describe the
+               person now, not the person on the day being
+               edited. It is the shortest window the trend means
+               anything over; the long view is /tools/diet/trend. */
             val days = store.days(dayBefore(today, 14))
-            val entries = store.entries(today)
+            val entries = store.entries(shown)
             _diet.value = readDiet(profile, days, entries, today)
+                .copy(
+                    library = foodLibrary ?: loadFoods(),
+                    shownDate = shown,
+                )
+            keepDietGlance(context)
+        }
+    }
+
+    /** The summary the diet widgets read, from the SAME totals
+        the screen draws (`totalFor`, planned rows filtered), so
+        the widget and the screen cannot disagree about today. */
+    private fun keepDietGlance(context: android.content.Context) {
+        val now = _diet.value
+        if (now.today.isBlank() || now.signedOut) return
+        /* Only TODAY reaches the widgets. Editing Tuesday's
+           forgotten dinner must not put Tuesday's total on the
+           home screen with today's date implied. */
+        if (now.shownDate.isNotBlank() && now.shownDate != now.today) return
+        val day = uk.co.reiad.library.core.diet.totalFor(
+            now.entries,
+            now.library?.macros ?: listOf("protein", "carbs", "fat", "fibre"),
+        )
+        viewModelScope.launch {
+            val summary = uk.co.reiad.library.data.DietGlance(
+                date = now.today,
+                kcal = day.kcal.toInt(),
+                target = now.target?.kcal ?: 0,
+                entries = day.count,
+            )
+            reiad.keepDietGlance(summary)
+            _dietGlance.value = summary
+            runCatching { uk.co.reiad.library.widget.DietWidget().updateAll(context) }
+        }
+    }
+
+    /* ---------- the portion library ----------
+
+       Fetched once per process and held, because it is 57 KB that
+       does not change between two presses of Add, and `foods()`
+       is already cached on disk under `cache:foods` for the run
+       after this one. Null where nothing has ever arrived, which
+       the picker says out loud rather than showing an empty
+       list. */
+
+    private var foodLibrary: FoodLibrary? = null
+
+    private suspend fun loadFoods(): FoodLibrary? {
+        val answer = reiad.foods().value ?: return null
+        return FoodLibrary.from(answer)?.also { foodLibrary = it }
+    }
+
+    /**
+     * One thing eaten, added.
+     *
+     * `loggedFrom` can REFUSE, and the screen will not have
+     * offered an Add that presses where it does. This still
+     * checks, because a refusal that reaches here means the two
+     * disagree and writing the row anyway would put a figure
+     * nobody measured into somebody's log.
+     */
+    fun addEaten(context: android.content.Context, row: Portion, ate: Ate) {
+        val store = dietStore ?: return
+        val library = foodLibrary ?: return
+        val state = _diet.value
+        val today = state.today.ifBlank { java.time.LocalDate.now().toString() }
+        val shown = state.shownDate.ifBlank { today }
+        val now = java.time.LocalTime.now()
+        val entry = loggedFrom(
+            row = row,
+            ate = ate,
+            /* The SHOWN day, which is the whole point of the date
+               walk: yesterday's forgotten dinner goes on
+               yesterday. */
+            date = shown,
+            library = library,
+            /* The local clock, ONLY on today. The hour a thing
+               was eaten is a fact, and stamping the hour of
+               remembering onto the day of eating would file
+               Tuesday's dinner at Wednesday's clock time in the
+               by-hour reading. Absent is the honest value for a
+               back-filled row. */
+            atTime = if (shown == today) {
+                "%02d:%02d".format(now.hour, now.minute)
+            } else {
+                null
+            },
+        ) ?: return
+        viewModelScope.launch {
+            store.addEntry(entry)?.let { _note.value = it }
+            openDiet(context)
         }
     }
 
@@ -665,10 +841,19 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         measured this morning. */
     fun weighIn(context: android.content.Context, kg: Double) {
         val store = dietStore ?: return
-        val today = _diet.value.today.ifBlank { java.time.LocalDate.now().toString() }
-        _diet.value = _diet.value.copy(saving = true)
+        val state = _diet.value
+        val shown = state.shownDate.ifBlank {
+            state.today.ifBlank { java.time.LocalDate.now().toString() }
+        }
+        _diet.value = state.copy(saving = true)
         viewModelScope.launch {
-            store.saveDay(DietDay(date = today, weightKg = kg))
+            /* Said out loud when it fails, for the reason
+                `writeDay` gives: a weight that went to a 400 and
+                said nothing is a reading the reader believes is
+                on their account. The SHOWN day, so a missed
+                morning can be back-filled and the trend gets its
+                point. */
+            store.saveDay(DietDay(date = shown, weightKg = kg))?.let { _note.value = it }
             openDiet(context)
         }
     }
@@ -676,7 +861,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     fun removeEaten(context: android.content.Context, id: String) {
         val store = dietStore ?: return
         viewModelScope.launch {
-            store.removeEntry(id)
+            store.removeEntry(id)?.let { _note.value = it }
             openDiet(context)
         }
     }
@@ -697,6 +882,23 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         val body = bodyOf(profile, day ?: latest, java.time.LocalDate.now().year)
             ?: bodyOf(profile, latest, java.time.LocalDate.now().year)
 
+        /* The trend, out of the same fortnight. Day numbers are
+           days-before-today so the arithmetic never parses a
+           date, and the list arrives newest first, so it is
+           reversed into time order for the fit. */
+        val weighed = days.filter { it.weightKg != null }
+        val points = weighed.map { d ->
+            uk.co.reiad.library.core.diet.Point(
+                day = -java.time.temporal.ChronoUnit.DAYS.between(
+                    java.time.LocalDate.parse(d.date),
+                    java.time.LocalDate.parse(today),
+                ).toInt(),
+                kg = d.weightKg ?: 0.0,
+            )
+        }.sortedBy { it.day }
+        val smoothed = uk.co.reiad.library.core.diet.trend(points).lastOrNull()?.kg
+        val perWeek = uk.co.reiad.library.core.diet.slopePerWeek(points)
+
         val resting = body?.let { restingBurn(it) }
         val maintenance = resting?.let {
             estimatedBurn(it.kcal, activityFactor(profile?.activity ?: "sedentary"))
@@ -708,6 +910,8 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         }
         return DietState(
             loading = false,
+            trendKg = smoothed,
+            perWeek = perWeek,
             today = today,
             profile = profile,
             day = day,
@@ -841,8 +1045,37 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         ).copy(saving = true)
 
         viewModelScope.launch {
-            routineStore?.save(routineId, entry)
+            /* SAID OUT LOUD WHEN IT FAILS. This dropped the
+               result for as long as it existed, and a whole day
+               of marks went to a 400 that nothing reported: the
+               screen had already drawn them, so there was nothing
+               to see. A write that can fail and cannot say so is
+               a write that loses work quietly. */
+            val problem = routineStore?.save(routineId, entry)
             _routine.value = _routine.value.copy(saving = false)
+            if (problem != null) _note.value = problem
+        }
+        host?.let { keepRoutineGlance(it) }
+    }
+
+    /** The summary the home-screen widget reads, kept in step
+        with the screen: the same `done()` the day page draws, so
+        the two can never disagree about today. */
+    private fun keepRoutineGlance(context: android.content.Context) {
+        val now = _routine.value
+        val counting = now.shape.tasks.filter { it.counts && !it.archived }
+        if (now.today.isBlank() || counting.isEmpty()) return
+        val marks = now.entry?.marks.orEmpty()
+        val markedNow = counting.count { (marks[it.id] ?: 0.0) > 0 }
+        viewModelScope.launch {
+            val summary = uk.co.reiad.library.data.RoutineGlance(
+                date = now.today,
+                marked = markedNow,
+                of = counting.size,
+            )
+            reiad.keepRoutineGlance(summary)
+            _routineGlance.value = summary
+            runCatching { uk.co.reiad.library.widget.RoutineWidget().updateAll(context) }
         }
     }
 
@@ -912,17 +1145,22 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
                 lang = state.lang.takeIf { it != "en" },
             )
             val a = analyse(state.inputs, state.weights)
-            val ok = shelf.saveScenario(
+            val problem = shelf.saveScenario(
                 tool = "stock",
                 name = name,
                 query = query,
                 summary = summarise(a, words),
             )
-            _saveNote.value = words?.t(
-                if (ok) Keys.SAVED else Keys.SAVE_FAILED,
-                state.lang,
-            ) ?: if (ok) "Saved." else "That did not save."
-            if (ok) _scenarios.value = shelf.scenarios()
+            /* The tool's own phrase where it worked, and the
+               DATABASE'S sentence where it did not: "that did not
+               save" is not actionable and the constraint's own
+               name is. */
+            _saveNote.value = if (problem == null) {
+                words?.t(Keys.SAVED, state.lang) ?: "Saved."
+            } else {
+                problem
+            }
+            if (problem == null) _scenarios.value = shelf.scenarios()
         }
     }
 
@@ -934,7 +1172,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     fun removeScenario(id: String) {
         val shelf = library ?: return
         viewModelScope.launch {
-            shelf.removeScenario(id)
+            shelf.removeScenario(id)?.let { _note.value = it }
             _scenarios.value = shelf.scenarios()
         }
     }
@@ -992,8 +1230,6 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         )
         true
     }.getOrDefault(false)
-
-    init { refresh() }
 
     /** Ask the site what it holds, and say so if it will not.
 
@@ -1091,6 +1327,12 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             val after = reiad.toggleTick(which, lessonId(stage.slug, lesson.slug))
             _ticks.value = _ticks.value + (which.id to after)
             queueSync()
+            /* And the home screen. A tick is the ONE moment the
+               progress widget's answer changes, which is why its
+               `updatePeriodMillis` is 0: a widget that polled
+               would wake the app on a schedule to redraw four
+               numbers that had not moved. */
+            host?.let { context -> runCatching { ProgressWidget().updateAll(context) } }
         }
     }
 
@@ -1103,6 +1345,68 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     }
 
     fun ticksOf(key: String): Set<String> = _ticks.value[key].orEmpty()
+
+    /* ---------- the market board ----------
+
+       Fetched once per launch, like the pieces, and only when
+       the board actually holds the widget: three RSS feeds read
+       on a Worker is not a request to make for a reader who has
+       taken it off. */
+
+    private val _news = MutableStateFlow<List<Story>>(emptyList())
+    val news: StateFlow<List<Story>> = _news.asStateFlow()
+
+    fun fetchNews() {
+        if (_news.value.isNotEmpty()) return
+        viewModelScope.launch {
+            reiad.news().value?.let {
+                _news.value = it.items
+                /* The widget reads the same cache this fetch just
+                   wrote, so this is the moment its answer changed
+                   and the only moment it needs redrawing. */
+                host?.let { context -> runCatching { NewsWidget().updateAll(context) } }
+            }
+        }
+    }
+
+    /* ---------- the daily reminder ----------
+
+       This handset's, not the account's: see `REMIND_KEY`. */
+
+    val remindAt: StateFlow<String?> = reiad.remindAt
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun remindAt(context: android.content.Context, at: String?) {
+        viewModelScope.launch {
+            reiad.setRemindAt(at)
+            RemindWorker.at(context, RemindWorker.parse(at))
+        }
+    }
+
+    /* ---------- the board the reader arranged ----------
+
+       Straight off the store, because it is one small list read
+       on one screen. Null means "never arranged", which is not
+       the same as an empty board: `layoutOf` falls back for the
+       first and honours the second. Saving stamps a `ts` and
+       queues the exchange like any other synced key. */
+
+    val board: StateFlow<List<String>?> = reiad.board
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    fun saveBoard(next: List<String>) {
+        viewModelScope.launch {
+            reiad.saveBoard(next)
+            queueSync()
+        }
+    }
+
+    fun resetBoard() {
+        viewModelScope.launch {
+            reiad.resetBoard()
+            queueSync()
+        }
+    }
 
     /* ---------- checkpoints and the bookmark ---------- */
 
@@ -1197,6 +1501,19 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
 
     private val _daysActive = MutableStateFlow<Set<String>>(emptySet())
     val daysActive: StateFlow<Set<String>> = _daysActive.asStateFlow()
+
+    /** Today's routine summary, mirrored from the cache the
+        launcher widget reads, so the board's routine widget and
+        the home-screen one draw from one record. */
+    private val _routineGlance =
+        MutableStateFlow<uk.co.reiad.library.data.RoutineGlance?>(null)
+    val routineGlance: StateFlow<uk.co.reiad.library.data.RoutineGlance?> =
+        _routineGlance.asStateFlow()
+
+    private val _dietGlance =
+        MutableStateFlow<uk.co.reiad.library.data.DietGlance?>(null)
+    val dietGlance: StateFlow<uk.co.reiad.library.data.DietGlance?> =
+        _dietGlance.asStateFlow()
 
     private val _exported = MutableStateFlow<String?>(null)
     val exported: StateFlow<String?> = _exported.asStateFlow()
@@ -1367,7 +1684,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         _setup.value = now.copy(busy = true, note = null, wrong = false)
         viewModelScope.launch {
             val stamp = nowIso()
-            val ok = if (stampOnly) {
+            val problem = if (stampOnly) {
                 shelf.saveProfile(setupAt = stamp)
             } else {
                 shelf.saveProfile(
@@ -1379,13 +1696,13 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             }
             _setup.value = _setup.value.copy(
                 busy = false,
-                asked = _setup.value.asked || ok,
+                asked = _setup.value.asked || problem == null,
                 note = when {
-                    !ok -> "That did not save."
+                    problem != null -> problem
                     stampOnly -> "Fine. Everything above is here whenever you want it."
                     else -> "Saved."
                 },
-                wrong = !ok,
+                wrong = problem != null,
             )
         }
     }
@@ -1393,7 +1710,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     fun addTarget(target: Target) {
         val shelf = library ?: return
         viewModelScope.launch {
-            shelf.addTarget(target)
+            shelf.addTarget(target)?.let { _note.value = it }
             _targets.value = shelf.targets()
         }
     }
@@ -1411,7 +1728,12 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
                 listOf(Kept(url = url, title = title, kind = kind,
                     saved = saved ?: false, note = note.orEmpty()))
             }
-            shelf.keep(url, title, kind, saved, note)
+            /* The optimistic update above is what makes the
+               control feel instant, and this is what keeps it
+               honest: a note that hit a 400 says so and the list
+               is re-read either way, so the screen ends up
+               showing what the account actually holds. */
+            shelf.keep(url, title, kind, saved, note)?.let { _note.value = it }
             _kept.value = shelf.kept()
         }
     }
@@ -1419,7 +1741,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     fun removeTarget(id: String) {
         val shelf = library ?: return
         viewModelScope.launch {
-            shelf.removeTarget(id)
+            shelf.removeTarget(id)?.let { _note.value = it }
             _targets.value = shelf.targets()
         }
     }
@@ -1482,7 +1804,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         val shelf = library ?: return
         viewModelScope.launch {
             _erasing.value = "Erasing…"
-            val gone = shelf.eraseAll()
+            val problem = shelf.eraseAll()
             /* The mirror comes off either way. Leaving a phone
                full of rows the account no longer has would put
                every one of them straight back on the next
@@ -1492,11 +1814,8 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             _targets.value = emptyList()
             _daysActive.value = emptySet()
             loadMarks()
-            _erasing.value = if (gone) {
-                "Erased. Nothing of yours is on this account or on this phone."
-            } else {
-                "Some of that did not work. Try again with a connection."
-            }
+            _erasing.value = problem
+                ?: "Erased. Nothing of yours is on this account or on this phone."
         }
     }
 
@@ -1672,6 +1991,38 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     fun chooseAudience(id: String) {
         viewModelScope.launch { reiad.setAudience(id) }
     }
+
+    /* ============================================================
+       LAST IN THE CLASS, AND THAT IS THE FIX FOR A LAUNCH CRASH.
+
+       This block sat three hundred lines up, above the fields it
+       writes, and "build 404c6e8 doesn't open, just crashes" was
+       the whole of the symptom. Kotlin runs initializers in
+       source order, and `viewModelScope` dispatches on
+       Main.immediate: a coroutine launched here can run, or
+       resume from a DataStore read that completed without
+       suspending, BEFORE the declarations below the block have
+       assigned their fields. `_routineGlance.value` then throws
+       an NPE inside a coroutine nothing catches, and an uncaught
+       coroutine exception is process death, every launch, on
+       exactly the phones where the store answers fastest.
+
+       An init block after every property cannot meet a null
+       field, however the coroutines interleave. Do not move it
+       up, however lonely it looks down here; `LaunchTest` fails
+       on any uncaught launch exception either way.
+       ============================================================ */
+    init {
+        refresh()
+        viewModelScope.launch {
+            _routineGlance.value = reiad.cachedRoutineGlance()
+            _dietGlance.value = reiad.cachedDietGlance()
+            /* The board's streak widget reads the same local set
+               the account page draws, and needs it before the
+               account screen has ever been opened. */
+            _daysActive.value = reiad.daysActive()
+        }
+    }
 }
 
 /* ---------- the app ---------- */
@@ -1719,10 +2070,25 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val routineLine by model.routineLine.collectAsState()
     val threadState by model.thread.collectAsState()
     val daysActive by model.daysActive.collectAsState()
+    val routineGlance by model.routineGlance.collectAsState()
+    val dietGlance by model.dietGlance.collectAsState()
     val exported by model.exported.collectAsState()
     val erasing by model.erasing.collectAsState()
     val checks by model.checks.collectAsState()
     val bookmarks by model.bookmarks.collectAsState()
+    val board by model.board.collectAsState()
+    val news by model.news.collectAsState()
+    val remindAt by model.remindAt.collectAsState()
+
+    /* The reminder's permission, asked for at the moment somebody
+       turns it on rather than at launch: a prompt on first run is
+       a question about a feature nobody has met yet, and the
+       usual answer to that is no. Refusal is not an error, it is
+       an answer, and `RemindWorker` posts silently where it was
+       given. */
+    val askToNotify = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) { }
     val book by model.book.collectAsState()
     val bookFailed by model.bookFailed.collectAsState()
     val bookDays by model.days.collectAsState()
@@ -1835,9 +2201,16 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         measure = measureOf(prefs.measure),
     ) {
         val colours = LocalReiad.current
+        /* ONE sway for the whole app: the shell's ambient field
+           and the cards' glint read the same sensor, so the
+           light behind the page and the light on it lean
+           together. Two instances would be two listeners at
+           50Hz for the same three numbers. */
+        val sway = rememberSway()
         Surface(Modifier.fillMaxSize(), color = colours.paper) {
             Shell(
                 state = ShellState(site, current, audience, drawer, reader != null),
+                sway = sway,
                 /* A tab opens its GROUP, not its first item.
 
                    Sending each tab to the first thing in it looked
@@ -1896,7 +2269,36 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                 }
             }
             CompositionLocalProvider(LocalOpenLink provides openLink) {
-            ScreenSwitch(where) { here ->
+            /* ---------- how a screen arrives ----------
+
+               The platform's own fade-through rather than a cut:
+               the leaving screen drops fast, the arriving one
+               fades up from a whisker small, on the site's own
+               timings. A cut is what made every navigation feel
+               like a page load, and it is the single cheapest
+               difference between "a website in a wrapper" and an
+               app.
+
+               Under reduced motion it IS a cut, which is what
+               that setting asks for. */
+            val reduced = rememberReducedMotion()
+            AnimatedContent(
+                targetState = where,
+                transitionSpec = {
+                    if (reduced) {
+                        EnterTransition.None togetherWith ExitTransition.None
+                    } else {
+                        (
+                            fadeIn(tween(Motion.ENTER_MS, delayMillis = 80)) +
+                                scaleIn(
+                                    initialScale = 0.97f,
+                                    animationSpec = tween(Motion.ENTER_MS, delayMillis = 80),
+                                )
+                            ).togetherWith(fadeOut(tween(90)))
+                    }
+                },
+                label = "screen",
+            ) { here ->
             when (here) {
                 Where.Skills -> {
                     BackHandler { where = Where.Home }
@@ -1910,7 +2312,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                            them. */
                         group = site?.nav?.firstOrNull { it.id == "learn" },
                         head = site?.heads?.get(SKILLS_KEY),
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         onOpen = { item ->
                             /* Through the ONE function that
                                decides where a nav item goes, so a
@@ -1935,7 +2337,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                            screen with no release. */
                         cases = site?.pages.orEmpty().filter { it.group == "case" },
                         head = site?.heads?.get(PORTFOLIO_KEY),
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         onOpen = { page -> openOnSite(context, page.url, colours) },
                     )
                 }
@@ -1956,7 +2358,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         erasing = erasing,
                         problem = authProblem,
                         linkSent = linkSent,
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         onGoogle = { model.signInWith(context, "google") },
                         onLink = { model.sendLink(context, it) },
                         onSignOut = { model.signOut(context) },
@@ -2000,7 +2402,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         title = here.title,
                         pieces = pieces.filter { it.section == here.section },
                         stale = stale,
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         onOpen = { piece ->
                             model.openPiece(piece)
                             where = Where.Reading2(here.section, piece)
@@ -2043,7 +2445,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         previous = siblings.getOrNull(at - 1),
                         next = siblings.getOrNull(at + 1),
                         stale = stale,
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         onOpen = { piece ->
                             model.openPiece(piece)
                             where = Where.Reading2(here.section, piece)
@@ -2085,7 +2487,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         days = which?.let { bookDays[it.id] }.orEmpty(),
                         written = written,
                         answers = answers,
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         onWrite = { slot, text -> which?.let { model.write(it, slot, text) } },
                         onTickDay = { id -> which?.let { model.tickDay(it, id) } },
                         onReveal = { day -> model.reveal(here.stage.slug, day) },
@@ -2099,15 +2501,21 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         state = dietState,
                         onWeight = { model.weighIn(context, it) },
                         onRemove = { model.removeEaten(context, it) },
-                        /* The other thirteen pages of the tool are
-                           the site's. This one opens the log
-                           rather than pretending the app has it. */
+                        onAdd = { row, ate -> model.addEaten(context, row, ate) },
+                        onDay = { model.openDiet(context, it) },
+                        /* Eleven of the tool's fourteen pages are
+                           still the site's, and so are the barcode
+                           scanner and the two public databases.
+                           This opens the log rather than
+                           pretending the app has all of it. */
                         onOpenSite = {
                             openOnSite(context, "/tools/diet/log", colours)
                         },
+                        words = site?.dietWords ?: uk.co.reiad.library.core.DietWords(),
+                        lang = prefs.lang,
                         contentPadding = PaddingValues(
                             start = Gap.s8, end = Gap.s8,
-                            top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                            top = topClearance(), bottom = barClearance(),
                         ),
                     )
                 }
@@ -2122,7 +2530,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         onOpenSite = { openOnSite(context, "/tools/routine", colours) },
                         contentPadding = PaddingValues(
                             start = Gap.s8, end = Gap.s8,
-                            top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                            top = topClearance(), bottom = barClearance(),
                         ),
                     )
                 }
@@ -2136,9 +2544,10 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                            thing worth making somebody enter where
                            they can see the address bar. */
                         onConnect = { openOnSite(context, "/tools/live", colours) },
+                        onRetry = { model.openLive(context) },
                         contentPadding = PaddingValues(
                             start = Gap.s8, end = Gap.s8,
-                            top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                            top = topClearance(), bottom = barClearance(),
                         ),
                     )
                 }
@@ -2162,7 +2571,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                                 .associate { it.id to (it.en to it.bn) },
                             contentPadding = PaddingValues(
                                 start = Gap.s8, end = Gap.s8,
-                                top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                                top = topClearance(), bottom = barClearance(),
                             ),
                         )
                     }
@@ -2206,7 +2615,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             note = toolNote,
                             contentPadding = PaddingValues(
                                 start = Gap.s8, end = Gap.s8,
-                                top = TOP_CLEARANCE, bottom = BAR_CLEARANCE,
+                                top = topClearance(), bottom = barClearance(),
                             ),
                         )
                     }
@@ -2217,9 +2626,10 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     GroupScreen(
                         group = here.group,
                         accents = site?.accents.orEmpty(),
-                        bottomPadding = BAR_CLEARANCE,
+                        bottomPadding = barClearance(),
                         canOpenHere = { item -> opensHere(site, item) },
                         onOpenHere = { item -> where = goTo(model, context, site, item, where) },
+                        heads = site?.heads.orEmpty(),
                     )
                 }
 
@@ -2248,6 +2658,41 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         }
                     },
                     onRetry = { model.refresh() },
+                    board = board,
+                    daysActive = daysActive,
+                    routineGlance = routineGlance,
+                    dietGlance = dietGlance,
+                    sway = sway,
+                    bookmarks = bookmarks,
+                    pieces = pieces,
+                    lang = prefs.lang,
+                    signedIn = reader != null,
+                    onBoard = { model.saveBoard(it) },
+                    onResetBoard = { model.resetBoard() },
+                    onPiece = { piece ->
+                        model.openPiece(piece)
+                        where = Where.Reading2(piece.section, piece)
+                    },
+                    /* Into that school's ladder, which is where
+                       the bookmark is drawn: the row is
+                       highlighted and the lesson is one press
+                       away. Straight into the lesson would need
+                       the ladder fetched first anyway, and would
+                       leave a reader with no way back to the
+                       school they were in the middle of. */
+                    onResume = { key, _ ->
+                        site?.ladders?.firstOrNull { it.key == key }?.let { school ->
+                            model.openLadder(school)
+                            where = Where.Ladder(school)
+                        }
+                    },
+                    news = news,
+                    onNeedNews = { model.fetchNews() },
+                    /* Somebody else's page, in the reader's own
+                       browser, with the address bar visible: this
+                       app does not host The Business Standard and
+                       should not look as though it does. */
+                    onStory = { story -> openOnSite(context, story.url, colours) },
                 )
 
                 is Where.Ladder -> {
@@ -2312,7 +2757,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         }
                     }
                     /* A link inside a LESSON is written relative
-                       to its stage — `dividend.html` — so only
+                       to its stage, `dividend.html`, so only
                        this screen can resolve it. Resolved, it
                        goes through the same follower as every
                        other address, which is what turns a
@@ -2383,9 +2828,22 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     prefs = prefs,
                     onChange = { change -> model.changePrefs(change) },
                     onClose = { settings = false },
-                    onLang = { model.chooseToolLang(it) },
                     held = held,
                     onForget = { model.forgetHeldNow(context) },
+                    remindAt = remindAt,
+                    onRemind = { at ->
+                        model.remindAt(context, at)
+                        /* Only when they are turning it ON, and
+                           only on the versions that ask. A
+                           permission prompt for a setting somebody
+                           just switched off is a prompt with no
+                           question in it. */
+                        if (at != null &&
+                            android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU
+                        ) {
+                            askToNotify.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    },
                 )
             }
         }
@@ -2571,13 +3029,33 @@ fun Home(
     onOpen: (LadderSchool) -> Unit,
     onGo: (NavItem) -> Unit = {},
     onRetry: () -> Unit = {},
+    /** The board this reader arranged, as stored. Null means
+        they never have, which is not the same as an empty board:
+        the site's own default answers the first and nothing
+        answers the second. */
+    board: List<String>? = null,
+    daysActive: Set<String> = emptySet(),
+    routineGlance: uk.co.reiad.library.data.RoutineGlance? = null,
+    dietGlance: uk.co.reiad.library.data.DietGlance? = null,
+    bookmarks: Map<String, Bookmark> = emptyMap(),
+    pieces: List<Piece> = emptyList(),
+    news: List<Story> = emptyList(),
+    onNeedNews: () -> Unit = {},
+    lang: String = "bn",
+    signedIn: Boolean = false,
+    onBoard: (List<String>) -> Unit = {},
+    onResetBoard: () -> Unit = {},
+    onPiece: (Piece) -> Unit = {},
+    onResume: (String, Bookmark) -> Unit = { _, _ -> },
+    onStory: (Story) -> Unit = {},
+    /* One sway for the whole app, not one per screen or per
+       card: every surface leans by the same amount because they
+       are all on the same handset. `App` passes the instance the
+       shell's ambient field reads, so the light behind the page
+       and the light on the cards lean together. */
+    sway: Sway = rememberSway(),
 ) {
     val c = LocalReiad.current
-    /* One sway for the whole screen, not one per card. Every card
-       on a page leans by the same amount, because they are all on
-       the same handset: a lean per card would be twelve sensor
-       listeners answering one movement. */
-    val sway = rememberSway()
     /* The site's own door, chosen by the audience switch exactly
        as `data-hl` chooses it there, and `open` for a reader who
        has not answered it. */
@@ -2588,20 +3066,99 @@ fun Home(
             .mapNotNull { item -> item.key?.let { it to item.icon } }
             .toMap()
     }
-    val rows = remember(site) {
-        site?.nav.orEmpty()
-            .flatMap { group -> group.items.map { group to it } }
-            .filter { (_, item) ->
-                item.key != null && site?.ladders?.none { it.key == item.key } == true
-            }
+
+    /* ---------- the board ----------
+
+       The reader's own arrangement, filtered against what THIS
+       build can draw. A kind the site has shipped and this app
+       has no renderer for is skipped rather than left as a blank
+       rectangle with a title on it: see `ui/Widgets.kt`.
+
+       The site's own default is the fallback where the reader
+       has arranged nothing, and `BOARD_FLOOR` is the fallback
+       for THAT, on a phone that has never fetched anything. */
+    var arranging by rememberSaveable { mutableStateOf(false) }
+    /* Decoration answers to reduced motion before anything else
+       does: the jiggle while arranging is the definition of
+       decoration. */
+    val jiggle = !rememberReducedMotion()
+    val catalogue = remember(site) {
+        site?.widgets?.kinds.orEmpty().associateBy { it.id }
+    }
+    val placed = remember(board, site) {
+        layoutOf(
+            stored = board,
+            drawable = DRAWABLE,
+            fallback = site?.widgets?.home?.takeIf { it.isNotEmpty() } ?: BOARD_FLOOR,
+        )
+    }
+    val data = BoardData(
+        site = site, ticks = ticks, bookmarks = bookmarks, pieces = pieces,
+        sway = sway, icons = icons, lang = lang, news = news,
+        daysActive = daysActive, routine = routineGlance, diet = dietGlance,
+        today = remember { java.time.LocalDate.now().toString() },
+    )
+    val act = BoardActions(
+        onSchool = onOpen, onItem = onGo, onPiece = onPiece, onResume = onResume,
+        onStory = onStory,
+    )
+
+    /* Three RSS feeds read on a Worker is not a request to make
+       for a reader who has taken the widget off their board. */
+    LaunchedEffect(placed) {
+        if (placed.any { it.id == "market" }) onNeedNews()
     }
 
+    val listState = rememberLazyListState()
+    /* Hold a widget and move it: the board reorders under the
+       finger as it passes each neighbour, and every question
+       about where the finger is goes to what the list actually
+       laid out. See `ui/BoardDrag.kt`.
+
+       THE GESTURE OWNS A WORKING COPY. Writing the store on
+       every pass meant the next pass was computed against the
+       board as it stood before the last one, and the card fought
+       its way back to where it started: that was the report
+       "unable to move positions, if i change one that jumps
+       right back". The copy is opened on pick, mutated in the
+       same frame the finger crosses a neighbour, and committed
+       ONCE on drop. `working` is read at CALL time inside these
+       lambdas, not at composition time, which is what makes two
+       moves in one frame land in order. */
+    var working by remember { mutableStateOf<List<Placed>?>(null) }
+    val showing = working ?: placed
+    val drag = rememberBoardDrag(
+        state = listState,
+        indexOf = { key ->
+            (working ?: placed).indexOfFirst { it.id == key }.takeIf { it >= 0 }
+        },
+        onPick = { working = placed },
+        onMove = { from, to -> working = moved(working ?: placed, from, to) },
+        onDrop = {
+            /* Only a changed board is worth a write: a long press
+               that went nowhere is not an arrangement. */
+            working?.takeIf { it != placed }?.let { onBoard(storedOf(it)) }
+            working = null
+        },
+    )
+
+    /* CAPPED AND CENTRED, not reflowed, at tablet width. A wide
+       widget across 840dp is a reading whose number sits a
+       hand-span from its label, and the site answers the same
+       way: the page column has a maximum and the board lives
+       inside it. Reflowing wides into columns would resize what
+       the reader sized. */
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
     LazyColumn(
-        Modifier.fillMaxSize().padding(horizontal = Gap.s8),
+        Modifier
+            .fillMaxHeight()
+            .widthIn(max = 660.dp)
+            .padding(horizontal = Gap.s8),
+        state = listState,
         /* The bar FLOATS over the page rather than pushing it, so
            the page has to end above it or the last card sits under
            the bar and looks like the list has been cut off. */
-        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = BAR_CLEARANCE),
+        contentPadding = PaddingValues(top = topClearance(), bottom = barClearance()),
     ) {
         item("door") {
             if (copy != null) {
@@ -2649,44 +3206,145 @@ fun Home(
             }
         }
 
-        items(site?.ladders.orEmpty(), key = { it.key }) { school ->
-            SchoolCard(
-                school,
-                ticks[school.key].orEmpty().size,
-                sway,
-                icons[school.key],
-                onOpen,
-            )
-            Spacer(Modifier.height(Gap.s7))
+        /* ---------- the board ---------- */
+
+        item("arrange") {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.weight(1f))
+                PillButton(
+                    label = if (arranging) {
+                        if (lang == "bn") "হয়ে গেছে" else "Done"
+                    } else {
+                        if (lang == "bn") "সাজান" else "Arrange"
+                    },
+                    onClick = { arranging = !arranging },
+                    icon = if (arranging) "check" else "sliders",
+                    pressed = arranging,
+                )
+            }
+            Spacer(Modifier.height(Gap.s6))
         }
 
-        /* And everything else the site holds, as HANDLES rather
-           than as cards, which is the site's own side column: a
-           tool, a reading hub and the account are one line each.
-           A list of places to go should not be a page of
-           paragraphs, and on a handset that difference is four
-           screens of scrolling. */
-        if (rows.isNotEmpty()) {
-            item("rows-head") {
-                Spacer(Modifier.height(Gap.s7))
-                Text(
-                    "AND THE REST OF IT",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = c.inkSoft,
-                )
-                Spacer(Modifier.height(Gap.s6))
-            }
-            items(rows, key = { (_, item) -> item.key ?: item.label }) { (group, item) ->
-                ReiadTheme(accent = accentOfGroup(group), dark = c.isDark) {
-                    RowCard(
-                        title = item.sub?.takeIf { it.isNotBlank() } ?: item.label,
-                        icon = item.icon,
-                        onOpen = { onGo(item) },
-                    )
+        /* ---------- reading mode: the paired grid ----------
+
+           Two SMALLS sit side by side, the way a phone home
+           screen pairs its squares. Only consecutive smalls
+           pair, because the ORDER is the reader's and pairing
+           across a wide would reorder it for them.
+
+           While ARRANGING, everything runs full width instead:
+           the drag and the arrows work per widget, and a small
+           twice the size while being moved is the same trade
+           iOS makes when its grid shrinks in jiggle mode. */
+        if (!arranging) {
+            val rows = pairSmalls(placed)
+            items(rows, key = { row -> row.joinToString("+") { it.id } }) { row ->
+                /* HOLD TO ARRANGE, from the board itself. The
+                   সাজান button stays for anyone who would never
+                   guess a long press, but the gesture a phone
+                   teaches on its own home screen works here too:
+                   hold a widget and the board goes into
+                   arranging with a knock, ready to drag. The
+                   wrapper sits BEHIND the widget's own taps, so
+                   opening a card is untouched. */
+                val knock = LocalHapticFeedback.current
+                Box(
+                    Modifier.pointerInput(Unit) {
+                        detectTapGestures(onLongPress = {
+                            knock.performHapticFeedback(HapticFeedbackType.LongPress)
+                            arranging = true
+                        })
+                    },
+                ) {
+                if (row.size == 2) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Gap.s7),
+                    ) {
+                        for (p in row) {
+                            Box(Modifier.weight(1f)) {
+                                Widget(p.id, p.size, data, act)
+                            }
+                        }
+                    }
+                } else {
+                    Widget(row.first().id, row.first().size, data, act)
                 }
-                Spacer(Modifier.height(Gap.s5))
+                }
+                Spacer(Modifier.height(Gap.s7))
+            }
+        } else {
+        itemsIndexed(showing, key = { _, p -> p.id }) { at, p ->
+            /* The catalogue describes a widget; it is not what
+               DRAWS one. A phone that has never fetched the
+               manifest still has `BOARD_FLOOR` and still has
+               every renderer, so the board draws either way and
+               `kindOf` supplies a readable name until the site's
+               own arrives. Requiring the catalogue here left the
+               whole front page blank until the first fetch
+               landed; falling back to the ID put `continue` and
+               `pulse` down the side of a Bangla front page. */
+            val kind = kindOf(p.id, catalogue, p.size)
+            val carried = drag.carrying == p.id
+            WidgetFrame(
+                modifier = Modifier
+                    .zIndex(if (carried) 1f else 0f)
+                    .graphicsLayer {
+                        if (!carried) return@graphicsLayer
+                        translationY = drag.offset
+                        /* A card in the hand is off the board:
+                           lifted, and slightly proud of the rest
+                           so it is obvious which one is moving. */
+                        scaleX = 1.02f
+                        scaleY = 1.02f
+                        shadowElevation = 12f
+                    },
+                kind = kind,
+                placed = p,
+                arranging = arranging,
+                moving = jiggle,
+                carried = carried,
+                first = at == 0,
+                last = at == showing.lastIndex,
+                lang = lang,
+                onUp = { onBoard(storedOf(moved(showing, at, at - 1))) },
+                onDown = { onBoard(storedOf(moved(showing, at, at + 1))) },
+                onResize = {
+                    val other = kind.other(p.size) ?: return@WidgetFrame
+                    onBoard(storedOf(showing.toMutableList().also { it[at] = p.copy(size = other) }))
+                },
+                onRemove = {
+                    onBoard(storedOf(showing.filterIndexed { i, _ -> i != at }))
+                },
+                handle = Modifier.dragHandle(drag, p.id),
+            ) {
+                Widget(p.id, p.size, data, act)
+            }
+            Spacer(Modifier.height(Gap.s7))
+        }
+        }
+
+        if (arranging) {
+            item("picker") {
+                Spacer(Modifier.height(Gap.s6))
+                WidgetPicker(
+                    /* The catalogue minus what is already on the
+                       board, and minus what this build cannot
+                       draw: offering a widget that would not
+                       appear is worse than not offering it. */
+                    offered = site?.widgets?.kinds.orEmpty()
+                        .filter { it.id in DRAWABLE && placed.none { p -> p.id == it.id } },
+                    lang = lang,
+                    signedIn = signedIn,
+                    onAdd = { kind ->
+                        onBoard(storedOf(placed + Placed(kind.id, kind.added())))
+                    },
+                    onReset = onResetBoard,
+                )
+                Spacer(Modifier.height(Gap.s8))
             }
         }
+    }
     }
 }
 
@@ -2755,7 +3413,7 @@ fun Ladder(
     val c = LocalReiad.current
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = BAR_CLEARANCE),
+        contentPadding = PaddingValues(top = topClearance(), bottom = barClearance()),
     ) {
         item {
             Crumb("Home", onBack)
@@ -2892,7 +3550,7 @@ fun StageCard(
            read, which is what `uebung` says. A stage with neither
            shows nothing rather than an empty slot. */
         stage.workbook?.let { workbook ->
-            Rung(Modifier.clickable(role = Role.Button) { onOpenBook(stage) }) {
+            Rung(onClick = { onOpenBook(stage) }) {
                 Icon("pen", size = 18.dp, tint = c.accent)
                 Spacer(Modifier.width(Gap.s6))
                 Text(
@@ -2919,7 +3577,7 @@ fun StageCard(
         Column(verticalArrangement = Arrangement.spacedBy(Gap.s2)) {
         for (lesson in lessons) {
             val id = lessonId(stage.slug, lesson.slug)
-            Rung(Modifier.clickable(enabled = lesson.isWritten) { onOpen(stage, lesson) }) {
+            Rung(onClick = { onOpen(stage, lesson) }, enabled = lesson.isWritten) {
                 Box(
                     Modifier
                         .width(16.dp)
@@ -2976,7 +3634,7 @@ fun Reading(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Gap.s8)
-            .padding(top = TOP_CLEARANCE, bottom = BAR_CLEARANCE)
+            .padding(top = topClearance(), bottom = barClearance())
     ) {
         Crumb(stage.bn, onBack)
         Spacer(Modifier.height(Gap.s7))
@@ -3084,38 +3742,13 @@ fun Reading(
            marked this lesson when it opened, so what they get is
            a statement rather than a control. */
         if (isMoney) {
-            val touch = uk.co.reiad.library.ui.rememberTouch()
-            /* The button FILLS when pressed rather than being
-               repainted filled: a tick is the one mark this
-               school asks the reader to make, and it deserves
-               the same answered feel a checkpoint has. */
-            val ground by androidx.compose.animation.animateColorAsState(
-                targetValue = if (ticked) c.accent else c.panel,
-                animationSpec = androidx.compose.animation.core.tween(uk.co.reiad.library.core.Motion.ENTER_MS),
-                label = "tick-ground",
+            PillButton(
+                if (ticked) "পড়া হয়েছে ✓" else "পড়া হয়েছে",
+                onTick,
+                kind = ButtonKind.SOFT,
+                wide = true,
+                pressed = ticked,
             )
-            val ink by androidx.compose.animation.animateColorAsState(
-                targetValue = if (ticked) c.paper else c.accent,
-                animationSpec = androidx.compose.animation.core.tween(uk.co.reiad.library.core.Motion.ENTER_MS),
-                label = "tick-ink",
-            )
-            Control(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(role = Role.Button) {
-                        touch.latch(!ticked)
-                        onTick()
-                    },
-                ground = ground,
-            ) {
-                Text(
-                    if (ticked) "পড়া হয়েছে ✓" else "পড়া হয়েছে",
-                    style = MaterialTheme.typography.labelLarge.copy(fontFamily = Faces.bengali),
-                    color = ink,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                )
-            }
         } else if (ticked) {
             Plate(Modifier.fillMaxWidth()) {
                 Text("পড়া হয়েছে ✓", style = MaterialTheme.typography.labelLarge, color = c.accent)

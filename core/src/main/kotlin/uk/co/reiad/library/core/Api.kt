@@ -2,6 +2,7 @@ package uk.co.reiad.library.core
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import uk.co.reiad.library.core.stock.Phrase
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 
@@ -99,6 +100,32 @@ data class SiteManifest(
         empty paragraph. */
     val heads: Map<String, PageHeadWords> = emptyMap(),
 
+    /** What the front page can be made of, and what a reader who
+        has arranged nothing gets.
+
+        The catalogue is DATA and each side's renderer is CODE, so
+        a kind this build cannot draw is skipped rather than left
+        as a blank rectangle with a title on it, and a kind
+        renamed on the site is renamed here at the next fetch.
+        Empty until a deployment carries it; `BOARD_FLOOR` is what
+        a first run with no network draws. */
+    val widgets: Widgets = Widgets(),
+
+    /** The diet tool's own readouts, in both languages.
+
+        Copy is DATA by the contract at the top of `CLAUDE.md`, so
+        a line reworded on the site is reworded here at the next
+        fetch and this app carries no Kotlin copy of nineteen
+        sentences. Its own table rather than a corner of
+        `/api/tools`, because `stringKeys` there is "every phrase
+        the stock check can render" and a diet phrase in that list
+        makes the stock test's assertion weaker for both tools.
+
+        Empty until a deployment carries it, and a screen that
+        reads it renders the figures with no explanation rather
+        than the key in square brackets. */
+    val dietWords: DietWords = DietWords(),
+
     /** The palette's index: every page of the site that is not
         private, with the title, the address and one line saying
         what it is. This is what the Ctrl+K palette searches on
@@ -172,11 +199,109 @@ data class NavItem(
     val key: String? = null,
     val ladder: Boolean = false,
     val soon: Boolean = false,
+    /** This entry IS its group's own front page.
+
+        A card linking to the page you are already on is a dead
+        card, so the group tab drops it and takes that page's own
+        head from `heads` instead. The site's `/skills` filtered
+        on its own key for a year, which is a fact one page held
+        and this app could not read: the Learning tab opened with
+        a card titled দক্ষতা that led to a copy of the list under
+        it. Absent until a deployment carries it, and false is the
+        harmless answer. */
+    val hub: Boolean = false,
     /** What that entry is, in three words, for a card's chip. */
     val kind: String? = null,
     val blurb: String? = null,
     val accent: String? = null,
 )
+
+/** The entry that IS this group's own front page, if it has one. */
+fun NavGroup.hubItem(): NavItem? = items.firstOrNull { it.hub }
+
+/** The rows a group's own tab lists.
+
+    Its hub is dropped, because a card taking a reader to the list
+    they are reading is a dead card and it was the FIRST one on
+    the Learning tab: দক্ষতা, no blurb, leading to a copy of what
+    was under it.
+
+    Unless the hub is all there is. The reading group is one entry
+    and that entry is its hub, so filtering it leaves a tab with
+    nothing on it, which is worse than the repetition. */
+fun rowsOf(group: NavGroup): List<NavItem> =
+    group.items.filter { !it.hub }.ifEmpty { group.items }
+
+/* ---------- /api/news ---------- */
+
+/** One market story, as `/api/news` picked it.
+
+    The endpoint reads three RSS feeds server-side, scores each
+    story against a keyword table and dedupes, so what arrives is
+    already the shortlist. `_score` and the rest of its working
+    are not sent and are not wanted: the ranking is the site's
+    editorial judgement and a client that re-ranked would be a
+    second opinion nobody asked for.
+
+    `titleBn` is present only where a translation succeeded, and
+    a story with none is shown in English rather than held back:
+    a headline nobody can read is still better than a gap where
+    the news should be. */
+@Serializable
+data class Story(
+    val title: String = "",
+    @SerialName("title_bn") val titleBn: String? = null,
+    val url: String = "",
+    val summary: String = "",
+    val source: String = "",
+    /** `BD` or `Global`, and it is the SITE's label for a feed
+        rather than anything the publisher said. */
+    val region: String = "",
+    val published: String? = null,
+) {
+    fun headline(lang: String): String =
+        if (lang == "bn") titleBn?.takeIf { it.isNotBlank() } ?: title else title
+}
+
+@Serializable
+data class NewsResponse(
+    val updated: String = "",
+    val count: Int = 0,
+    val items: List<Story> = emptyList(),
+)
+
+/** The diet tool's own words, as `/api/site` sends them.
+
+    `phrases` is keyed by a phrase id (`dt.bmi.why`); the four
+    below are keyed by a TOKEN the arithmetic in `core/diet/`
+    returns, which is what lets a band this app computed have a
+    sentence without this app holding a single one of them.
+
+    Empty until a deployment carries it, and `say()` answers null
+    rather than the key: a figure with no explanation under it is
+    a figure, and a figure with `dt.bmi.why` under it is a bug
+    somebody has to report. */
+@Serializable
+data class DietWords(
+    val phrases: Map<String, Phrase> = emptyMap(),
+    val bmiBands: Map<String, Phrase> = emptyMap(),
+    val whtrBands: Map<String, Phrase> = emptyMap(),
+    val sexForms: Map<String, Phrase> = emptyMap(),
+    val cutSets: Map<String, Phrase> = emptyMap(),
+) {
+    private fun pick(p: Phrase?, lang: String): String? {
+        val said = if (lang == "bn") p?.bn ?: p?.en else p?.en ?: p?.bn
+        return said?.takeIf { it.isNotBlank() }
+    }
+
+    /** One phrase, or null where the table has not arrived. */
+    fun say(key: String, lang: String): String? = pick(phrases[key], lang)
+
+    fun bmiBand(token: String, lang: String): String? = pick(bmiBands[token], lang)
+    fun whtrBand(token: String, lang: String): String? = pick(whtrBands[token], lang)
+    fun sexForm(token: String, lang: String): String? = pick(sexForms[token], lang)
+    fun cutSet(token: String, lang: String): String? = pick(cutSets[token], lang)
+}
 
 @Serializable
 data class Audience(val id: String = "", val label: String = "", val sub: String = "")

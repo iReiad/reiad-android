@@ -457,7 +457,7 @@ private fun Callout(block: Block.Callout, checkpoints: Checkpoints? = null, path
 
 /** `.muster`: the pattern box. An accent border on the accent
     wash, the label in mono, the pattern itself at display size,
-    and the why underneath — every number off the site's own
+    and the why underneath: every number is off the site's own
     `body.deutsch .muster` rules. */
 @Composable
 private fun PatternBlock(block: Block.Pattern, checkpoints: Checkpoints? = null, path: String = "") {

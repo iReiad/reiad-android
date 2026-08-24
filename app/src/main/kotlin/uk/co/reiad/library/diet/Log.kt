@@ -108,6 +108,39 @@ class Log(private val account: Account) {
         json.decodeFromString(ListSerializer(DietEntry.serializer()), text)
     }.orEmpty()
 
+    /* ---------- the three writes ----------
+
+       EVERY ONE OF THEM RETURNS A SENTENCE OR NULL, and none of
+       them returns a Boolean. `Days.kt` next door explains why at
+       length and the short version is this: `diet_days.user_id`
+       was `not null` with no default, so every insert this made
+       was a null in a not-null column, PostgREST answered 400,
+       the caller dropped the `false`, and the screen went on
+       showing what had been typed. A write that can fail and
+       cannot say so is a write that loses work quietly.
+
+       The column has `default auth.uid()` now, from
+       `20260823124900_own_rows_by_default.sql`, so `user_id` is
+       still never named here: it fills itself in from the token
+       and this device cannot get it wrong. */
+
+    private suspend fun write(
+        what: String,
+        block: suspend (String) -> io.ktor.client.statement.HttpResponse,
+    ): String? = withContext(Dispatchers.IO) {
+        val token = account.token()
+            ?: return@withContext "You are not signed in, so $what is on this phone only."
+        runCatching {
+            val answer = block(token)
+            if (answer.status.isSuccess()) {
+                null
+            } else {
+                "Could not save $what (${answer.status.value}). " +
+                    answer.bodyAsText().take(160)
+            }
+        }.getOrElse { "Could not save $what: ${it.message ?: "no connection"}." }
+    }
+
     /**
      * One day, saved whole.
      *
@@ -116,35 +149,33 @@ class Log(private val account: Account) {
      * typing a weight does not erase the waist they measured this
      * morning.
      */
-    suspend fun saveDay(day: DietDay): Boolean = withToken { token ->
+    suspend fun saveDay(day: DietDay): String? = write("today") { token ->
         val body = json.encodeToString(ListSerializer(DietDay.serializer()), listOf(day))
-        val answer = http.post("${Supabase.REST}/diet_days?on_conflict=user_id,entry_date") {
+        http.post("${Supabase.REST}/diet_days?on_conflict=user_id,entry_date") {
             auth(token)
             header("Prefer", "resolution=merge-duplicates,return=minimal")
             contentType(ContentType.Application.Json)
             setBody(body)
         }
-        answer.status.isSuccess()
-    } ?: false
+    }
 
     /** One thing eaten, added. */
-    suspend fun addEntry(entry: DietEntry): Boolean = withToken { token ->
+    suspend fun addEntry(entry: DietEntry): String? = write("what you ate") { token ->
         val body = json.encodeToString(ListSerializer(DietEntry.serializer()), listOf(entry))
-        val answer = http.post("${Supabase.REST}/diet_entries") {
+        http.post("${Supabase.REST}/diet_entries") {
             auth(token)
             header("Prefer", "return=minimal")
             contentType(ContentType.Application.Json)
             setBody(body)
         }
-        answer.status.isSuccess()
-    } ?: false
+    }
 
     /** And removed. By id, which is the only thing that can
         identify one of several identical lines. */
-    suspend fun removeEntry(id: String): Boolean = withToken { token ->
+    suspend fun removeEntry(id: String): String? = write("that change") { token ->
         http.delete("${Supabase.REST}/diet_entries?id=eq.$id") {
             auth(token)
             header("Prefer", "return=minimal")
-        }.status.isSuccess()
-    } ?: false
+        }
+    }
 }

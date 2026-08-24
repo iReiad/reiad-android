@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  How far you are, on the home screen.
+
+  Four rows of a school and a count, so `minHeight` is two cells
+  rather than one: four rows in 60dp is four ellipses.
+
+  `updatePeriodMillis="0"` because nothing polls. It is redrawn
+  when the app writes a tick, which is the only moment its answer
+  changes, and a widget that woke every half hour to redraw the
+  same four numbers would be a battery cost with no reader.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="110dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_progress_description"
+    android:updatePeriodMillis="0" />

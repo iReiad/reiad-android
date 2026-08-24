@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.heightIn
@@ -26,10 +28,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -94,7 +99,6 @@ fun Card(
     val glow = lit ?: rememberGlow()
     Column(
         modifier
-            .pressing(glow)
             .clip(RoundedCornerShape(corner))
             .material(Kind.CARD, c, corner, ground, lit = { glow.lit })
             .follows(glow)
@@ -115,7 +119,6 @@ fun Control(
     val glow = rememberGlow()
     Row(
         modifier
-            .pressing(glow)
             .height(Gap.tap)
             .clip(RoundedCornerShape(corner))
             .material(Kind.CONTROL, c, corner, ground, lit = { glow.lit })
@@ -126,71 +129,190 @@ fun Control(
     )
 }
 
+/** The press ANSWERED in the glass itself: the surface gives a
+    little under the finger and springs back when it lifts, the
+    way the bar's thumb swells. Feedback rather than decoration,
+    so it stays under reduced motion; what reduced motion turns
+    off is the sway and the jiggle, things that move by
+    themselves. */
+@Composable
+fun Modifier.pressGives(interaction: androidx.compose.foundation.interaction.InteractionSource): Modifier {
+    val held by interaction.collectIsPressedAsState()
+    val give by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (held) 0.965f else 1f,
+        animationSpec = androidx.compose.animation.core.spring(
+            dampingRatio = 0.55f,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMediumLow,
+        ),
+        label = "give",
+    )
+    return this.graphicsLayer {
+        scaleX = give
+        scaleY = give
+    }
+}
+
+/** A sideways row dissolves into the paper where it continues.
+
+    Every horizontally scrolling row here (the calculator topics,
+    a practice book's days, a hub's topic chips) used to cut its
+    last pill clean at the screen edge, which reads as a layout
+    mistake rather than as "more this way". Drawn OUTSIDE the
+    scroll (put this modifier before `horizontalScroll` in the
+    chain), so the fade holds still at the viewport's edge while
+    the content slides under it, and only while there is anything
+    left to slide to. */
+fun Modifier.fadesAtTheEnd(
+    slide: androidx.compose.foundation.ScrollState,
+    ground: androidx.compose.ui.graphics.Color,
+): Modifier = this.drawWithContent {
+    drawContent()
+    if (!slide.canScrollForward) return@drawWithContent
+    val breadth = 40.dp.toPx()
+    drawRect(
+        brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+            0f to androidx.compose.ui.graphics.Color.Transparent,
+            1f to ground,
+            startX = size.width - breadth,
+            endX = size.width,
+        ),
+        topLeft = androidx.compose.ui.geometry.Offset(size.width - breadth, 0f),
+        size = androidx.compose.ui.geometry.Size(breadth, size.height),
+    )
+}
+
+/** The site's own four kinds, named for what a button IS rather
+    than for how it looks. The ladder between them is LOUDNESS
+    rather than importance: a solid is the one action a screen is
+    for, a soft sits on a panel, a ghost acts without claiming
+    ground, and a quiet is a word that happens to be pressable. */
+enum class ButtonKind { SOLID, SOFT, GHOST, QUIET }
+
 /**
  * A control with a label on it, which is what a button is.
+ *
+ * ONE BUTTON, the way `ui/button.tsx` is one on the site and
+ * `ui/Field.kt` is one box here. There were three: this, with
+ * two states; nineteen bare `Control(Modifier.clickable(...))`
+ * sites, each a hand-made soft button with no rim, no minimum
+ * width and its own idea of case and colour; and three latches
+ * built the same way again. The clickable on those sat OUTSIDE
+ * the pill clip, so the press ripple bled square corners on
+ * every one.
  *
  * `Control` is the surface and this is the thing you press. The
  * difference matters because the material's lit edge is not
  * enough on its own at this size: a control on a pane of the same
  * glass reads as a label until it has a rim, and the site draws
- * one. It shipped without, five times over, and every one of them
- * looked like text somebody had coloured green.
+ * one.
  *
- * `filled` is a latch rather than an emphasis: a thing that is ON
- * is the accent, a thing that ACTS is the rim.
+ * `pressed` is the latch, and it is a third axis on purpose: a
+ * thing that is ON is the accent whatever its kind, which is the
+ * site's `aria-pressed` rule, and the semantics say selected so a
+ * screen reader hears the state the eye sees.
+ *
+ * A Bangla label is detected rather than declared: it takes the
+ * Bangla face and skips the uppercase, which is a no-op on Bangla
+ * anyway. A flag would be forgotten on exactly the labels that
+ * need it.
  */
 @Composable
 fun PillButton(
     label: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    kind: ButtonKind = ButtonKind.GHOST,
     icon: String? = null,
-    filled: Boolean = false,
+    /** The whole row, for the account-page shape: one action on
+        its own line. */
+    wide: Boolean = false,
+    /** Non-null makes this a latch: on is the accent, off is the
+        kind, and the semantics carry the state. */
+    pressed: Boolean? = null,
+    /** The ink, where it is not the accent: a danger action. The
+        KIND stays the loudness; this is only the colour. */
+    tint: Color? = null,
+    /** A control that cannot act YET, beside the box that will
+        make it able: a Send next to an empty email. Anything
+        else that cannot act should be absent rather than
+        disabled, which is the board strip's own rule. */
+    enabled: Boolean = true,
     description: String? = null,
 ) {
     val c = LocalReiad.current
-    val ink = if (filled) c.paper else c.accent
-    val touch = rememberTouch()
+    val on = enabled && (pressed == true || (pressed == null && kind == ButtonKind.SOLID))
+    val ink = when {
+        !enabled -> c.inkSoft
+        on -> c.paper
+        else -> tint ?: c.accent
+    }
+    /* TRANSPARENT is said out loud for the two quiet kinds,
+       because `null` means "the material's own glass": left null,
+       ghost and quiet drew the same ground as soft and the three
+       were one kind in four names. The button sheet is what
+       showed it, on its first render. */
+    val ground = when {
+        !enabled -> c.paperSunk
+        on -> tint ?: c.accent
+        kind == ButtonKind.SOFT -> c.panel
+        else -> Color.Transparent
+    }
+    val bangla = label.any { it in 'ঀ'..'৿' }
+    val touch = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+
     Control(
         modifier
-            /* A MINIMUM WIDTH, not only a height.
-
-               `Control` gives this its 44dp height and nothing
-               gave it a width, so a short label is a target too
-               narrow in one direction: SAVE came to 34dp and NOT
-               NOW to 36. Both are the right size in a screenshot
-               and the wrong size under a thumb, which is why
+            .pressGives(touch)
+            /* A MINIMUM WIDTH, not only a height: a short label
+               is a target too narrow in one direction. SAVE came
+               to 34dp and NOT NOW to 36, both right in a
+               screenshot and wrong under a thumb, which is why
                `ReachTest` walks the semantics tree rather than
-               looking. It was fixed once on ONE button, in the
-               account's own file, with a comment saying exactly
-               this; here is where it belongs. */
+               looking. */
             .widthIn(min = Gap.tap)
+            .then(if (wide) Modifier.fillMaxWidth() else Modifier)
             .clip(RoundedCornerShape(Corner.pill))
             .then(
-                if (filled) Modifier
-                else Modifier.border(1.dp, c.hairline, RoundedCornerShape(Corner.pill)),
+                if (on || !enabled || kind != ButtonKind.GHOST) Modifier
+                else Modifier.border(
+                    /* The accent at half strength rather than the
+                       hairline: a ghost's whole claim to being a
+                       button is its rim, and the hairline
+                       disappears into a dark ground. */
+                    1.dp,
+                    (tint ?: c.accent).copy(alpha = 0.45f),
+                    RoundedCornerShape(Corner.pill),
+                ),
             )
-            /* A button that acts should also be FELT to act. */
-            .clickable(role = Role.Button) {
-                touch.tap()
-                onClick()
-            }
-            .then(
-                if (description == null) Modifier
-                else Modifier.semantics { contentDescription = description },
-            ),
-        ground = if (filled) c.accent else null,
+            .clickable(
+                interactionSource = touch,
+                indication = androidx.compose.foundation.LocalIndication.current,
+                role = if (pressed != null) Role.Checkbox else Role.Button,
+                enabled = enabled,
+                onClick = onClick,
+            )
+            .semantics {
+                if (description != null) contentDescription = description
+                if (pressed != null) selected = pressed
+            },
+        ground = ground,
     ) {
+        if (wide) Spacer(Modifier.weight(1f))
         if (icon != null) {
             Icon(icon, size = 15.dp, tint = ink)
             Spacer(Modifier.width(Gap.s4))
         }
         Text(
-            label.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
+            if (bangla) label else label.uppercase(),
+            style = if (bangla) {
+                MaterialTheme.typography.labelLarge.copy(fontFamily = Faces.bengali)
+            } else {
+                MaterialTheme.typography.labelMedium
+            },
             color = ink,
             maxLines = 1,
         )
+        if (wide) Spacer(Modifier.weight(1f))
     }
 }
 
@@ -217,15 +339,11 @@ fun Tap(
     label: String? = null,
     content: @Composable () -> Unit,
 ) {
-    val touch = rememberTouch()
     Box(
         modifier
             .sizeIn(minWidth = Gap.tap, minHeight = Gap.tap)
             .clip(RoundedCornerShape(Corner.pill))
-            .clickable(role = role) {
-                touch.tap()
-                onClick()
-            }
+            .clickable(role = role, onClick = onClick)
             .then(
                 if (label == null) Modifier
                 else Modifier.semantics { contentDescription = label },
@@ -244,14 +362,22 @@ fun Tap(
 @Composable
 fun Rung(
     modifier: Modifier = Modifier,
+    /** Pressable rungs say so HERE, not with a clickable bolted
+        on outside. Eight call sites each wired their own, which
+        was eight rows that lit and rippled and did not GIVE: the
+        press answer lives with the press. Null stays a plain
+        row. */
+    onClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
     content: @Composable RowScope.() -> Unit,
 ) {
     val c = LocalReiad.current
     val glow = rememberGlow()
+    val touch = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Row(
         modifier
-            .pressing(glow)
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.pressGives(touch) else Modifier)
             /* A rung is usually the target itself: the menu's
                rows, a ladder's lessons. At `Gap.s5` of padding
                around one line it came to 40dp, which is under
@@ -270,6 +396,16 @@ fun Rung(
                 lit = { glow.lit },
             )
             .follows(glow)
+            .then(
+                if (onClick == null) Modifier
+                else Modifier.clickable(
+                    interactionSource = touch,
+                    indication = androidx.compose.foundation.LocalIndication.current,
+                    role = Role.Button,
+                    enabled = enabled,
+                    onClick = onClick,
+                ),
+            )
             .padding(horizontal = Gap.s6, vertical = Gap.s5),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
@@ -292,7 +428,16 @@ fun Plate(
     Column(
         modifier
             .clip(RoundedCornerShape(corner))
-            .material(Kind.PLATE, c, corner, ground = ground ?: c.paperSunk)
+            /* The PANEL, never `paperSunk`: sunk is the GROOVE's
+               ground, a channel cut in, and a plate wearing it
+               reads as a hole in whatever holds it. The glass
+               sheet is what showed it, worst as a plate inside a
+               pane, where the statistic sat in a dark slot like
+               something had been removed. A plate is a slab
+               RESTING on the surface, so it takes the quietest
+               raised ground there is and lets the material's own
+               edge say the rest. */
+            .material(Kind.PLATE, c, corner, ground = ground ?: c.panel)
             .padding(horizontal = Gap.s7, vertical = Gap.s6),
         content = content,
     )
@@ -316,21 +461,6 @@ fun Groove(
     height: Dp = 6.dp,
 ) {
     val c = LocalReiad.current
-    /* The fill MOVES to a new value rather than being redrawn at
-       it. A channel is a physical thing, and physical things do
-       not teleport: a reading line that glides as the reader
-       scrolls, and a meter that pours when a tick lands, are the
-       same statement the 190ms light makes. Reduced motion snaps,
-       as everywhere. */
-    val filled by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = fraction.coerceIn(0f, 1f),
-        animationSpec = if (rememberReducedMotion()) {
-            androidx.compose.animation.core.snap()
-        } else {
-            androidx.compose.animation.core.tween(uk.co.reiad.library.core.Motion.SLOW_MS)
-        },
-        label = "groove",
-    )
     Box(
         modifier
             .fillMaxWidth()
@@ -340,7 +470,7 @@ fun Groove(
     ) {
         Box(
             Modifier
-                .fillMaxWidth(filled)
+                .fillMaxWidth(fraction.coerceIn(0f, 1f))
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(Corner.pill))
                 .background(c.accent),
@@ -422,7 +552,6 @@ fun Glass(
     val glow = rememberGlow()
     Box(
         modifier
-            .then(if (kind.follows) Modifier.pressing(glow) else Modifier)
             .clip(RoundedCornerShape(corner))
             .material(kind, c, corner, ground, lit = { glow.lit })
             .then(if (kind.follows) Modifier.follows(glow) else Modifier),

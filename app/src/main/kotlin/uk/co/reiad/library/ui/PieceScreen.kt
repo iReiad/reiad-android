@@ -133,7 +133,7 @@ fun PieceScreen(
         LazyColumn(
             state = scroll,
             modifier = Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-            contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
+            contentPadding = PaddingValues(top = topClearance(), bottom = bottomPadding),
         ) {
             item("head") {
                 Crumb("Back", onBack)
@@ -253,8 +253,9 @@ private fun ReadAloudBar(piece: Piece, lines: List<Utterance>, speaking: Speakin
     }
 
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Control(
-            modifier = Modifier.clickable(role = Role.Button) {
+        PillButton(
+            if (speaking.on) "Stop" else "Read aloud",
+            {
                 if (speaking.on) {
                     Reader.stop(context)
                 } else {
@@ -266,14 +267,10 @@ private fun ReadAloudBar(piece: Piece, lines: List<Utterance>, speaking: Speakin
                     Reader.start(context, piece.title, lines, Pace.NORMAL)
                 }
             },
-            ground = if (speaking.on) c.accent else c.panel,
-        ) {
-            Text(
-                if (speaking.on) "⏹  Stop" else "🔈  Read aloud",
-                style = MaterialTheme.typography.labelLarge,
-                color = if (speaking.on) c.paper else c.accent,
-            )
-        }
+            kind = ButtonKind.SOFT,
+            pressed = speaking.on,
+            icon = if (speaking.on) "close" else "spark",
+        )
         if (speaking.on) {
             Spacer(Modifier.width(Gap.s6))
             Text(

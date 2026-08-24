@@ -24,8 +24,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -281,7 +279,10 @@ private fun Grown(flock: Int, garden: List<Plant>) {
         if (garden.isNotEmpty()) {
             Spacer(Modifier.height(Gap.s6))
             Row(
-                Modifier.horizontalScroll(rememberScrollState()),
+                rememberScrollState().let { slide ->
+                    Modifier.fadesAtTheEnd(slide, LocalReiad.current.paper)
+                        .horizontalScroll(slide)
+                },
                 horizontalArrangement = Arrangement.spacedBy(Gap.s5),
             ) {
                 for (plant in garden) {
@@ -568,17 +569,12 @@ private fun NoteBox(today: String, note: String, onNote: (String) -> Unit) {
             color = c.inkSoft,
         )
         Spacer(Modifier.height(Gap.s4))
-        TextField(
+        Field(
             value = typed,
-            onValueChange = { typed = it; onNote(it) },
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = c.paperSunk,
-                unfocusedContainerColor = c.paperSunk,
-                focusedTextColor = c.ink,
-                unfocusedTextColor = c.ink,
-                cursorColor = c.accent,
-            ),
-            modifier = Modifier.fillMaxWidth(),
+            onValue = { typed = it; onNote(it) },
+            description = "Today's one line",
+            hint = "One line about today.",
+            size = FieldSize.AREA,
         )
     }
 }
@@ -717,13 +713,7 @@ private fun NeverMarked(tasks: List<Task>, onOpenSite: () -> Unit) {
             )
         }
         Spacer(Modifier.height(Gap.s4))
-        Control(Modifier.clickable(onClick = onOpenSite)) {
-            Text(
-                "Edit the routine on the site",
-                style = MaterialTheme.typography.labelLarge,
-                color = c.ink,
-            )
-        }
+        PillButton("Edit the routine on the site", onOpenSite, kind = ButtonKind.SOFT)
     }
 }
 
@@ -765,13 +755,7 @@ private fun NoRoutine(onOpenSite: () -> Unit) {
             color = c.inkSoft,
         )
         Spacer(Modifier.height(Gap.s5))
-        Control(Modifier.clickable(onClick = onOpenSite)) {
-            Text(
-                "Open on the site",
-                style = MaterialTheme.typography.labelLarge,
-                color = c.ink,
-            )
-        }
+        PillButton("Open on the site", onOpenSite, kind = ButtonKind.SOFT)
     }
 }
 

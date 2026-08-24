@@ -13,8 +13,8 @@ import androidx.compose.ui.platform.LocalView
 
    The material answers a finger with light; this is the same
    answer through the vibrator, and the vocabulary is deliberately
-   small. A STATE CHANGE hums — a tick made, a latch thrown, a
-   segment chosen — and plain navigation does not, because a
+   small. A STATE CHANGE hums (a tick made, a latch thrown, a
+   segment chosen) and plain navigation does not, because a
    reading app that buzzes on every row is a reading app somebody
    turns the vibrator off for, and then the ticks lose their voice
    too.

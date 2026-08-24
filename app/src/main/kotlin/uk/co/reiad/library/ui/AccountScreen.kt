@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -126,7 +125,7 @@ fun AccountScreen(
     val c = LocalReiad.current
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
-        contentPadding = PaddingValues(top = TOP_CLEARANCE, bottom = bottomPadding),
+        contentPadding = PaddingValues(top = topClearance(), bottom = bottomPadding),
     ) {
         item("head") {
             PageHead(
@@ -456,53 +455,19 @@ private fun EmailBox(sent: Boolean, onLink: (String) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(Gap.s5),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .weight(1f)
-                .height(Gap.tap)
-                /* A GROOVE, for the reason the site's `NOT_GLASS`
-                   note gives: a text field's affordance is the
-                   caret and the focus ring, and a lit resting rim
-                   on a box you type into is a box that looks like
-                   a button. */
-                .clip(RoundedCornerShape(Corner.pill))
-                .material(Kind.GROOVE, c, Corner.pill, ground = c.paperSunk)
-                .padding(horizontal = Gap.s7),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            if (email.isEmpty()) {
-                Text(
-                    "you@example.com",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = c.inkSoft,
-                )
-            }
-            BasicTextField(
+        Box(Modifier.weight(1f)) {
+            Field(
                 value = email,
-                onValueChange = { email = it },
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = c.ink),
-                cursorBrush = SolidColor(c.accent),
-                keyboardOptions = KeyboardOptions(
+                onValue = { email = it },
+                description = "Your email address",
+                hint = "you@example.com",
+                keyboard = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Send,
                 ),
-                modifier = Modifier
-                    /* The whole groove, not just its width. The
-                       field's own node is what carries the click,
-                       so a text field drawn one line tall inside
-                       a 44dp box is a 17dp target however tall
-                       the box is. */
-                    .fillMaxSize()
-                    /* The placeholder is drawn as a sibling Text
-                       so the field itself carries no label at
-                       all, and a screen reader reaches an empty
-                       edit box: "edit box", and nothing about
-                       what goes in it. The placeholder is a
-                       drawing; this is the name. */
-                    .semantics { contentDescription = "Your email address" },
             )
         }
+        Spacer(Modifier.width(Gap.s5))
         Control(
             modifier = Modifier
                 /* The same minimum `PillButton` carries: a short
@@ -588,7 +553,7 @@ private fun Double.trim(): String =
 @Composable
 private fun KeptRow(row: Kept, onOpen: () -> Unit) {
     val c = LocalReiad.current
-    Rung(Modifier.clickable(role = Role.Button, onClick = onOpen)) {
+    Rung(onClick = onOpen) {
         Icon(if (row.kind == "lesson") "book" else "pen", size = 18.dp, tint = c.accent)
         Spacer(Modifier.width(Gap.s6))
         Column(Modifier.weight(1f)) {
@@ -674,25 +639,19 @@ private fun Erase(onErase: () -> Unit, erasing: String?) {
         )
         Spacer(Modifier.height(Gap.s6))
         Row(horizontalArrangement = Arrangement.spacedBy(Gap.s5)) {
-            Control(
-                modifier = Modifier.clickable(role = Role.Button) { asking = false },
-                ground = c.panel,
-            ) {
-                Text("Keep it", style = MaterialTheme.typography.labelLarge, color = c.accent)
-            }
-            Control(
-                modifier = Modifier.clickable(role = Role.Button) {
+            PillButton("Keep it", { asking = false }, kind = ButtonKind.SOFT)
+            /* SOLID in the danger colour: the confirmed erase is
+               the one action this pane exists for, and the colour
+               is the warning where the loudness is the shape. */
+            PillButton(
+                "Erase everything",
+                {
                     asking = false
                     onErase()
                 },
-                ground = c.danger,
-            ) {
-                Text(
-                    "Erase everything",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = c.paper,
-                )
-            }
+                kind = ButtonKind.SOLID,
+                tint = c.danger,
+            )
         }
     }
 }
