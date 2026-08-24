@@ -213,8 +213,20 @@ Things the site cannot do at all.
 
 - Widgets: continue reading, the year of days.
 - App shortcuts, share target, quick settings tile.
-- Video in the course player: Media3, picture in picture,
-  background audio, downloads, with the ticket flow.
+- ~~Video in the course player: Media3, with the ticket flow.~~
+  **Done, and out of order**, because it stopped being a feature
+  and became a bug: the gold card on `/skills` opened a Custom Tab
+  and the one reader it belongs to got a page saying they were
+  signed out. The address was right. The hand-off was not, and
+  could not be made right: the site's session is a bearer token in
+  the BROWSER's storage and the app's is its own, so a tab opened
+  from here always arrives with no credential. All five views are
+  native now, over `/api/courses` with the app's own token, and
+  the video is Media3 over the site's thirty-minute single-file
+  tickets with captions as WebVTT on a pass of their own.
+- Still to do on it: picture in picture, background audio, and
+  downloads. None is what was broken, and each is a real feature
+  rather than a fix.
 - Notifications: opt in, and only for a thing the reader asked
   for. Nothing that nags.
 
@@ -260,9 +272,22 @@ opening them in a Custom Tab. Recommendation: link out for now,
 port `three-statement` and `dcf` natively later if they earn it,
 and say so in the app rather than hiding it.
 
-**The courses player.** Admin only, and it needs Media3, tickets,
-captions and quiz parsing. Real work for one reader. It sits in
-block 9 rather than earlier for that reason.
+**The courses player.** ~~Admin only, and it needs Media3,
+tickets, captions and quiz parsing. Real work for one reader. It
+sits in block 9 rather than earlier for that reason.~~
+
+Overtaken. "Real work for one reader" was the right sum right up
+until that one reader pressed the button and nothing opened, and
+then the sum changed: this was not a feature waiting its turn in
+block 9, it was a dead button on a screen that had already been
+shipped. A section the app offers and cannot open is worse than a
+section it does not offer.
+
+The part of the reasoning that held is the boundary, and it has
+not moved: nothing course-shaped is in the binary, nothing is
+cached to disk, the catalogue arrives only over the authenticated
+API, and the Worker checks `isAdmin()` on every route. What
+changed is only who does the asking.
 
 **Fonts.** Bundling five families is several megabytes. Downloadable
 Fonts via Google Play Services keeps the APK small and costs a

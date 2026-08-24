@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -96,6 +97,7 @@ import uk.co.reiad.library.core.stock.shareQuery
 import uk.co.reiad.library.core.stock.summarise
 import uk.co.reiad.library.core.ProgressKeys
 import uk.co.reiad.library.core.NavItem
+import uk.co.reiad.library.core.CourseWhere
 import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.Story
 import uk.co.reiad.library.core.resolveHref
@@ -248,6 +250,8 @@ import uk.co.reiad.library.ui.Groove
 import uk.co.reiad.library.ui.Icon
 import uk.co.reiad.library.ui.GroupScreen
 import uk.co.reiad.library.ui.isBangla
+import uk.co.reiad.library.courses.map
+import uk.co.reiad.library.ui.CourseSection
 import uk.co.reiad.library.ui.openOnSite
 import uk.co.reiad.library.ui.accentOf as tokenAccent
 import uk.co.reiad.library.ui.InfoCard
@@ -440,6 +444,18 @@ internal sealed interface Where {
         shows. Both were a browser hand-off for eleven blocks,
         for a list this phone was holding the whole time. */
     data object Skills : Where
+
+    /**
+     * The admin's own course section, which is five views and one
+     * entry here because they are five views of one thing.
+     *
+     * `CourseWhere` is the same type the address parser answers
+     * with, so a deep link and a tap on a card produce the same
+     * value and there is one navigation to keep right rather than
+     * two. Back goes UP one level of the address, which is what
+     * the crumb at the top of each of them says it will.
+     */
+    data class Courses(val at: uk.co.reiad.library.core.CourseWhere) : Where
 
     data object Portfolio : Where
 
@@ -1580,11 +1596,124 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
         library = Library(made)
         host = context.applicationContext
         sync = Sync(context.applicationContext, made, reiad.store)
+        _desk.value = uk.co.reiad.library.courses.Desk(catalogue(made))
         viewModelScope.launch {
             _reader.value = made.reader.first()
             if (_reader.value != null) loadAccount()
         }
         return made
+    }
+
+    /* ---------- the course section ----------
+
+       The client and the two answers it holds. Built with the
+       account rather than lazily on the screen, because the same
+       token that answers `/api/courses` is what decides whether
+       the card offering the section is drawn at all: if there is
+       an account, there is something to ask with.
+
+       Nothing here is written to disk. See `courses/Desk.kt`: the
+       catalogue is admin-only material in somebody's private
+       Drive and a copy on the filesystem would outlive the
+       session that was allowed to fetch it. */
+
+    private var courseClient: uk.co.reiad.library.courses.Catalogue? = null
+
+    private fun catalogue(account: Account): uk.co.reiad.library.courses.Catalogue =
+        courseClient ?: uk.co.reiad.library.courses.Catalogue(account).also {
+            courseClient = it
+        }
+
+    /**
+     * The section's own state, as STATE rather than as a field.
+     *
+     * It was a plain `var`, which reads correctly and recomposes
+     * never: a screen that composed before `account()` had run
+     * would read null, and nothing would tell it when the desk
+     * arrived, so it would sit on "Reading the catalogue" for
+     * ever. A deep link on a cold start is exactly that order.
+     */
+    private val _desk = MutableStateFlow<uk.co.reiad.library.courses.Desk?>(null)
+    val desk: StateFlow<uk.co.reiad.library.courses.Desk?> = _desk.asStateFlow()
+
+    /* The three keys the section writes, read straight off the
+       store rather than mirrored into a map here. `_ticks` is
+       keyed by SCHOOL and a third-party course is not one: giving
+       it a made-up school id so it could live in that map is
+       exactly how a key becomes a fact nobody meant to invent. */
+
+    val courseTicks: StateFlow<Set<String>> = reiad.courseTicks()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    val courseAnswers: StateFlow<Set<String>> = reiad.courseAnswers()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
+    val courseMark: StateFlow<Bookmark?> = reiad.courseBookmark()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /**
+     * Open somewhere in the section, and fetch what it needs.
+     *
+     * Called for every one of the five views, including the ones
+     * that need nothing new, which is why `Desk.open` is allowed
+     * to do nothing at all: a reader walking a module's lessons
+     * should not re-fetch the course's ladder six times.
+     */
+    fun openCourses(context: android.content.Context, at: uk.co.reiad.library.core.CourseWhere) {
+        /* `account()` builds the desk, and calling it here is what
+           makes a deep link on a cold start work: the screen may
+           compose before the launch effect that builds the
+           account has run. */
+        val shelf = _desk.value
+            ?: uk.co.reiad.library.courses.Desk(catalogue(account(context)))
+                .also { _desk.value = it }
+        viewModelScope.launch { shelf.open(at) }
+    }
+
+    fun retryCourses(at: uk.co.reiad.library.core.CourseWhere) {
+        val shelf = _desk.value ?: return
+        viewModelScope.launch { shelf.again(at) }
+    }
+
+    /** Opening a lesson moves the bookmark and ticks nothing,
+        which is the rule the four schools already live by. */
+    fun rememberCourse(mark: Bookmark) {
+        viewModelScope.launch {
+            reiad.rememberCourse(mark)
+            queueSync()
+        }
+    }
+
+    /** The latch under a lesson. A toggle, so a tick pressed by
+        mistake can come off. */
+    fun toggleCourseTick(lessonId: String) {
+        viewModelScope.launch {
+            reiad.toggleCourseTick(lessonId)
+            queueSync()
+        }
+    }
+
+    /** "Mark complete and continue", which only ever ADDS. See
+        `Reiad.markCourseRead` for why both verbs exist. */
+    fun markCourseRead(lessonId: String) {
+        viewModelScope.launch {
+            reiad.markCourseRead(lessonId)
+            queueSync()
+        }
+    }
+
+    fun setCourseAnswer(lessonId: String, question: Int, option: Int, on: Boolean, only: Boolean) {
+        viewModelScope.launch {
+            reiad.setCourseAnswer(lessonId, question, option, on, only)
+            queueSync()
+        }
+    }
+
+    fun clearCourseAnswers(lessonId: String) {
+        viewModelScope.launch {
+            reiad.clearCourseAnswers(lessonId)
+            queueSync()
+        }
     }
 
     /** A sign-in came back. */
@@ -1906,6 +2035,11 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             _targets.value = emptyList()
             _exported.value = null
             _mine.value = false
+            /* Signing out takes the mirror off, and a catalogue
+               left in memory is part of the mirror: somebody
+               else's material on a phone that is no longer
+               allowed to ask for it. */
+            _desk.value?.forget()
             loadMarks()
         }
     }
@@ -2187,6 +2321,10 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
            page change colour. */
         Where.Stock -> Accents.GOLD
         Where.Calculators -> Accents.GOLD
+        /* And the course section, which is gold for the reason
+           the card that opens it is: gold is what this library
+           uses for "yours, and not published". */
+        is Where.Courses -> Accents.GOLD
         Where.Live -> Accents.GOLD
         Where.Routine -> Accents.GOLD
         Where.Diet -> Accents.GOLD
@@ -2249,6 +2387,11 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
         Where.Routine -> ROUTINE_KEY
         Where.Diet -> DIET_KEY
         Where.Skills -> SKILLS_KEY
+        /* The section lives under `/skills` and is in nobody's
+           menu, so the bar marks the hub it hangs off rather than
+           marking nothing: a reader four levels into a course
+           should still see where in the site they are. */
+        is Where.Courses -> SKILLS_KEY
         Where.Portfolio -> PORTFOLIO_KEY
         Where.Home -> null
     }
@@ -2391,19 +2534,87 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             }
                         },
                         mine = mine,
-                        /* `/skills/courses`, which is the route
-                           the site actually serves. It was
-                           `/courses`, which is a 404, and a
-                           button that opens a not-found page is
-                           the same to a reader as a button that
-                           does nothing: it was reported as
-                           exactly that. A path this app writes
-                           by hand rather than reads from the
-                           manifest is a path somebody has to
-                           check against the live site, and this
-                           one now has been. */
-                        onOpenCourses = { openOnSite(context, COURSES_HREF, colours) },
+                        /* The section OPENS HERE now.
+
+                           It opened a Custom Tab at
+                           `/skills/courses`, which is the right
+                           address and was itself the fix for
+                           `/courses`, a 404 that had been
+                           reported as "that button doesn't open
+                           anything". The right address did not
+                           fix it, because the fault was never the
+                           address: the site's reader session is a
+                           bearer token in the BROWSER's storage
+                           and this app's is its own, so the tab
+                           always arrived with no credential and
+                           the page always said "you are either
+                           signed out or this is not your
+                           library": to the one person it belongs
+                           to, on a phone where they are signed
+                           in, opening a card that is only drawn
+                           BECAUSE the server said the section is
+                           theirs.
+
+                           No browser hand-off can carry a session
+                           it cannot be given. So the app asks the
+                           endpoint itself. */
+                        onOpenCourses = {
+                            model.openCourses(context, CourseWhere.Shelf)
+                            where = Where.Courses(CourseWhere.Shelf)
+                        },
                         skills = site?.skills.orEmpty(),
+                    )
+                }
+
+                /* ---------- the admin's course section ----------
+
+                   Five views behind one entry, dispatched by the
+                   address exactly as the website's own player
+                   dispatches them. `CourseSection` carries its
+                   own BackHandler, because back here goes UP one
+                   level of the address rather than out to the
+                   hub, and the crumb at the top of each screen
+                   says the same thing. */
+                is Where.Courses -> {
+                    val desk by model.desk.collectAsState()
+                    val shelf by (desk?.shelf ?: emptyFlow()).collectAsState(null)
+                    val one by (desk?.course ?: emptyFlow()).collectAsState(null)
+                    val courseRead by model.courseTicks.collectAsState()
+                    val courseAnswers by model.courseAnswers.collectAsState()
+                    val courseMark by model.courseMark.collectAsState()
+
+                    /* Asked again on every move inside the
+                       section, and `Desk` is what makes that
+                       cheap: a reader walking six lessons of a
+                       module re-fetches nothing. */
+                    LaunchedEffect(here.at) { model.openCourses(context, here.at) }
+
+                    CourseSection(
+                        at = here.at,
+                        source = desk?.catalogue,
+                        shelf = shelf?.map { it.courses },
+                        course = one,
+                        read = courseRead,
+                        answers = courseAnswers,
+                        bookmark = courseMark,
+                        bottomPadding = barClearance(),
+                        onGo = { where = Where.Courses(it) },
+                        onLeave = { where = Where.Skills },
+                        onOpened = { model.rememberCourse(it) },
+                        onTick = { model.toggleCourseTick(it) },
+                        onMark = { model.markCourseRead(it) },
+                        onAnswer = { id, q, opt, on, only ->
+                            model.setCourseAnswer(id, q, opt, on, only)
+                        },
+                        onClearAnswers = { model.clearCourseAnswers(it) },
+                        onRetry = { model.retryCourses(here.at) },
+                        onAccount = { where = Where.Account },
+                        /* Drive's own page, in the reader's own
+                           browser. The one link in this section
+                           that leaves the app, and it leaves for
+                           a FILE rather than for a page this app
+                           could have drawn. */
+                        onOpenOriginal = { url -> openOnSite(context, url, colours) },
                     )
                 }
 
@@ -3057,6 +3268,17 @@ internal suspend fun followTo(
             }
         }
 
+        /* The admin's own section, in the app. It used to fall
+           through to `Elsewhere` and open a browser, which is the
+           one hand-off that cannot work here: the site's session
+           is in the browser's storage and this app's is its own,
+           so the tab arrived with no credential and the page said
+           "signed out" to somebody who was not. */
+        is Destination.Courses -> {
+            model.openCourses(context, to.where)
+            go(Where.Courses(to.where))
+        }
+
         is Destination.Tool -> {
             when (to.key) {
                 STOCK_KEY -> { model.openTools(); go(Where.Stock) }
@@ -3147,20 +3369,12 @@ internal fun sectionTitle(site: SiteManifest?, section: String): String =
 
 /* ---------- home ---------- */
 
-/** The admin's own course shelf, as the site routes it.
-
-    Verified against the live site rather than guessed. It was
-    `/courses`, which is a 404 there, and that is the whole of
-    why the card opened nothing: a Custom Tab dutifully showing a
-    not-found page is, to the reader who pressed the button,
-    a button that does not work.
-
-    A path this app writes by hand is a path somebody has to
-    check, which is the argument for reading them out of the
-    manifest wherever there is one. There is none for this shelf:
-    it is admin-only and the menu the manifest carries is the
-    menu everybody gets. */
-const val COURSES_HREF = "/skills/courses"
+/* The admin's course shelf used to be a `const` here, holding
+   the address a Custom Tab was pointed at. It is gone because
+   the hand-off is gone: the section is drawn by this app, and
+   `COURSES_PATH` in `core/Courses.kt` is the one place the
+   address is written, because five addresses are built from it
+   and a bookmark's `url` is one of them. */
 
 /** Two, which is what a phone's home screen has and what makes
     a square a square. Not a setting: a three-column board of
