@@ -393,7 +393,10 @@ class BodyParserTest {
 
     @Test
     fun `the fixture lessons parse with nothing unknown left over`() {
-        for (name in listOf("lesson-share", "lesson-papers", "lesson-satzbau")) {
+        for (name in listOf(
+            "lesson-share", "lesson-papers", "lesson-satzbau",
+            "lesson-tin-prokar", "lesson-word-order",
+        )) {
             val body = BodyParser.parse(lesson(name).body)
             assertTrue(body.blocks.isNotEmpty(), "$name parsed to nothing")
             assertEquals(
@@ -469,6 +472,75 @@ class BodyParserTest {
         val kinds = body.blocks.filterIsInstance<Block.Callout>().map { it.kind }
         assertContains(kinds, CalloutKind.REMEMBER)
         assertContains(kinds, CalloutKind.CAUTION)
+    }
+
+    /* ---- and the same shapes in the other two schools ----
+
+       The German fix named three classes and the very next
+       screenshot was the Arabic school glued the same way:
+       "بَيْتঘর", the word and its meaning as one word. The rules
+       read the markup's shape now, and these two fixtures are the
+       proof they reach every school. */
+
+    @Test
+    fun `the arabic shobdo pairs keep the word and its meaning apart`() {
+        val body = BodyParser.parse(lesson("lesson-tin-prokar").body)
+        val lists = body.blocks.filterIsInstance<Block.Sentences>()
+        assertTrue(lists.isNotEmpty(), "no pair list found in the quran lesson")
+        val first = lists.first().rows.first()
+        assertEquals("اِسْم", first.lead.text())
+        assertTrue(first.gloss.text().startsWith("নাম-শব্দ"), "gloss was ${first.gloss.text()}")
+    }
+
+    @Test
+    fun `a word grid of spans is a pair list too`() {
+        val body = BodyParser.parse(lesson("lesson-word-order").body)
+        val grids = body.blocks.filterIsInstance<Block.Sentences>()
+        /* word-grid: seven pronouns, each a span of b plus text. */
+        val grid = grids.firstOrNull { list -> list.rows.any { it.lead.text() == "I" } }
+        assertNotNull(grid, "the word grid did not parse as pairs")
+        val i = grid.rows.first { it.lead.text() == "I" }
+        assertEquals("আমি", i.gloss.text())
+    }
+
+    @Test
+    fun `a box that names itself is a labelled callout in every school`() {
+        val quran = BodyParser.parse(lesson("lesson-tin-prokar").body)
+        val labels = quran.blocks.filterIsInstance<Block.Callout>()
+            .filter { it.kind == CalloutKind.NOTE }
+            .map { it.label.text() }
+        assertContains(labels, "কুরআনি তথ্য")
+        assertContains(labels, "মুখে বলো")
+
+        val english = BodyParser.parse(lesson("lesson-word-order").body)
+        val bolo = english.blocks.filterIsInstance<Block.Callout>()
+            .filter { it.kind == CalloutKind.NOTE }
+            .map { it.label.text() }
+        assertContains(bolo, "মুখে বলো")
+    }
+
+    @Test
+    fun `the english shape box is a pattern, and mone is the remember rail`() {
+        val body = BodyParser.parse(lesson("lesson-word-order").body)
+        val pattern = body.blocks.filterIsInstance<Block.Pattern>().first()
+        assertEquals("The pattern · কাঠামো", pattern.label.text())
+        assertEquals("WHO + DOES + WHAT", pattern.shape.text())
+        assertTrue(
+            body.blocks.filterIsInstance<Block.Callout>().any { it.kind == CalloutKind.REMEMBER },
+            "the mone box lost its rail",
+        )
+    }
+
+    /** The false positive the shape rule must not have: a prose
+        paragraph that happens to open bold, inside a wrapper, is
+        prose. The space after the strong is the tell. */
+    @Test
+    fun `a paragraph that opens bold is not a pair row`() {
+        val body = BodyParser.parse(
+            """<div><p><strong>Note:</strong> this is prose.</p><p>And so is this.</p></div>"""
+        )
+        assertTrue(body.blocks.none { it is Block.Sentences })
+        assertEquals(2, body.blocks.count { it is Block.Paragraph })
     }
 
     /** The merke with `<span lang="de">` children inside running

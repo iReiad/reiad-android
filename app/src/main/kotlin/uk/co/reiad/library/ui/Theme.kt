@@ -267,6 +267,15 @@ val BanglaTitle: TextStyle
     it is a line that needs the taller leading. */
 fun isBangla(text: String): Boolean = text.any { it.code in 0x0980..0x09FF }
 
+/** Whether a string carries Arabic, which the Qur'an school's
+    every lesson does. Asked the same way as `isBangla` and for
+    the same reason: a pair row's lead is one string, and a lead
+    with harakat needs more line than a Latin one or the fatha
+    over the first letter is shaved by the row above. */
+fun isArabic(text: String): Boolean = text.any {
+    it.code in 0x0600..0x06FF || it.code in 0xFB50..0xFDFF || it.code in 0xFE70..0xFEFF
+}
+
 /* The two above, chosen per string. A screen whose words arrive
    from `/api/tools` in whichever language the reader picked
    cannot decide this at the call site the way a hard-coded label

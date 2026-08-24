@@ -2,6 +2,9 @@ package uk.co.reiad.library.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
+import uk.co.reiad.library.core.Accents
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -83,6 +86,12 @@ fun SkillsScreen(
     bottomPadding: Dp,
     onOpen: (NavItem) -> Unit,
     modifier: Modifier = Modifier,
+    /** Whether the courses shelf answers this account. The
+        server's own answer, asked with the reader's token:
+        `/api/courses` says 200 to the admin and 401 to everybody
+        else, so nobody is shown a card the site would refuse. */
+    mine: Boolean = false,
+    onOpenCourses: () -> Unit = {},
 ) {
     /* `hub` off the nav table rather than this screen's own key.
        The site filtered on the key too, in `/skills`, which is
@@ -122,6 +131,46 @@ fun SkillsScreen(
                         go = if (item.kind == "কোর্স") "কোর্সটা খুলুন" else "লেখাগুলো দেখুন",
                         art = { Icon(item.icon, size = 18.dp) },
                         onOpen = { onOpen(item) },
+                    )
+                }
+            }
+        }
+
+        /* ---- mine, and not published ----
+
+           The site's own /skills page ends with this section for
+           the admin: the courses shelf, in gold, saying plainly
+           that it is admin only and nothing on it is published.
+           The app showed it to nobody, which for the one reader
+           it belongs to meant the shelf simply did not exist on a
+           phone. It opens on the site, which checks again. */
+        if (mine) {
+            item("mine-head") {
+                Spacer(Modifier.height(Gap.s6))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "আমার নিজের",
+                        style = BanglaBody.copy(
+                            fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                        ),
+                        color = LocalReiad.current.accent,
+                    )
+                    Text(
+                        "  ·  MINE, AND NOT PUBLISHED",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = LocalReiad.current.accent,
+                    )
+                }
+            }
+            item("mine-courses") {
+                ReiadTheme(accent = Accents.GOLD, dark = LocalReiad.current.isDark) {
+                    GoCard(
+                        title = "কোর্স",
+                        dek = "বাইরের কোর্স, নিজের পড়ার জন্য রাখা। কোনোটাই প্রকাশ করা হয়নি।",
+                        chip = "নিজের",
+                        go = "খুলুন",
+                        art = { Icon("play", size = 18.dp) },
+                        onOpen = onOpenCourses,
                     )
                 }
             }

@@ -745,19 +745,44 @@ private fun Bar(
             thumbGround = c.accentSoft,
             thumbInset = 0.dp,
         ) { stop, on ->
+            /* Only the stop you are ON says its name; the rest
+               are icons. Five bilingual labels across a handset
+               is the congestion the report circled ("কাজে লাগান"
+               wrapping under its neighbours), and a bar where
+               everything is labelled labels nothing. The name
+               rides with the thumb, arriving as the thumb does,
+               and every stop keeps its full name for TalkBack
+               through the switch's own semantics. */
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Icon(stop.icon, size = 19.dp, tint = if (on) stop.accent else c.inkSoft)
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    stop.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (on) stop.accent else c.inkSoft,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Icon(stop.icon, size = if (on) 19.dp else 21.dp, tint = if (on) stop.accent else c.inkSoft)
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = on,
+                    enter = androidx.compose.animation.fadeIn(tween(Motion.FAST_MS)) +
+                        androidx.compose.animation.expandVertically(tween(Motion.FAST_MS)),
+                    exit = androidx.compose.animation.fadeOut(tween(Motion.QUICK_MS)) +
+                        androidx.compose.animation.shrinkVertically(tween(Motion.QUICK_MS)),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            stop.label,
+                            style = if (isBangla(stop.label)) {
+                                BanglaBody.copy(
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    lineHeight = MaterialTheme.typography.labelSmall.fontSize * 1.3f,
+                                )
+                            } else {
+                                MaterialTheme.typography.labelSmall
+                            },
+                            color = if (on) stop.accent else c.inkSoft,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
     }

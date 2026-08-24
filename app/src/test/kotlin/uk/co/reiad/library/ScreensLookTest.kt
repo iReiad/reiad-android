@@ -293,6 +293,31 @@ class ScreensLookTest {
         table on its plate, and the merke rails. Dark and in the
         school's own blue, which is how the report that every
         example was one glued word arrived. */
+    /** The Arabic school's furniture: the shobdo pairs that were
+        one glued word in the report ("بَيْتঘর"), the labelled
+        tothyo and mukhe boxes, the word grid. Teal, the school's
+        own. */
+    @Test fun arabicLesson() {
+        val lesson = requireNotNull(
+            fixture("lesson-tin-prokar.json", LessonResponse.serializer()).lesson,
+        ) { "the quran fixture has no page in it" }
+        val blocks = BodyParser.parse(lesson.body).blocks
+        pz.snapshot {
+            androidx.compose.runtime.CompositionLocalProvider(
+                uk.co.reiad.library.ui.LocalStill provides true,
+            ) {
+                ReiadTheme(accent = Accents.TEAL, dark = true) {
+                    val c = LocalReiad.current
+                    Box(Modifier.fillMaxSize().background(c.paper)) {
+                        Column(Modifier.padding(horizontal = Gap.s8, vertical = Gap.s7)) {
+                            BodyView(blocks)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Test fun germanLesson() {
         val lesson = requireNotNull(
             fixture("lesson-satzbau.json", LessonResponse.serializer()).lesson,

@@ -1465,6 +1465,11 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     private val _reader = MutableStateFlow<Reader?>(null)
     val reader: StateFlow<Reader?> = _reader.asStateFlow()
 
+    /** Whether this account can open the courses shelf: the
+        server's own answer, never a guess from a token. */
+    private val _mine = MutableStateFlow(false)
+    val mine: StateFlow<Boolean> = _mine.asStateFlow()
+
     private val _authProblem = MutableStateFlow<String?>(null)
     val authProblem: StateFlow<String?> = _authProblem.asStateFlow()
 
@@ -1577,6 +1582,9 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             _kept.value = shelf.kept()
             _targets.value = shelf.targets()
             _daysActive.value = reiad.daysActive()
+            /* Whether the courses shelf answers this account.
+               Asked once per sign-in, of the endpoint itself. */
+            _mine.value = shelf.courses()
             /* Seeded, never assigned: `seeded()` is a null-or-blank
                test on every field for the reason above. The
                reader's own name off the token is the fallback, so
@@ -1850,6 +1858,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             _kept.value = emptyList()
             _targets.value = emptyList()
             _exported.value = null
+            _mine.value = false
             loadMarks()
         }
     }
@@ -2062,6 +2071,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val authProblem by model.authProblem.collectAsState()
     val linkSent by model.linkSent.collectAsState()
     val kept by model.kept.collectAsState()
+    val mine by model.mine.collectAsState()
     val targets by model.targets.collectAsState()
     val setupState by model.setup.collectAsState()
     val paths by model.paths.collectAsState()
@@ -2325,6 +2335,8 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                                 where
                             }
                         },
+                        mine = mine,
+                        onOpenCourses = { openOnSite(context, "/courses", colours) },
                     )
                 }
 
