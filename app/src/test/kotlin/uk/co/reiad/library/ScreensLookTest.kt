@@ -89,9 +89,18 @@ class ScreensLookTest {
 
     private fun page(dark: Boolean = false, body: @androidx.compose.runtime.Composable () -> Unit) {
         pz.snapshot {
-            ReiadTheme(accent = Accents.GREEN, dark = dark) {
-                val c = LocalReiad.current
-                Box(Modifier.fillMaxSize().background(c.paper)) { body() }
+            /* One frame is all a snapshot has, so everything that
+               ARRIVES (the sheets, the palette) is drawn
+               already arrived. Without this the settings recorded
+               as an empty page: the picture was of the moment
+               before the sheet rose. */
+            androidx.compose.runtime.CompositionLocalProvider(
+                uk.co.reiad.library.ui.LocalStill provides true,
+            ) {
+                ReiadTheme(accent = Accents.GREEN, dark = dark) {
+                    val c = LocalReiad.current
+                    Box(Modifier.fillMaxSize().background(c.paper)) { body() }
+                }
             }
         }
     }
@@ -276,6 +285,28 @@ class ScreensLookTest {
             )
             Spacer(Modifier.height(Gap.s7))
             BodyView(blocks)
+        }
+    }
+
+    /** The German school's own furniture, from the fixture frozen
+        for it: the pattern box, the sentence pairs, the seat-two
+        table on its plate, and the merke rails. Dark and in the
+        school's own blue, which is how the report that every
+        example was one glued word arrived. */
+    @Test fun germanLesson() {
+        val lesson = requireNotNull(
+            fixture("lesson-satzbau.json", LessonResponse.serializer()).lesson,
+        ) { "the satzbau fixture has no page in it" }
+        val blocks = BodyParser.parse(lesson.body).blocks
+        pz.snapshot {
+            ReiadTheme(accent = Accents.BLUE, dark = true) {
+                val c = LocalReiad.current
+                Box(Modifier.fillMaxSize().background(c.paper)) {
+                    Column(Modifier.padding(horizontal = Gap.s8, vertical = Gap.s7)) {
+                        BodyView(blocks)
+                    }
+                }
+            }
         }
     }
 

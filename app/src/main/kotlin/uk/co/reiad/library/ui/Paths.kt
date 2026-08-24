@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,7 +70,17 @@ data class Path(
 @Composable
 fun Meter(pct: Double, label: String, modifier: Modifier = Modifier) {
     val c = LocalReiad.current
-    val share = (pct / 100).coerceIn(0.0, 1.0).toFloat()
+    /* The bar pours to its number rather than appearing at it,
+       in the groove's own slow step. */
+    val share by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = (pct / 100).coerceIn(0.0, 1.0).toFloat(),
+        animationSpec = if (rememberReducedMotion()) {
+            androidx.compose.animation.core.snap()
+        } else {
+            androidx.compose.animation.core.tween(uk.co.reiad.library.core.Motion.SLOW_MS)
+        },
+        label = "meter",
+    )
     Box(
         modifier
             .fillMaxWidth()

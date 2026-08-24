@@ -392,8 +392,8 @@ class BodyParserTest {
     }
 
     @Test
-    fun `both fixture lessons parse with nothing unknown left over`() {
-        for (name in listOf("lesson-share", "lesson-papers")) {
+    fun `the fixture lessons parse with nothing unknown left over`() {
+        for (name in listOf("lesson-share", "lesson-papers", "lesson-satzbau")) {
             val body = BodyParser.parse(lesson(name).body)
             assertTrue(body.blocks.isNotEmpty(), "$name parsed to nothing")
             assertEquals(
@@ -401,6 +401,85 @@ class BodyParserTest {
                 "$name held a shape the parser does not know: ${body.unknown}",
             )
         }
+    }
+
+    /* ---- what a browser does to whitespace, done here too ----
+
+       Stored prose is pretty-printed. The satzbau lesson's first
+       paragraph wraps mid-phrase in the source, and the app drew
+       the wrap: "তোমার" at the end of one line, "বন্ধু" opening
+       the next, in the middle of a sentence. */
+
+    @Test
+    fun `the source's own pretty-printing is not prose`() {
+        val body = BodyParser.parse("<p>সেই কড়া নিয়মটাই তোমার\nবন্ধু, কারণ ব্যতিক্রম নেই।</p>")
+        assertEquals(
+            "সেই কড়া নিয়মটাই তোমার বন্ধু, কারণ ব্যতিক্রম নেই।",
+            (body.blocks.single() as Block.Paragraph).inlines.text(),
+        )
+    }
+
+    @Test
+    fun `a br still breaks, and the indentation after it does not indent`() {
+        val body = BodyParser.parse("<p>বাংলা: শেষে।<br>\n  জার্মান: দুইয়ে।</p>")
+        assertEquals(
+            "বাংলা: শেষে।\nজার্মান: দুইয়ে।",
+            (body.blocks.single() as Block.Paragraph).inlines.text(),
+        )
+    }
+
+    /* ---- two block children joined with nothing are one word ----
+
+       `<span>` dissolves, `<p>` dissolves inside a cell, and a
+       tag nobody knows dissolves inside Unknown. Each dissolved
+       BLOCK has to leave a line break at its edges or a sentence
+       and its meaning arrive glued: "Ich esse Reis.আমি ভাত খাই।"
+       is what every German example looked like. */
+
+    @Test
+    fun `two paragraphs dissolved into a table cell stay two lines`() {
+        val html = "<div class=\"table-scroll\"><table><tr><td><p>এক</p>\n<p>দুই</p></td></tr></table></div>"
+        val table = BodyParser.parse(html).blocks.single() as Block.Table
+        assertEquals("এক\nদুই", table.rows.single().single().text())
+    }
+
+    /* ---- the German school's own furniture ---- */
+
+    @Test
+    fun `a satz pair keeps the sentence and its meaning apart`() {
+        val body = BodyParser.parse(lesson("lesson-satzbau").body)
+        val sentences = body.blocks.filterIsInstance<Block.Sentences>().first()
+        val first = sentences.rows.first()
+        assertEquals("Ich esse Reis.", first.lead.text())
+        assertEquals("আমি ভাত খাই।", first.gloss.text())
+    }
+
+    @Test
+    fun `the muster box carries its label, its shape and its why`() {
+        val body = BodyParser.parse(lesson("lesson-satzbau").body)
+        val pattern = body.blocks.filterIsInstance<Block.Pattern>().first()
+        assertEquals("Das Muster · ছাঁচ", pattern.label.text())
+        assertEquals("কে · কাজ · কী", pattern.shape.text())
+        assertTrue(pattern.body.isNotEmpty(), "the why under the shape was lost")
+    }
+
+    @Test
+    fun `a merke is a callout, and warn is the danger kind`() {
+        val body = BodyParser.parse(lesson("lesson-satzbau").body)
+        val kinds = body.blocks.filterIsInstance<Block.Callout>().map { it.kind }
+        assertContains(kinds, CalloutKind.REMEMBER)
+        assertContains(kinds, CalloutKind.CAUTION)
+    }
+
+    /** The merke with `<span lang="de">` children inside running
+        text: one sentence, and it arrived as three paragraphs
+        before runs of inline children were gathered. */
+    @Test
+    fun `inline children inside a wrapper stay one sentence`() {
+        val body = BodyParser.parse("""<div class="merke">খেয়াল করো: <span lang="de">sie</span> মানে সে।</div>""")
+        val callout = body.blocks.single() as Block.Callout
+        val paragraph = callout.body.single() as Block.Paragraph
+        assertEquals("খেয়াল করো: sie মানে সে।", paragraph.inlines.text())
     }
 }
 
@@ -419,6 +498,8 @@ private fun List<Block>.text(): String = joinToString(" ") { block ->
         is Block.KeyFigures -> block.figures.joinToString(" ") { it.value.text() + " " + it.caption.text() }
         is Block.Photo -> block.caption.text()
         is Block.Table -> (block.head + block.rows.flatten()).joinToString(" ") { it.text() }
+        is Block.Pattern -> block.label.text() + " " + block.shape.text() + " " + block.body.text()
+        is Block.Sentences -> block.rows.joinToString(" ") { it.lead.text() + " " + it.gloss.text() }
         is Block.Unknown -> block.inlines.text()
         Block.Rule -> ""
     }

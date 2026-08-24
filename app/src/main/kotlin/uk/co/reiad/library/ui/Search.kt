@@ -87,6 +87,9 @@ fun SearchScreen(
     Column(
         Modifier
             .fillMaxSize()
+            /* The palette rises into place like every other
+               surface, rather than being suddenly there. */
+            .arriving(Unit)
             .retreating(retreat, reduced)
             .background(c.paper)
             .windowInsetsPadding(WindowInsets.statusBars)

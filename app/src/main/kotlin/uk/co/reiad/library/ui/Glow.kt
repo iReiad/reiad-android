@@ -89,6 +89,26 @@ fun rememberReducedMotion(): Boolean {
     }
 }
 
+/** Whether this composition has no clock: a Paparazzi render, a
+    preview. One frame is all there will ever be, so anything that
+    ARRIVES (a sheet rising, a body settling) has to be drawn
+    already arrived or the picture is of the moment before it.
+
+    A local the render tests SET, because there is nothing
+    reliable to sniff: Paparazzi installs neither
+    `LocalInspectionMode` nor an edit-mode view, which was
+    measured the direct way: the settings sheet recorded as an
+    empty page, at 1.8KB, twice, under both detections. A test
+    that states its own condition beats a heuristic that lies
+    quietly. */
+val LocalStill = androidx.compose.runtime.staticCompositionLocalOf { false }
+
+@Composable
+fun rememberStill(): Boolean {
+    val inspecting = androidx.compose.ui.platform.LocalInspectionMode.current
+    return LocalStill.current || inspecting
+}
+
 @Composable
 fun rememberGlow(): Glow {
     val reduced = rememberReducedMotion()

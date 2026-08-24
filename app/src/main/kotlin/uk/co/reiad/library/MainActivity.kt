@@ -39,12 +39,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,6 +90,7 @@ import uk.co.reiad.library.core.ProgressKeys
 import uk.co.reiad.library.core.NavItem
 import uk.co.reiad.library.core.SiteManifest
 import uk.co.reiad.library.core.Story
+import uk.co.reiad.library.core.resolveHref
 import uk.co.reiad.library.core.nav.Destination
 import uk.co.reiad.library.core.nav.LIVE_KEY
 import uk.co.reiad.library.core.nav.SKILLS_KEY
@@ -263,6 +266,9 @@ import uk.co.reiad.library.ui.SearchScreen
 import uk.co.reiad.library.ui.SettingsSheet
 import uk.co.reiad.library.ui.Shell
 import uk.co.reiad.library.ui.ShellState
+import uk.co.reiad.library.ui.LocalOpenLink
+import uk.co.reiad.library.ui.ReiadColours
+import uk.co.reiad.library.ui.arriving
 import uk.co.reiad.library.ui.Sway
 import uk.co.reiad.library.ui.rememberSway
 
@@ -2156,73 +2162,12 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     LaunchedEffect(arrival, site) {
         val url = arrival ?: return@LaunchedEffect
         if (model.arrived(context, url)) return@LaunchedEffect
-        /* Every branch is braced, because `where` is a soft
-           keyword: `-> where = ...` bare after an arrow parses as
-           a generic constraint and the error names a type
-           parameter that is not in the file. */
-        when (val to = destinationOf(url, site)) {
-            Destination.Home -> { where = Where.Home }
-            Destination.Account -> { where = Where.Account }
-
-            is Destination.School -> {
-                site?.ladders?.firstOrNull { it.key == to.key }?.let { school ->
-                    model.openLadder(school)
-                    where = Where.Ladder(school)
-                }
-            }
-
-            is Destination.Lesson -> {
-                /* The stage and the lesson are carried as slugs
-                   and nothing else, which is all the endpoint
-                   needs: the route reads the row. The titles
-                   arrive with the body, so the screen fills in
-                   rather than waiting for a ladder fetch first. */
-                site?.ladders?.firstOrNull { it.key == to.school }?.let { school ->
-                    val stage = Stage(slug = to.stage)
-                    val lesson = Lesson(slug = to.slug)
-                    model.openLesson(school, stage, lesson)
-                    where = Where.Reading(school, stage, lesson)
-                }
-            }
-
-            is Destination.Hub -> {
-                where = Where.Hub(to.section, sectionTitle(site, to.section))
-            }
-
-            is Destination.Piece -> {
-                /* The hub first and the piece after, so a reader
-                   whose piece has been unpublished lands on the
-                   section rather than on nothing, and so back
-                   from the piece goes somewhere. */
-                where = Where.Hub(to.section, sectionTitle(site, to.section))
-                model.pieceBySlug(to.section, to.slug)?.let { piece ->
-                    model.openPiece(piece)
-                    where = Where.Reading2(to.section, piece)
-                }
-            }
-
-            is Destination.Tool -> {
-                when (to.key) {
-                    STOCK_KEY -> { model.openTools(); where = Where.Stock }
-                    TOOLS_KEY -> { model.openTools(); where = Where.Calculators }
-                    LIVE_KEY -> { model.openLive(context); where = Where.Live }
-                    ROUTINE_KEY -> { model.openRoutine(context); where = Where.Routine }
-                    DIET_KEY -> { model.openDiet(context); where = Where.Diet }
-                    SKILLS_KEY -> { where = Where.Skills }
-                    PORTFOLIO_KEY -> { where = Where.Portfolio }
-                    else -> Unit
-                }
-            }
-
-            /* Not the front page. A link to something this app
-               does not draw opens where it does exist. */
-            is Destination.Elsewhere -> {
-                /* The palette computed here rather than read from
-                   `LocalReiad`, because this effect runs above the
-                   theme: it has to answer a link that arrives before
-                   anything is on screen. */
-                openOnSite(context, to.url, coloursOf(accent, dark))
-            }
+        /* The palette computed here rather than read from
+           `LocalReiad`, because this effect runs above the
+           theme: it has to answer a link that arrives before
+           anything is on screen. */
+        followTo(destinationOf(url, site), model, context, site, coloursOf(accent, dark)) {
+            where = it
         }
     }
 
@@ -2309,6 +2254,21 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                 onAccount = { where = Where.Account },
                 onAudience = { model.chooseAudience(it) },
             ) {
+            /* Every link in every body, answered. The href goes
+               through the same resolver a shared link does, so a
+               glossary term opens as a lesson, a piece linked
+               from a piece opens in place, and everything else
+               opens on the site in the reader's own browser
+               rather than doing nothing under the accent. */
+            val scope = rememberCoroutineScope()
+            val openLink: (String) -> Unit = { href ->
+                scope.launch {
+                    followTo(destinationOf(href, site), model, context, site, colours) {
+                        where = it
+                    }
+                }
+            }
+            CompositionLocalProvider(LocalOpenLink provides openLink) {
             /* ---------- how a screen arrives ----------
 
                The platform's own fade-through rather than a cut:
@@ -2458,6 +2418,17 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     val shown = openPiece ?: here.piece
                     val siblings = pieces.filter { it.section == here.section }
                     val at = siblings.indexOfFirst { it.slug == shown.slug }
+                    /* A relative link inside a piece means "in
+                       this section", which only this screen
+                       knows. */
+                    CompositionLocalProvider(
+                        LocalOpenLink provides { href ->
+                            openLink(
+                                if (href.startsWith("http") || href.startsWith("/")) href
+                                else "/${here.section}/$href",
+                            )
+                        },
+                    ) {
                     PieceScreen(
                         piece = shown,
                         /* Looked up by URL, which is what the row
@@ -2494,6 +2465,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                        thread rather than leaving the last one's
                        comments under the new piece. */
                     LaunchedEffect(shown.slug) { model.openThread(shown.slug, here.section) }
+                    }
                 }
 
                 is Where.Book -> {
@@ -2784,20 +2756,33 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             )
                         }
                     }
-                    Reading(
-                        school = here.school,
-                        stage = here.stage,
-                        lesson = here.lesson,
-                        page = page,
-                        ticked = id in ticks[here.school.key].orEmpty(),
-                        isMoney = here.school.key == School.MONEY.id,
-                        onBack = { where = Where.Ladder(here.school) },
-                        onTick = { model.tick(here.school, here.stage, here.lesson) },
-                        checks = which?.let { checks[it.id].orEmpty() }.orEmpty(),
-                        onCheck = { mark -> which?.let { model.toggleCheck(it, mark) } },
-                        lessonKey = id,
-                    )
+                    /* A link inside a LESSON is written relative
+                       to its stage, `dividend.html`, so only
+                       this screen can resolve it. Resolved, it
+                       goes through the same follower as every
+                       other address, which is what turns a
+                       glossary term into the lesson it is. */
+                    CompositionLocalProvider(
+                        LocalOpenLink provides { href ->
+                            openLink(resolveHref(href, here.school.key, here.stage))
+                        },
+                    ) {
+                        Reading(
+                            school = here.school,
+                            stage = here.stage,
+                            lesson = here.lesson,
+                            page = page,
+                            ticked = id in ticks[here.school.key].orEmpty(),
+                            isMoney = here.school.key == School.MONEY.id,
+                            onBack = { where = Where.Ladder(here.school) },
+                            onTick = { model.tick(here.school, here.stage, here.lesson) },
+                            checks = which?.let { checks[it.id].orEmpty() }.orEmpty(),
+                            onCheck = { mark -> which?.let { model.toggleCheck(it, mark) } },
+                            lessonKey = id,
+                        )
+                    }
                 }
+            }
             }
             }
             }
@@ -2879,6 +2864,91 @@ internal fun opensHere(site: SiteManifest?, item: NavItem): Boolean =
         item.key == ROUTINE_KEY || item.key == DIET_KEY ||
         site?.ladders?.any { it.key == item.key } == true ||
         readingSection(site, item.key) != null
+
+/** Where a site ADDRESS takes the reader, and the one place that
+    decides it.
+
+    Two kinds of address come through here and they must agree: a
+    link that opens the app from outside, and a link INSIDE a
+    lesson or a piece, which for eleven blocks was drawn in the
+    accent, underlined, and did nothing at all when pressed. Both
+    resolve through `destinationOf`, so a glossary term opens as
+    the lesson it is, a piece linked from a piece opens in place,
+    and anything this app cannot draw opens on the site rather
+    than dying under a finger.
+
+    Every branch is braced, because `where` is written through a
+    callback and a bare `-> go(...)` after an arrow has its own
+    parsing story one function up. */
+internal suspend fun followTo(
+    to: Destination,
+    model: AppModel,
+    context: android.content.Context,
+    site: SiteManifest?,
+    colours: ReiadColours,
+    go: (Where) -> Unit,
+) {
+    when (to) {
+        Destination.Home -> { go(Where.Home) }
+        Destination.Account -> { go(Where.Account) }
+
+        is Destination.School -> {
+            site?.ladders?.firstOrNull { it.key == to.key }?.let { school ->
+                model.openLadder(school)
+                go(Where.Ladder(school))
+            }
+        }
+
+        is Destination.Lesson -> {
+            /* The stage and the lesson are carried as slugs
+               and nothing else, which is all the endpoint
+               needs: the route reads the row. The titles
+               arrive with the body, so the screen fills in
+               rather than waiting for a ladder fetch first. */
+            site?.ladders?.firstOrNull { it.key == to.school }?.let { school ->
+                val stage = Stage(slug = to.stage)
+                val lesson = Lesson(slug = to.slug)
+                model.openLesson(school, stage, lesson)
+                go(Where.Reading(school, stage, lesson))
+            }
+        }
+
+        is Destination.Hub -> {
+            go(Where.Hub(to.section, sectionTitle(site, to.section)))
+        }
+
+        is Destination.Piece -> {
+            /* The hub first and the piece after, so a reader
+               whose piece has been unpublished lands on the
+               section rather than on nothing, and so back
+               from the piece goes somewhere. */
+            go(Where.Hub(to.section, sectionTitle(site, to.section)))
+            model.pieceBySlug(to.section, to.slug)?.let { piece ->
+                model.openPiece(piece)
+                go(Where.Reading2(to.section, piece))
+            }
+        }
+
+        is Destination.Tool -> {
+            when (to.key) {
+                STOCK_KEY -> { model.openTools(); go(Where.Stock) }
+                TOOLS_KEY -> { model.openTools(); go(Where.Calculators) }
+                LIVE_KEY -> { model.openLive(context); go(Where.Live) }
+                ROUTINE_KEY -> { model.openRoutine(context); go(Where.Routine) }
+                DIET_KEY -> { model.openDiet(context); go(Where.Diet) }
+                SKILLS_KEY -> { go(Where.Skills) }
+                PORTFOLIO_KEY -> { go(Where.Portfolio) }
+                else -> Unit
+            }
+        }
+
+        /* Not the front page. A link to something this app
+           does not draw opens where it does exist. */
+        is Destination.Elsewhere -> {
+            openOnSite(context, to.url, colours)
+        }
+    }
+}
 
 /** Where a nav item goes, and the ONE place that decides it.
 
@@ -3502,6 +3572,9 @@ fun StageCard(
             Spacer(Modifier.height(Gap.s5))
         }
 
+        /* The rungs get the same breath the drawer's rows do:
+           flush, fourteen lessons read as one striped block. */
+        Column(verticalArrangement = Arrangement.spacedBy(Gap.s2)) {
         for (lesson in lessons) {
             val id = lessonId(stage.slug, lesson.slug)
             Rung(onClick = { onOpen(stage, lesson) }, enabled = lesson.isWritten) {
@@ -3534,6 +3607,7 @@ fun StageCard(
                     )
                 }
             }
+        }
         }
     }
 }
@@ -3624,6 +3698,9 @@ fun Reading(
                    the site files them and the ids are in real
                    accounts. */
                 val bases = remember(blocks) { checkpointBases(blocks) }
+                /* The parsed body settles up over the skeleton
+                   rather than popping over it. */
+                Column(Modifier.arriving(lessonKey)) {
                 BodyView(
                     blocks,
                     checkpoints = Checkpoints(
@@ -3654,6 +3731,7 @@ fun Reading(
                             color = c.inkSoft,
                         )
                     }
+                }
                 }
             }
         }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -110,6 +111,16 @@ fun SettingsSheet(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
+                /* THE SHEET HAS A CEILING, the same one the menu
+                   learnt: its natural height is its content, and
+                   this sheet's content is the whole screen, so
+                   "Reading" rose until it sat behind the clock,
+                   the red strike across the report's screenshot.
+                   It stops below the status area and what does
+                   not fit scrolls, which is what the scroll was
+                   for. */
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(top = Gap.s7)
                 .retreating(retreat, reduced)
                 .clip(RoundedCornerShape(topStart = Corner.lg, topEnd = Corner.lg))
                 .material(Kind.PANE, c, Corner.lg, ground = c.paper)
@@ -118,6 +129,18 @@ fun SettingsSheet(
                 .padding(horizontal = Gap.s8, vertical = Gap.s8)
                 .verticalScroll(rememberScrollState()),
         ) {
+            /* The handle every sheet on a phone wears: it says
+               "this rises and falls" without a word, exactly as
+               the menu's does. */
+            Box(
+                Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = Gap.s6)
+                    .width(36.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(Corner.pill))
+                    .background(c.inkSoft.copy(alpha = 0.4f)),
+            )
             Text("Reading", style = MaterialTheme.typography.headlineSmall, color = c.ink)
             Spacer(Modifier.height(Gap.s3))
             Text(

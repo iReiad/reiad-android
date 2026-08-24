@@ -148,7 +148,13 @@ fun ReadingHub(
 @Composable
 private fun TopicChip(label: String, on: Boolean, onPress: () -> Unit) {
     val c = LocalReiad.current
-    Box(Modifier.clickable(role = Role.Checkbox, onClick = onPress)) {
+    val touch = rememberTouch()
+    Box(
+        Modifier.clickable(role = Role.Checkbox) {
+            touch.tick()
+            onPress()
+        },
+    ) {
         Chip(label, tone = if (on) c.paper else c.accent)
     }
 }
