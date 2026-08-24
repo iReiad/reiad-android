@@ -183,6 +183,42 @@ val KIND_NAMES: Map<String, Pair<String, String>> = mapOf(
     "tools" to ("যন্ত্রপাতি" to "The tools"),
 )
 
+/** Which sizes each kind offers, before the catalogue arrives.
+
+    The same floor discipline as `KIND_NAMES`: the manifest's own
+    catalogue wins the moment it lands, and this exists because
+    without it the PICKER offered nothing at all. The manifest
+    carries no `widgets` yet, so `site?.widgets?.kinds` was an
+    empty list, the picker filtered an empty list, and a reader
+    who removed a widget could never get it back, let alone add
+    the six that were never on the floor board. */
+val KIND_SIZES: Map<String, List<String>> = mapOf(
+    "continue" to listOf("wide", "small"),
+    "progress" to listOf("wide", "small", "tall"),
+    "streak" to listOf("wide", "tall"),
+    "diet" to listOf("wide", "small", "tall"),
+    "routine" to listOf("wide", "tall"),
+    "target" to listOf("wide", "small"),
+    "library" to listOf("wide", "tall"),
+    "pulse" to listOf("wide", "tall"),
+    "market" to listOf("wide", "tall"),
+    "stock" to listOf("wide", "small"),
+    "schools" to listOf("wide", "tall"),
+    "tools" to listOf("wide", "small"),
+)
+
+/** The whole catalogue, from the floors, for a manifest that has
+    not sent one. Every id is one `KIND_NAMES` can name, and the
+    caller filters by what IT can draw. */
+fun catalogueFloor(): List<WidgetKind> = KIND_NAMES.map { (id, names) ->
+    WidgetKind(
+        id = id,
+        bn = names.first,
+        en = names.second,
+        sizes = KIND_SIZES[id] ?: listOf("wide"),
+    )
+}
+
 /** The kind a board holds, described: the site's entry where one
     has arrived, and a readable name where it has not. */
 fun kindOf(id: String, catalogue: Map<String, WidgetKind>, size: WidgetSize): WidgetKind {

@@ -15,6 +15,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -205,6 +206,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import uk.co.reiad.library.core.BOARD_FLOOR
+import uk.co.reiad.library.core.catalogueFloor
 import uk.co.reiad.library.core.Placed
 import uk.co.reiad.library.core.pairSmalls
 import uk.co.reiad.library.core.kindOf
@@ -2705,6 +2707,9 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                        app does not host The Business Standard and
                        should not look as though it does. */
                     onStory = { story -> openOnSite(context, story.url, colours) },
+                    kept = kept,
+                    targets = targets,
+                    onKept = { row -> openOnSite(context, row.url, colours) },
                 )
 
                 is Where.Ladder -> {
@@ -3060,6 +3065,9 @@ fun Home(
     onPiece: (Piece) -> Unit = {},
     onResume: (String, Bookmark) -> Unit = { _, _ -> },
     onStory: (Story) -> Unit = {},
+    kept: List<Kept> = emptyList(),
+    targets: List<Target> = emptyList(),
+    onKept: (Kept) -> Unit = {},
     /* One sway for the whole app, not one per screen or per
        card: every surface leans by the same amount because they
        are all on the same handset. `App` passes the instance the
@@ -3095,7 +3103,13 @@ fun Home(
        decoration. */
     val jiggle = !rememberReducedMotion()
     val catalogue = remember(site) {
-        site?.widgets?.kinds.orEmpty().associateBy { it.id }
+        /* The manifest carries no catalogue yet, and an empty
+           catalogue emptied the PICKER: a reader who removed a
+           widget could never get it back. The floor answers
+           until the site's own table arrives, and the site's
+           wins the moment it does. */
+        (site?.widgets?.kinds?.takeIf { it.isNotEmpty() } ?: catalogueFloor())
+            .associateBy { it.id }
     }
     val placed = remember(board, site) {
         layoutOf(
@@ -3109,10 +3123,11 @@ fun Home(
         sway = sway, icons = icons, lang = lang, news = news,
         daysActive = daysActive, routine = routineGlance, diet = dietGlance,
         today = remember { java.time.LocalDate.now().toString() },
+        kept = kept, targets = targets,
     )
     val act = BoardActions(
         onSchool = onOpen, onItem = onGo, onPiece = onPiece, onResume = onResume,
-        onStory = onStory,
+        onStory = onStory, onKept = onKept,
     )
 
     /* Three RSS feeds read on a Worker is not a request to make
@@ -3300,6 +3315,25 @@ fun Home(
             val carried = drag.carrying == p.id
             WidgetFrame(
                 modifier = Modifier
+                    /* A widget finding its new row GLIDES there:
+                       on a drop, on an arrow press, on an add or
+                       a remove, the others make way rather than
+                       teleporting. The carried one is excused,
+                       because it is already answering the finger
+                       and a second animation would fight it. */
+                    .then(
+                        if (carried) Modifier
+                        else Modifier.animateItem(
+                            placementSpec = androidx.compose.animation.core.tween(
+                                uk.co.reiad.library.core.Motion.ENTER_MS,
+                            ),
+                        )
+                    )
+                    .animateContentSize(
+                        androidx.compose.animation.core.tween(
+                            uk.co.reiad.library.core.Motion.ENTER_MS,
+                        ),
+                    )
                     .zIndex(if (carried) 1f else 0f)
                     .graphicsLayer {
                         if (!carried) return@graphicsLayer
@@ -3344,7 +3378,7 @@ fun Home(
                        board, and minus what this build cannot
                        draw: offering a widget that would not
                        appear is worse than not offering it. */
-                    offered = site?.widgets?.kinds.orEmpty()
+                    offered = catalogue.values
                         .filter { it.id in DRAWABLE && placed.none { p -> p.id == it.id } },
                     lang = lang,
                     signedIn = signedIn,

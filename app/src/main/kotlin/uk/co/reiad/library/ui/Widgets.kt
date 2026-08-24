@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import uk.co.reiad.library.core.Bookmark
 import uk.co.reiad.library.core.LadderSchool
@@ -66,7 +68,7 @@ import uk.co.reiad.library.accentOf
     contract above working rather than failing. */
 val DRAWABLE: Set<String> = setOf(
     "continue", "progress", "pulse", "market", "schools", "tools", "stock",
-    "streak", "routine", "diet",
+    "streak", "routine", "diet", "target", "library",
 )
 
 /** Everything one of these renderers might need.
@@ -94,6 +96,11 @@ data class BoardData(
     /** And today's food log, the same way. */
     val diet: uk.co.reiad.library.data.DietGlance? = null,
     val today: String = "",
+    /** The reading list and the targets, off the account, so the
+        last two of the site's twelve kinds have something to
+        draw. Empty signed out, and the widgets say so. */
+    val kept: List<uk.co.reiad.library.core.Kept> = emptyList(),
+    val targets: List<uk.co.reiad.library.core.Target> = emptyList(),
 )
 
 /** What a widget can ask the app to do. */
@@ -103,6 +110,7 @@ data class BoardActions(
     val onPiece: (Piece) -> Unit,
     val onResume: (String, Bookmark) -> Unit,
     val onStory: (Story) -> Unit = {},
+    val onKept: (uk.co.reiad.library.core.Kept) -> Unit = {},
 )
 
 /** One widget, drawn.
@@ -132,6 +140,8 @@ fun Widget(id: String, size: WidgetSize, data: BoardData, act: BoardActions): Bo
         "streak" -> StreakWidget(data)
         "routine" -> RoutineBoardWidget(data, act)
         "diet" -> DietBoardWidget(data, act)
+        "target" -> TargetWidget(data, size)
+        "library" -> LibraryWidget(data, act, size)
         else -> return false
     }
     return true
@@ -608,3 +618,109 @@ private fun DietBoardWidget(data: BoardData, act: BoardActions) {
         }
     }
 }
+
+
+/* ---------- the last two of the site's twelve ---------- */
+
+/** A target, on the board.
+
+    Only a METRIC gets a bar, which is the account page's own
+    rule said again: a metric is the one kind whose number is
+    stored, so the bar here cannot go stale. A course or a habit
+    names itself and points at the page that computes it, rather
+    than drawing a bar this widget would have to guess. */
+@Composable
+private fun TargetWidget(data: BoardData, size: WidgetSize) {
+    val c = LocalReiad.current
+    Pane(Modifier.fillMaxWidth()) {
+        WidgetHead(if (data.lang == "bn") "লক্ষ্য" else "A target")
+        val rows = data.targets.filter { it.doneAt == null }
+        if (rows.isEmpty()) {
+            Text(
+                if (data.lang == "bn") {
+                    "অ্যাকাউন্ট পাতায় একটা লক্ষ্য ঠিক করলে এখানে দেখা যাবে।"
+                } else {
+                    "Set a target on the account page and it shows here."
+                },
+                style = bodySmallFor(data.lang),
+                color = c.inkSoft,
+            )
+            return@Pane
+        }
+        val shown = rows.take(if (size == WidgetSize.SMALL) 1 else 2)
+        shown.forEachIndexed { i, target ->
+            if (i > 0) Spacer(Modifier.height(Gap.s5))
+            Text(
+                target.label.ifBlank { target.subject },
+                style = bodyStyle(target.label.ifBlank { target.subject }),
+                color = c.ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (target.kind == "metric" && target.target > 0) {
+                Spacer(Modifier.height(Gap.s3))
+                Groove((target.reached / target.target).toFloat(), height = 5.dp)
+                Spacer(Modifier.height(Gap.s2))
+                Text(
+                    "${trim(target.reached)} / ${trim(target.target)} ${target.unit}".trim(),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = c.inkSoft,
+                )
+            } else {
+                Spacer(Modifier.height(Gap.s2))
+                Text(
+                    if (data.lang == "bn") "অ্যাকাউন্ট পাতায় হিসাবটা চলে" else "Counted on the account page",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = c.inkSoft,
+                )
+            }
+        }
+    }
+}
+
+private fun trim(n: Double): String =
+    if (n == n.toLong().toDouble()) n.toLong().toString() else "%.1f".format(n)
+
+/** The reading list, on the board: the saved pieces waiting,
+    newest first, each opening where it lives. */
+@Composable
+private fun LibraryWidget(data: BoardData, act: BoardActions, size: WidgetSize) {
+    val c = LocalReiad.current
+    Pane(Modifier.fillMaxWidth()) {
+        WidgetHead(if (data.lang == "bn") "পরে পড়ব" else "Saved to read")
+        val saved = data.kept.filter { it.saved == true }
+        if (saved.isEmpty()) {
+            Text(
+                if (data.lang == "bn") {
+                    "কোনো লেখায় সেভ চাপলে সেটা এখানে অপেক্ষা করবে।"
+                } else {
+                    "Save a piece and it waits for you here."
+                },
+                style = bodySmallFor(data.lang),
+                color = c.inkSoft,
+            )
+            return@Pane
+        }
+        for (row in saved.take(if (size == WidgetSize.TALL) 5 else 2)) {
+            Rung(Modifier.clickable(role = Role.Button) { act.onKept(row) }) {
+                Icon("keep", size = 16.dp, tint = c.accent)
+                Spacer(Modifier.width(Gap.s5))
+                Text(
+                    row.title.ifBlank { row.url },
+                    style = bodyStyle(row.title.ifBlank { row.url }).copy(
+                        fontSize = MaterialTheme.typography.bodyMedium.fontSize,
+                    ),
+                    color = c.ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+/** The small print in the reader's own language. */
+@Composable
+private fun bodySmallFor(lang: String) =
+    if (lang == "bn") BanglaBody.copy(fontSize = MaterialTheme.typography.bodySmall.fontSize)
+    else MaterialTheme.typography.bodySmall

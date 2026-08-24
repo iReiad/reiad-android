@@ -120,6 +120,7 @@ internal val SHAPES: Map<String, String> = mapOf(
        never drew: hand-set here in the same stroked manner,
        because a ladder of dots reads as a ladder of missing
        images. */
+    "pause" to "M9 5.5v13M15 5.5v13",
     "back" to "M20 12H5M10.5 6.5L4 12l6.5 5.5",
     "basket" to "M4 10h16l-1.5 9h-13zM8 10l4-6 4 6M9.5 13.5v3M14.5 13.5v3",
     "bracket" to "M8 4H5.5v16H8 M16 4h2.5v16H16 M10.5 12h3",
