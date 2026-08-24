@@ -157,6 +157,56 @@ class BoardTest {
         }
     }
 
+    /* ---------- a word a day ---------- */
+
+    private val glossary = listOf(
+        TermGroup(
+            id = "basics",
+            terms = listOf(
+                Term(slug = "share", bn = "শেয়ার", en = "Share"),
+                Term(slug = "bond", bn = "বন্ড", en = "Bond"),
+                Term(slug = "yield", bn = "ইল্ড", en = "Yield"),
+            ),
+        ),
+        TermGroup(id = "risk", terms = listOf(Term(slug = "beta", bn = "বিটা", en = "Beta"))),
+    )
+
+    /** The SAME word all day, which is the whole difference
+        between a widget and a slot machine: a reader who glances
+        at their board twice before lunch can go and look the
+        word up between the glances. */
+    @Test fun `the word holds still for a day and moves on the next`() {
+        val today = termOfDay(glossary, "2026-08-24")
+        assertEquals(today?.slug, termOfDay(glossary, "2026-08-24")?.slug)
+        val run = (24..30).map { termOfDay(glossary, "2026-08-%02d".format(it))?.slug }
+        assertTrue(run.toSet().size > 1, "every day showed the same word: $run")
+    }
+
+    /** Every date lands on a real term, including the ones whose
+        digits add up past the end of the list. */
+    @Test fun `no date falls off the glossary`() {
+        for (month in 1..12) {
+            for (day in 1..28) {
+                val on = "2026-%02d-%02d".format(month, day)
+                assertTrue(
+                    termOfDay(glossary, on) != null,
+                    "$on had no word, which means the index left the list",
+                )
+            }
+        }
+    }
+
+    @Test fun `an empty glossary has no word rather than a blank one`() {
+        assertNull(termOfDay(emptyList(), "2026-08-24"))
+        assertNull(termOfDay(listOf(TermGroup(id = "x")), "2026-08-24"))
+    }
+
+    /** The address a term already has, not a second spelling of
+        it: `Search` sends a reader to exactly this. */
+    @Test fun `a term is addressed the way search addresses it`() {
+        assertEquals("/money/terms/share.html", termHref(Term(slug = "share")))
+    }
+
     /* ---------- what a kind offers ---------- */
 
     @Test fun `a kind that offers one size has no other`() {

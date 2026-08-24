@@ -68,7 +68,7 @@ import uk.co.reiad.library.accentOf
     contract above working rather than failing. */
 val DRAWABLE: Set<String> = setOf(
     "continue", "progress", "pulse", "market", "schools", "tools", "stock",
-    "streak", "routine", "diet", "target", "library",
+    "streak", "routine", "diet", "target", "library", "term",
 )
 
 /** Everything one of these renderers might need.
@@ -111,6 +111,9 @@ data class BoardActions(
     val onResume: (String, Bookmark) -> Unit,
     val onStory: (Story) -> Unit = {},
     val onKept: (uk.co.reiad.library.core.Kept) -> Unit = {},
+    /** A glossary term, opened the way every other link to one
+        is: through the app's single resolver. */
+    val onTerm: (uk.co.reiad.library.core.Term) -> Unit = {},
 )
 
 /** One widget, drawn.
@@ -148,6 +151,7 @@ fun Widget(
         "diet" -> DietBoardWidget(data, act, modifier)
         "target" -> TargetWidget(data, size, modifier)
         "library" -> LibraryWidget(data, act, size, modifier)
+        "term" -> TermWidget(data, act, size, modifier)
         else -> return false
     }
     return true
@@ -734,3 +738,83 @@ private fun LibraryWidget(data: BoardData, act: BoardActions, size: WidgetSize, 
 private fun bodySmallFor(lang: String) =
     if (lang == "bn") BanglaBody.copy(fontSize = MaterialTheme.typography.bodySmall.fontSize)
     else MaterialTheme.typography.bodySmall
+
+/* ---------- a word a day ---------- */
+
+/**
+ * One word out of the glossary, the same all day.
+ *
+ * Eighteen terms with a sentence each arrive in every manifest
+ * and nothing but the search box has ever read them: eighteen
+ * explanations of what a share is, on the phone, findable only
+ * by somebody who already knew the word. This is the board
+ * offering one without being asked, which is the one thing a
+ * board can do that a menu cannot.
+ *
+ * The word is chosen by the DATE, so it holds still while it is
+ * being read and changes tomorrow: see `termOfDay`. Pressing it
+ * opens the term the way every other link to one does.
+ */
+@Composable
+private fun TermWidget(
+    data: BoardData,
+    act: BoardActions,
+    size: WidgetSize,
+    modifier: Modifier = Modifier,
+) {
+    val c = LocalReiad.current
+    val term = uk.co.reiad.library.core.termOfDay(
+        data.site?.termGroups.orEmpty(),
+        data.today.ifBlank { java.time.LocalDate.now().toString() },
+    )
+    if (term == null) {
+        /* Before the first fetch. It says what will be here
+           rather than drawing an empty card, which is this
+           board's rule everywhere. */
+        InfoCard(
+            modifier = modifier,
+            title = if (data.lang == "bn") "আজকের শব্দ" else "A word today",
+            dek = if (data.lang == "bn") {
+                "সাইটটা একবার পড়া হলে, রোজ একটা করে শব্দ এখানে আসবে।"
+            } else {
+                "Once the site has been read once, a word appears here each day."
+            },
+        )
+        return
+    }
+
+    Pane(
+        modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button) { act.onTerm(term) },
+        arrangement = Arrangement.SpaceBetween,
+    ) {
+        WidgetHead(
+            if (data.lang == "bn") "আজকের শব্দ" else "A word today",
+            /* The English beside the Bangla at the wide size,
+               because the glossary's whole job is joining the
+               two. A square has room for one of them. */
+            note = if (size == WidgetSize.SMALL) null else term.en,
+        )
+        Column {
+            Text(
+                term.bn,
+                style = if (isBangla(term.bn)) BanglaTitle
+                else MaterialTheme.typography.titleMedium,
+                color = c.ink,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (size != WidgetSize.SMALL && term.blurb.isNotBlank()) {
+                Spacer(Modifier.height(Gap.s3))
+                Text(
+                    term.blurb,
+                    style = bodySmallFor(data.lang),
+                    color = c.inkSoft,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}

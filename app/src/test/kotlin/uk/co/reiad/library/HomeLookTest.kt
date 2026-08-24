@@ -55,7 +55,7 @@ class HomeLookTest {
                         audience = null,
                         onOpen = {},
                         board = listOf(
-                            "progress:small", "stock:small",
+                            "term:small", "progress:small",
                             "routine:wide", "streak:wide",
                             "continue:wide", "pulse:tall",
                         ),
@@ -93,7 +93,7 @@ class HomeLookTest {
                         ticks = emptyMap(),
                         audience = null,
                         onOpen = {},
-                        board = listOf("continue:wide", "progress:small", "stock:small"),
+                        board = listOf("continue:wide", "term:small", "progress:small"),
                         speaking = uk.co.reiad.library.read.Speaking(
                             on = true, at = 11, block = 3, total = 40,
                         ),

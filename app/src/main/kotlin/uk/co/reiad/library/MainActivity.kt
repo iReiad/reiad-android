@@ -2774,6 +2774,14 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     kept = kept,
                     targets = targets,
                     onKept = { row -> openOnSite(context, row.url, colours) },
+                    onTerm = { term ->
+                        scope.launch {
+                            followTo(
+                                destinationOf(uk.co.reiad.library.core.termHref(term), site),
+                                model, context, site, colours,
+                            ) { where = it }
+                        }
+                    },
                     /* The voice, if there is one. `Reader` is an
                        object rather than state, so its title and
                        slug are read HERE, where the state flow
@@ -3188,6 +3196,7 @@ fun Home(
     kept: List<Kept> = emptyList(),
     targets: List<Target> = emptyList(),
     onKept: (Kept) -> Unit = {},
+    onTerm: (uk.co.reiad.library.core.Term) -> Unit = {},
     /** The voice, if it is going. The card that shows it is not
         part of the arrangement and never enters `board`: it is
         drawn above it for as long as something is being read. */
@@ -3254,6 +3263,10 @@ fun Home(
     val act = BoardActions(
         onSchool = onOpen, onItem = onGo, onPiece = onPiece, onResume = onResume,
         onStory = onStory, onKept = onKept,
+        /* Through the same resolver a link in a lesson takes,
+           so a term opens as a lesson here and on the site in
+           the browser where this app cannot draw it. */
+        onTerm = onTerm,
     )
 
     /* Three RSS feeds read on a Worker is not a request to make
