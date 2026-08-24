@@ -3557,6 +3557,18 @@ fun Home(
                        gutter between. */
                     val square = if (spanOf(p.size) == 1) maxWidth
                         else (maxWidth - Gap.s7) / 2
+                    /* CAPPED, which only ever bites on a tablet.
+
+                       The board is capped at 660dp and centred,
+                       so a square there is 322dp on a side, and
+                       a wide tile with one figure in it became a
+                       third of a metre of empty glass. A widget
+                       is a phone-sized tile whatever it is being
+                       read on: the grid gets wider, the tiles do
+                       not get taller. A handset's square is
+                       already under this, so nothing about a
+                       phone changes. */
+                    val unit = minOf(square, 200.dp)
                     val units = unitsOf(p.size)
                     /* The floor goes to the WIDGET, not around
                        it. Wrapping it in a taller box left the
@@ -3568,7 +3580,7 @@ fun Home(
                     Widget(
                         p.id, p.size, data, act,
                         modifier = Modifier.heightIn(
-                            min = square * units + Gap.s7 * (units - 1),
+                            min = unit * units + Gap.s7 * (units - 1),
                         ),
                     )
                 }
