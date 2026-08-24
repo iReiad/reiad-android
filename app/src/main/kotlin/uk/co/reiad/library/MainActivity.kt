@@ -2598,6 +2598,11 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         onOpenSite = {
                             openOnSite(context, "/tools/diet", colours)
                         },
+                        /* A reader who cannot find a dish wants
+                           the food pages, not today's log. */
+                        onOpenFoods = {
+                            openOnSite(context, "/tools/diet/foods", colours)
+                        },
                         words = site?.dietWords ?: uk.co.reiad.library.core.DietWords(),
                         lang = prefs.lang,
                         contentPadding = PaddingValues(

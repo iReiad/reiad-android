@@ -58,6 +58,11 @@ class SitePathsTest {
         /* The diet tool's own front page, which is today's log
            and the way to its other thirteen pages. */
         "/tools/diet",
+        /* The site's food pages: search, the barcode scanner
+           and the two public databases, none of which this app
+           has. `/api/foods` answers 404, so this is where a
+           reader who cannot find a dish actually goes. */
+        "/tools/diet/foods",
         /* The reading hub. */
         "/insights",
         /* The admin's course shelf. Admin-only, so it is in no
