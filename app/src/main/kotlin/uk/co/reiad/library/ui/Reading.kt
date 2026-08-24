@@ -203,6 +203,28 @@ fun Byline(piece: Piece, modifier: Modifier = Modifier) {
                 overflow = TextOverflow.Ellipsis,
             )
         }
+        /* AND WHEN IT WAS LAST TOUCHED, where that is a different
+           day. The endpoint has been sending `updated_at` since
+           the app was written and nothing read it, so a piece
+           rewritten last week read as a piece from July: the one
+           question a reader has about a page on money or visas is
+           whether it is current, and the answer was in memory.
+
+           Only where the DAY differs. Every row carries an
+           `updated_at` because saving a row sets one, so printing
+           it whenever it exists would put "updated" on all of
+           them and mean nothing. */
+        val revised = piece.updatedAt.take(10)
+        if (revised.isNotBlank() && revised != piece.publishedAt.take(10)) {
+            Spacer(Modifier.width(Gap.s5))
+            Text(
+                "· UPDATED $revised",
+                style = MaterialTheme.typography.labelSmall,
+                color = c.inkSoft,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

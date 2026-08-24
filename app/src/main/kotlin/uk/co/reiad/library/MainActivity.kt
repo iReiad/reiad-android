@@ -3780,6 +3780,28 @@ fun StageCard(
         Spacer(Modifier.height(Gap.s5))
         StageState(done, lessons.size, after.map { it.bn })
 
+        /* WHO THIS STAGE IS FOR, which the endpoint has been
+           sending all along and nothing read: "যিনি কখনো
+           বিনিয়োগ করেননি, এবং কোথা থেকে ধরবেন বুঝতে পারছেন না".
+           It is the one sentence that answers the question a
+           reader actually has in front of a ladder of eight
+           stages, and it was in memory, parsed, unused. */
+        stage.who?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(Gap.s5))
+            Row {
+                Icon("person", size = 14.dp, tint = c.accent)
+                Spacer(Modifier.width(Gap.s4))
+                Text(
+                    it,
+                    style = BanglaBody.copy(
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        lineHeight = MaterialTheme.typography.bodySmall.fontSize * 1.7f,
+                    ),
+                    color = c.ink,
+                )
+            }
+        }
+
         stage.can?.takeIf { it.isNotBlank() }?.let {
             Spacer(Modifier.height(Gap.s5))
             Text(it, style = BanglaBody.copy(
