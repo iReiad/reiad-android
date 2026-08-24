@@ -181,6 +181,7 @@ val KIND_NAMES: Map<String, Pair<String, String>> = mapOf(
     "stock" to ("শেয়ার যাচাই" to "Stock check"),
     "schools" to ("যা যা শেখানো হয়" to "The schools"),
     "tools" to ("যন্ত্রপাতি" to "The tools"),
+    "term" to ("আজকের শব্দ" to "A word today"),
 )
 
 /** Which sizes each kind offers, before the catalogue arrives.
@@ -205,7 +206,48 @@ val KIND_SIZES: Map<String, List<String>> = mapOf(
     "stock" to listOf("wide", "small"),
     "schools" to listOf("wide", "tall"),
     "tools" to listOf("wide", "small"),
+    "term" to listOf("wide", "small"),
 )
+
+/* ============================================================
+   A word a day, out of the glossary that is already here.
+
+   The manifest carries eighteen terms with their Bangla, their
+   English and a sentence each, and until now the only thing that
+   read them was the search box: eighteen explanations of what a
+   share is, sitting on the phone, findable only by somebody who
+   already knew the word they were looking for.
+
+   ---- the same word all day, a different one tomorrow ----
+
+   Chosen by the DATE rather than at random, which is the whole
+   difference between a widget and a slot machine: a reader who
+   glances at their board twice before lunch sees the same word
+   twice, and can go and look it up. A random one on every
+   composition would change while they were reading it.
+
+   The date IS the seed, so nothing is stored, nothing syncs, and
+   two devices with the same day show the same word. `hashCode`
+   is not used: it is not specified across platforms, and a board
+   that showed a different word on the site would be a small lie
+   about a shared thing. This is the site's own arithmetic: sum
+   the digits of the ISO date and take the remainder.
+   ============================================================ */
+
+/** Which of them today gets, or null when the glossary has not
+    arrived. */
+fun termOfDay(groups: List<TermGroup>, iso: String): Term? {
+    val all = groups.flatMap { it.terms }
+    if (all.isEmpty()) return null
+    var seed = 0
+    for (ch in iso) if (ch.isDigit()) seed = seed * 10 + (ch - '0')
+    return all[(seed % all.size + all.size) % all.size]
+}
+
+/** Where a term lives, which is a lesson of the money school's
+    first stage: the same address `Search` gives it, and not a
+    second spelling of it. */
+fun termHref(term: Term): String = "/money/terms/${term.slug}.html"
 
 /** The whole catalogue, from the floors, for a manifest that has
     not sent one. Every id is one `KIND_NAMES` can name, and the
@@ -280,24 +322,53 @@ fun storedOf(placed: List<Placed>): List<String> = placed.map { "${it.id}:${it.s
  * wide stays alone, at the row's width, which is also what the
  * site's grid does with an odd small.
  */
-fun pairSmalls(placed: List<Placed>): List<List<Placed>> {
-    val rows = mutableListOf<List<Placed>>()
-    var hand: Placed? = null
-    for (p in placed) {
-        if (p.size != WidgetSize.SMALL) {
-            hand?.let { rows.add(listOf(it)) }
-            hand = null
-            rows.add(listOf(p))
-        } else if (hand == null) {
-            hand = p
-        } else {
-            rows.add(listOf(hand, p))
-            hand = null
-        }
-    }
-    hand?.let { rows.add(listOf(it)) }
-    return rows
+/* ============================================================
+   The grid a phone home screen taught everybody.
+
+   Two columns, and a widget takes one of them or both. That is
+   the whole geometry, and stating it here rather than in the
+   composable is what lets `BoardTest` assert a board's shape
+   without a screen: the packing, the odd square left at the end
+   of a row, and the fact that nothing ever straddles a column
+   boundary.
+
+   ---- heights are a UNIT, not a measurement ----
+
+   Everything on this board is a multiple of ONE square: a small
+   is that square, a wide is the row at that height, and a large
+   is the row two squares deep. A phone's home screen is legible
+   at a glance because of exactly this and nothing else, and a
+   board of cards that each ended wherever their text ended was
+   the thing that stopped reading as widgets.
+
+   They are FLOORS rather than fixed heights, which is the one
+   place this departs from the phone it is copying, and it
+   departs on purpose: an iOS widget may clip its own content
+   because Apple wrote the content, and here a Bangla line that
+   ran two words long would be cut off inside somebody's
+   progress card. So a widget may grow past its unit when what
+   is in it genuinely needs the room, and the rhythm holds for
+   every widget that does not.
+   ============================================================ */
+
+/** How many of the two columns this size takes. */
+fun spanOf(size: WidgetSize): Int = if (size == WidgetSize.SMALL) 1 else 2
+
+/** How many squares deep, before content is allowed to argue. */
+fun unitsOf(size: WidgetSize): Int = when (size) {
+    WidgetSize.SMALL -> 1
+    WidgetSize.WIDE -> 1
+    WidgetSize.TALL -> 2
 }
+
+/* The PACKING itself is the grid's, not this file's: two
+   columns, laid in the reader's order, and a widget that cannot
+   fit beside the one before it starts the next row. There was a
+   `pairSmalls` here that computed those rows by hand for a
+   column of full-width cards to render, and it went when the
+   board became a real grid. A second statement of a layout rule
+   is a second statement that can disagree, and the one that
+   disagrees silently is always the one nobody is looking at. */
 
 /** One moved from `from` to `to`, which is the whole of a drag.
 

@@ -124,6 +124,12 @@ fun DietScreen(
     onAdd: (Portion, Ate) -> Unit,
     onDay: (String) -> Unit = {},
     onOpenSite: () -> Unit,
+    /** The site's own food pages, which is a different
+        destination from the tool's front page: a reader who
+        cannot find a dish in the app's list wants the search and
+        the barcode scanner, not today's log. Defaults to the
+        same place, so a caller that has only one has one. */
+    onOpenFoods: () -> Unit = onOpenSite,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(0.dp),
     /** The tool's own words, out of `/api/site`, so nothing about
@@ -167,7 +173,7 @@ fun DietScreen(
             lang = lang,
             onAdd = { row, ate -> onAdd(row, ate); picking = false },
             onClose = { picking = false },
-            onOpenSite = onOpenSite,
+            onOpenSite = onOpenFoods,
             modifier = modifier.fillMaxWidth().padding(contentPadding),
         )
         return

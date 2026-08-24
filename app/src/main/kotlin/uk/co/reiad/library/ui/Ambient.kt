@@ -15,7 +15,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import kotlin.math.cos
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.sin
 
 /* ============================================================
@@ -37,9 +36,11 @@ import kotlin.math.sin
    Three soft pools of the section's own accent, big, dim and
    badly out of focus on purpose, drawn once behind the whole
    page. Nobody is meant to look at it; it is meant to be what
-   the frost differs from, what a card's bed lets one breath of
-   through, and what makes two sheets of glass at different
-   depths read as different depths.
+   the frost differs from, what the gaps between the cards are
+   instead of black, and what makes two sheets of glass at
+   different depths read as different depths. It is NOT
+   something a card lets through its face: that was tried, and
+   a pool behind a card read as a lamp inside it.
 
    ---- and it is alive, which the site cannot be ----
 
@@ -87,7 +88,15 @@ fun AmbientGround(sway: Sway, modifier: Modifier = Modifier, moving: Boolean = t
         }
     }
 
-    val strong = if (c.isDark) 0.15f else 0.10f
+    /* A THIRD of what it was, and the reason is the report:
+       "the light in the middle of all cards etc is weirdly
+       there". At 0.15 on a dark handset these pools are a lamp
+       behind the page rather than the light in a room, and the
+       cards were letting a tenth of that through their faces on
+       top. The faces are solid now, so this only has to be the
+       thing the frost differs from and the thing the gaps
+       between cards are not black. */
+    val strong = if (c.isDark) 0.055f else 0.05f
 
     Canvas(modifier) {
         val w = size.width
@@ -119,16 +128,19 @@ fun AmbientGround(sway: Sway, modifier: Modifier = Modifier, moving: Boolean = t
             )
         }
 
-        /* Highest sits deepest: the top pool moves least with the
+        /* All of them anchored OFF the page: three corners and
+           one edge, big and soft, so the calmest part of the
+           field is the middle, which is where the reading is.
+           They used to sit at 0.30 and 0.68 of the height, which
+           is exactly where a column of cards is, and a pool
+           centred behind a card is the thing that was showing
+           through it.
+
+           Highest sits deepest: the top pool moves least with the
            sway and the low one most, which is what makes the
            three read as layers rather than as one stain. */
-        pool(c.accent, strong, 0.12f, 0.08f, r * 0.62f, 0.00f, 10.dp.toPx(), 26.dp.toPx())
-        pool(c.accentSoft, strong * 0.9f, 0.94f, 0.40f, r * 0.5f, 0.37f, 18.dp.toPx(), 34.dp.toPx())
-        pool(c.accent, strong * 0.66f, 0.30f, 0.98f, r * 0.66f, 0.71f, 26.dp.toPx(), 42.dp.toPx())
-
-        /* A breath of the paper's opposite in the middle ground,
-           so the field is not one hue: the warm face colour the
-           panes already use for their top light. */
-        pool(c.paneTop, min(0.5f, strong), 0.68f, 0.72f, r * 0.44f, 0.52f, 14.dp.toPx(), 22.dp.toPx())
+        pool(c.accent, strong, -0.05f, -0.08f, r * 0.70f, 0.00f, 10.dp.toPx(), 26.dp.toPx())
+        pool(c.accentSoft, strong * 0.9f, 1.06f, 0.30f, r * 0.58f, 0.37f, 18.dp.toPx(), 34.dp.toPx())
+        pool(c.accent, strong * 0.66f, 0.20f, 1.08f, r * 0.72f, 0.71f, 26.dp.toPx(), 42.dp.toPx())
     }
 }

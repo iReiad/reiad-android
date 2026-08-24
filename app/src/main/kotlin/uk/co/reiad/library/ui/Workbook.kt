@@ -103,13 +103,21 @@ fun WorkbookScreen(
        weeks is a book that has forgotten them. */
     var at by remember(book) {
         mutableStateOf(
-            book?.let { b ->
+            book?.takeIf { it.days.isNotEmpty() }?.let { b ->
                 val reached = b.days.count { dayId(school, stage, it.n) in days }
+                /* A BOOK WITH NO DAYS IS A REAL ANSWER, and it
+                   used to take the screen down: `coerceIn(1, 0)`
+                   throws, because an empty range has no value to
+                   coerce into. A stage whose workbook has not
+                   been written yet answers 200 with an empty
+                   `days`, and that is the case a reader on a new
+                   stage meets first. */
                 (reached + 1).coerceIn(1, b.days.size)
             } ?: 1,
         )
     }
-    val day = book?.days?.firstOrNull { it.n == at }
+    val pages = book?.days.orEmpty()
+    val day = pages.firstOrNull { it.n == at }
 
     LazyColumn(
         Modifier.fillMaxSize().padding(horizontal = Gap.s8),
@@ -147,17 +155,36 @@ fun WorkbookScreen(
             )
             Spacer(Modifier.height(Gap.s7))
 
-            DayWalker(book, school, stage, days, at) { at = it }
+            if (book.days.isEmpty()) {
+                /* Written on the site, not yet in this stage. A
+                   row of no day-chips over a page with no day on
+                   it is a screen that looks broken; this says
+                   which it is. */
+                InfoCard(
+                    title = "No days in this book yet",
+                    dek = "The stage is here and the workbook has not been written. " +
+                        "It appears the moment it does.",
+                )
+            } else {
+                DayWalker(book, school, stage, days, at) { at = it }
+            }
             Spacer(Modifier.height(Gap.s8))
         }
 
-        if (day != null) {
+        /* Both, together, so neither needs a bang: a page exists
+           only inside a book. */
+        val foot = book?.foot
+        if (day != null && foot != null) {
             item("day-${day.n}") {
                 DayPage(
                     day = day,
                     school = school,
                     stage = stage,
-                    foot = book!!.foot,
+                    /* Held above rather than banged on here:
+                       `day` is non-null only because `book` is,
+                       and a `!!` is a promise the compiler
+                       cannot keep if this ever moves. */
+                    foot = foot,
                     ticked = dayId(school, stage, day.n) in days,
                     written = written,
                     answers = answers[day.n],

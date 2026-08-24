@@ -55,7 +55,7 @@ class HomeLookTest {
                         audience = null,
                         onOpen = {},
                         board = listOf(
-                            "progress:small", "stock:small",
+                            "term:small", "progress:small",
                             "routine:wide", "streak:wide",
                             "continue:wide", "pulse:tall",
                         ),
@@ -68,6 +68,36 @@ class HomeLookTest {
                             marked = 5,
                             of = 8,
                         ),
+                    )
+                }
+            }
+        }
+    }
+
+    /** The front page WHILE SOMETHING IS BEING READ.
+
+        The transport is not one of the arrangeable widgets and
+        never enters the board, so no other snapshot can hold it:
+        it arrives when the voice starts and goes when it stops.
+        A reader who walked away from a lesson holds it from
+        here, which is the whole reason it exists. */
+    @Test fun homeReading() {
+        pz.snapshot {
+            ReiadTheme(accent = Accents.GREEN, dark = false) {
+                val c = LocalReiad.current
+                Box(Modifier.fillMaxSize().background(c.paper)) {
+                    Home(
+                        site = site,
+                        stale = false,
+                        note = null,
+                        ticks = emptyMap(),
+                        audience = null,
+                        onOpen = {},
+                        board = listOf("continue:wide", "term:small", "progress:small"),
+                        speaking = uk.co.reiad.library.read.Speaking(
+                            on = true, at = 11, block = 3, total = 40,
+                        ),
+                        readingTitle = "বিও অ্যাকাউন্ট খোলা: ধাপে ধাপে",
                     )
                 }
             }

@@ -63,9 +63,16 @@ fun rememberRetreat(enabled: Boolean = true, onBack: () -> Unit): Retreat {
                snapping: a surface that jumps back reads as a
                rejected gesture rather than an abandoned one. */
             settling.snapTo(retreat.progress)
+            /* Home on a spring, the same one everything else in
+               this app settles on: a gesture that was abandoned
+               should feel like a thing let go of rather than a
+               value being eased to nought. */
             settling.animateTo(
                 0f,
-                androidx.compose.animation.core.tween(Motion.ENTER_MS),
+                androidx.compose.animation.core.spring(
+                    dampingRatio = 0.8f,
+                    stiffness = 340f,
+                ),
             ) { retreat.progress = value }
             retreat.progress = 0f
             throw cancelled

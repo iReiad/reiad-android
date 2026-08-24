@@ -593,11 +593,24 @@ fun TopBar(
             .padding(horizontal = Gap.s7, vertical = Gap.s5)
             .clip(RoundedCornerShape(Corner.pill))
             .then(backdrop)
-            /* A TRANSLUCENT ground over the blur, where alone it
-               is opaque: the material's grain and edge still
-               paint, so the bar keeps the site's weave and gains
-               the page moving frosted beneath it. */
-            .material(Kind.PANE, c, Corner.pill, ground = c.paper.copy(alpha = 0.30f))
+            /* A BREATH of paper over the blur, and no more.
+
+               It was three tenths, on top of a tint that is
+               already six, which comes to about three quarters
+               of a sheet of paper: the blur was doing almost
+               none of the work and the bar read as a muddy slab
+               rather than as glass. The report was blunt about
+               it, and about the site performing better, which it
+               does partly because a browser's own frosted bar is
+               mostly blur.
+
+               The material's grain and edge still paint on top,
+               so the bar keeps the site's weave and its lit
+               edge, and now the page genuinely moves underneath
+               it. Where alone it is opaque: on a renderer with
+               no blur this falls back to the tint, which is the
+               translucent bar the app has always had. */
+            .material(Kind.PANE, c, Corner.pill, ground = c.paper.copy(alpha = 0.12f))
             .padding(horizontal = Gap.s5, vertical = Gap.s4),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -727,7 +740,8 @@ private fun Bar(
             .padding(horizontal = Gap.s7, vertical = Gap.s5)
             .clip(RoundedCornerShape(Corner.pill))
             .then(backdrop)
-            .material(Kind.PANE, c, Corner.pill, ground = c.paper.copy(alpha = 0.30f))
+            /* The same breath the top bar takes: see there. */
+            .material(Kind.PANE, c, Corner.pill, ground = c.paper.copy(alpha = 0.12f))
             .padding(Gap.s3),
     ) {
         /* One gesture across the whole bar, with the glass thumb
@@ -1086,12 +1100,30 @@ private fun Drawer(
                 Spacer(Modifier.height(Gap.s8))
             }
 
+            /* ---------- ROWS THAT ARE NOT A WALL ----------
+
+               Twenty rows of two lines each, flush against one
+               another, is one grey block a reader has to parse
+               rather than a list they can scan: "congested",
+               twice. Nothing here is removed to fix that, and
+               nothing is hidden behind a disclosure, because the
+               whole argument for this menu is that it shows the
+               site's own shape.
+
+               What changed is air. Each row is its own tile with
+               a gap under it, so the eye gets a boundary for
+               free; the group's name sits further from the rows
+               it names than from the group above, which is what
+               makes a heading read as belonging DOWN; and a row
+               the reader is standing on is tinted rather than
+               only coloured, so "where am I" survives a glance.
+               Same rows, same order, four times the legibility. */
             for (group in groups) {
                 Text(
                     group.label.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
                     color = c.inkSoft,
-                    modifier = Modifier.padding(bottom = Gap.s4),
+                    modifier = Modifier.padding(start = Gap.s4, bottom = Gap.s5),
                 )
                 for (item in group.items) {
                     DrawerRow(
@@ -1100,6 +1132,7 @@ private fun Drawer(
                         accent = accentColour(item.accent ?: group.accent, c),
                         onClick = { onItem(item) },
                     )
+                    Spacer(Modifier.height(Gap.s2))
                 }
                 Spacer(Modifier.height(Gap.s8))
             }
@@ -1123,7 +1156,15 @@ private fun DrawerRow(
     onClick: () -> Unit,
 ) {
     val c = LocalReiad.current
-    Rung(onClick = onClick) {
+    Rung(
+        onClick = onClick,
+        /* The row you are standing on, said with a ground rather
+           than with a colour alone: on a menu of twenty
+           two-line rows an accent-coloured word is not enough to
+           find at a glance, and colour alone is not enough
+           full stop. */
+        ground = if (selected) accent.copy(alpha = 0.10f) else null,
+    ) {
         Icon(item.icon, size = 20.dp, tint = accent)
         Spacer(Modifier.width(Gap.s6))
         Column(Modifier.weight(1f)) {

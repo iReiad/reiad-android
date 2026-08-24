@@ -1,6 +1,7 @@
 package uk.co.reiad.library.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -74,6 +75,12 @@ fun Pane(
     modifier: Modifier = Modifier,
     corner: Dp = Corner.card,
     ground: Color? = null,
+    /** How the content sits when the pane is TALLER than it,
+        which on the board is most of them: a widget is given a
+        tile and its content has to live in the whole of it
+        rather than piling up against the top edge with an inch
+        of empty glass underneath. */
+    arrangement: Arrangement.Vertical = Arrangement.Top,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val c = LocalReiad.current
@@ -82,6 +89,7 @@ fun Pane(
             .clip(RoundedCornerShape(corner))
             .material(Kind.PANE, c, corner, ground)
             .padding(horizontal = Gap.s8, vertical = Gap.s7),
+        verticalArrangement = arrangement,
         content = content,
     )
 }
@@ -138,7 +146,17 @@ fun Control(
 @Composable
 fun Modifier.pressGives(interaction: androidx.compose.foundation.interaction.InteractionSource): Modifier {
     val held by interaction.collectIsPressedAsState()
-    val give by androidx.compose.animation.core.animateFloatAsState(
+    /* Kept as a STATE and read in the layer, not unwrapped here.
+
+       `by` reads the animation in composition, so every frame of
+       every press recomposed the surface being pressed and
+       everything the modifier chain below it builds. A layer
+       lambda reads it at draw time instead: same give, same
+       spring, and the press costs a redraw rather than a
+       recomposition. Every card, row and button in the app takes
+       this modifier, so it is the cheapest single frame this app
+       can buy. */
+    val give = androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (held) 0.965f else 1f,
         animationSpec = androidx.compose.animation.core.spring(
             dampingRatio = 0.55f,
@@ -147,8 +165,8 @@ fun Modifier.pressGives(interaction: androidx.compose.foundation.interaction.Int
         label = "give",
     )
     return this.graphicsLayer {
-        scaleX = give
-        scaleY = give
+        scaleX = give.value
+        scaleY = give.value
     }
 }
 
@@ -362,6 +380,10 @@ fun Tap(
 @Composable
 fun Rung(
     modifier: Modifier = Modifier,
+    /** A ground of its own, for the one row in a list that is
+        different: the menu row you are standing on. Null is the
+        ordinary case and stays transparent. */
+    ground: Color? = null,
     /** Pressable rungs say so HERE, not with a clickable bolted
         on outside. Eight call sites each wired their own, which
         was eight rows that lit and rippled and did not GIVE: the
@@ -392,7 +414,7 @@ fun Rung(
                 /* Flush in a column, so no ground of its own
                    either: the page shows through and only the
                    light arrives. */
-                ground = Color.Transparent,
+                ground = ground ?: Color.Transparent,
                 lit = { glow.lit },
             )
             .follows(glow)
@@ -406,7 +428,13 @@ fun Rung(
                     onClick = onClick,
                 ),
             )
-            .padding(horizontal = Gap.s6, vertical = Gap.s5),
+            /* A STEP MORE AIR than it had, everywhere at once.
+               At `s5` a two-line row came to sixty pixels with
+               ten between it and the next, which reads as a
+               wall of text rather than as a list of rows: the
+               menu is the worst case and the report named it,
+               but every list in the app is the same row. */
+            .padding(horizontal = Gap.s6, vertical = Gap.s6),
         verticalAlignment = Alignment.CenterVertically,
         content = content,
     )

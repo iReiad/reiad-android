@@ -69,6 +69,27 @@ class SizesLookTest(private val name: String, private val device: DeviceConfig) 
                             ticks = emptyMap(),
                             audience = "learn",
                             onOpen = {},
+                            /* An ARRANGED board, with two squares
+                               on it, at all three widths. The
+                               square is the size the whole grid
+                               is measured from, and it is the one
+                               that has to hold a Bangla heading
+                               and a figure on a 360dp phone,
+                               which is still the commonest width
+                               this app is read on. A tablet is
+                               the other end: the board is capped
+                               and centred rather than reflowed,
+                               so the squares stay squares instead
+                               of becoming two wide slabs. */
+                            board = listOf(
+                                "term:small", "progress:small",
+                                "routine:wide", "continue:wide",
+                            ),
+                            routineGlance = uk.co.reiad.library.data.RoutineGlance(
+                                date = java.time.LocalDate.now().toString(),
+                                marked = 5,
+                                of = 8,
+                            ),
                         )
                     }
                 }

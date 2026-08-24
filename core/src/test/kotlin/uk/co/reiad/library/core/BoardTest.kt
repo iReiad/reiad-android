@@ -127,46 +127,84 @@ class BoardTest {
         assertEquals(three.map { it.id }, moved(three, 1, 1).map { it.id })
     }
 
-    /* ---------- the paired rows ---------- */
+    /* ---------- the two-column grid ---------- */
 
-    private fun row(vararg ids: String) = ids.toList()
-
-    private fun rowsOf(stored: List<String>) =
-        pairSmalls(layoutOf(stored, all)).map { r -> r.map { it.id } }
-
-    @Test fun `two consecutive smalls pair and a wide is a row of one`() {
-        assertEquals(
-            listOf(row("continue"), row("progress", "stock"), row("pulse")),
-            rowsOf(listOf("continue:wide", "progress:small", "stock:small", "pulse:tall")),
-        )
+    /** What the board is MADE of, which the grid then packs. A
+        square takes one column and everything else takes the
+        row; a large is two squares deep and the other two are
+        one. Everything about how the board looks follows from
+        these two tables, so they are the two worth holding. */
+    @Test fun `a square takes one column and everything else the row`() {
+        assertEquals(1, spanOf(WidgetSize.SMALL))
+        assertEquals(2, spanOf(WidgetSize.WIDE))
+        assertEquals(2, spanOf(WidgetSize.TALL))
     }
 
-    /** The order is the reader's: a small does NOT reach past a
-        wide to find a partner, because that would reorder the
-        board for them. */
-    @Test fun `a small never pairs across a wide`() {
-        assertEquals(
-            listOf(row("progress"), row("continue"), row("stock")),
-            rowsOf(listOf("progress:small", "continue:wide", "stock:small")),
-        )
+    @Test fun `only the large one is two squares deep`() {
+        assertEquals(1, unitsOf(WidgetSize.SMALL))
+        assertEquals(1, unitsOf(WidgetSize.WIDE))
+        assertEquals(2, unitsOf(WidgetSize.TALL))
     }
 
-    @Test fun `an odd small at the end is a row of one`() {
-        assertEquals(
-            listOf(row("progress", "stock"), row("diet")),
-            rowsOf(listOf("progress:small", "stock:small", "diet:small")),
-        )
+    /** A row is never more than the two columns, whatever the
+        board holds: this is the arithmetic behind "nothing
+        straddles a column boundary", and it is worth an
+        assertion because a third size added later with a span of
+        three would break the grid quietly. */
+    @Test fun `no size is wider than the board`() {
+        for (size in WidgetSize.entries) {
+            assertTrue(spanOf(size) in 1..2, "$size spans ${spanOf(size)} of two columns")
+        }
     }
 
-    @Test fun `every widget appears in the rows exactly once`() {
-        val stored = listOf(
-            "continue:wide", "progress:small", "stock:small",
-            "pulse:tall", "market:tall", "schools:wide",
-        )
-        assertEquals(
-            layoutOf(stored, all).map { it.id },
-            pairSmalls(layoutOf(stored, all)).flatten().map { it.id },
-        )
+    /* ---------- a word a day ---------- */
+
+    private val glossary = listOf(
+        TermGroup(
+            id = "basics",
+            terms = listOf(
+                Term(slug = "share", bn = "শেয়ার", en = "Share"),
+                Term(slug = "bond", bn = "বন্ড", en = "Bond"),
+                Term(slug = "yield", bn = "ইল্ড", en = "Yield"),
+            ),
+        ),
+        TermGroup(id = "risk", terms = listOf(Term(slug = "beta", bn = "বিটা", en = "Beta"))),
+    )
+
+    /** The SAME word all day, which is the whole difference
+        between a widget and a slot machine: a reader who glances
+        at their board twice before lunch can go and look the
+        word up between the glances. */
+    @Test fun `the word holds still for a day and moves on the next`() {
+        val today = termOfDay(glossary, "2026-08-24")
+        assertEquals(today?.slug, termOfDay(glossary, "2026-08-24")?.slug)
+        val run = (24..30).map { termOfDay(glossary, "2026-08-%02d".format(it))?.slug }
+        assertTrue(run.toSet().size > 1, "every day showed the same word: $run")
+    }
+
+    /** Every date lands on a real term, including the ones whose
+        digits add up past the end of the list. */
+    @Test fun `no date falls off the glossary`() {
+        for (month in 1..12) {
+            for (day in 1..28) {
+                val on = "2026-%02d-%02d".format(month, day)
+                assertTrue(
+                    termOfDay(glossary, on) != null,
+                    "$on had no word, which means the index left the list",
+                )
+            }
+        }
+    }
+
+    @Test fun `an empty glossary has no word rather than a blank one`() {
+        assertNull(termOfDay(emptyList(), "2026-08-24"))
+        assertNull(termOfDay(listOf(TermGroup(id = "x")), "2026-08-24"))
+    }
+
+    /** The address a term already has, not a second spelling of
+        it: `Search` sends a reader to exactly this. */
+    @Test fun `a term is addressed the way search addresses it`() {
+        assertEquals("/money/terms/share.html", termHref(Term(slug = "share")))
     }
 
     /* ---------- what a kind offers ---------- */

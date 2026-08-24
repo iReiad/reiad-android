@@ -32,6 +32,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -209,7 +216,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import uk.co.reiad.library.core.BOARD_FLOOR
 import uk.co.reiad.library.core.catalogueFloor
 import uk.co.reiad.library.core.Placed
-import uk.co.reiad.library.core.pairSmalls
+import uk.co.reiad.library.core.spanOf
+import uk.co.reiad.library.core.unitsOf
 import uk.co.reiad.library.core.kindOf
 import uk.co.reiad.library.core.layoutOf
 import uk.co.reiad.library.core.moved
@@ -258,6 +266,7 @@ import uk.co.reiad.library.ui.Pane
 import uk.co.reiad.library.ui.PieceScreen
 import uk.co.reiad.library.ui.Plate
 import uk.co.reiad.library.ui.ReadingHub
+import uk.co.reiad.library.ui.ReadingWidget
 import uk.co.reiad.library.ui.ResumeCard
 import uk.co.reiad.library.ui.StageState
 import uk.co.reiad.library.ui.WorkbookScreen
@@ -2124,6 +2133,11 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val erasing by model.erasing.collectAsState()
     val checks by model.checks.collectAsState()
     val bookmarks by model.bookmarks.collectAsState()
+    /* The voice, collected ONCE for the whole app: the piece
+       screen's controls and the card on the board are two views
+       of one reading, and two collectors would be two answers to
+       "is it paused". */
+    val speaking by uk.co.reiad.library.read.Reader.state.collectAsState()
     val board by model.board.collectAsState()
     val news by model.news.collectAsState()
     val remindAt by model.remindAt.collectAsState()
@@ -2377,7 +2391,19 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                             }
                         },
                         mine = mine,
-                        onOpenCourses = { openOnSite(context, "/courses", colours) },
+                        /* `/skills/courses`, which is the route
+                           the site actually serves. It was
+                           `/courses`, which is a 404, and a
+                           button that opens a not-found page is
+                           the same to a reader as a button that
+                           does nothing: it was reported as
+                           exactly that. A path this app writes
+                           by hand rather than reads from the
+                           manifest is a path somebody has to
+                           check against the live site, and this
+                           one now has been. */
+                        onOpenCourses = { openOnSite(context, COURSES_HREF, colours) },
+                        skills = site?.skills.orEmpty(),
                     )
                 }
 
@@ -2559,10 +2585,24 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         /* Eleven of the tool's fourteen pages are
                            still the site's, and so are the barcode
                            scanner and the two public databases.
-                           This opens the log rather than
-                           pretending the app has all of it. */
+                           This opens the tool rather than
+                           pretending the app has all of it.
+
+                           `/tools/diet`, which is the tool's own
+                           front page and the one every other
+                           page of it is reachable from. It was
+                           `/tools/diet/log`, which is a 404
+                           there: the same fault as the course
+                           card's, found the same way, and
+                           `SitePathsTest` is now the answer to
+                           both. */
                         onOpenSite = {
-                            openOnSite(context, "/tools/diet/log", colours)
+                            openOnSite(context, "/tools/diet", colours)
+                        },
+                        /* A reader who cannot find a dish wants
+                           the food pages, not today's log. */
+                        onOpenFoods = {
+                            openOnSite(context, "/tools/diet/foods", colours)
                         },
                         words = site?.dietWords ?: uk.co.reiad.library.core.DietWords(),
                         lang = prefs.lang,
@@ -2749,6 +2789,37 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                     kept = kept,
                     targets = targets,
                     onKept = { row -> openOnSite(context, row.url, colours) },
+                    onTerm = { term ->
+                        scope.launch {
+                            followTo(
+                                destinationOf(uk.co.reiad.library.core.termHref(term), site),
+                                model, context, site, colours,
+                            ) { where = it }
+                        }
+                    },
+                    /* The voice, if there is one. `Reader` is an
+                       object rather than state, so its title and
+                       slug are read HERE, where the state flow
+                       that changes with them is already being
+                       collected: reading them inside the board
+                       would be reading a field nothing tells
+                       Compose about. */
+                    speaking = speaking,
+                    readingTitle = uk.co.reiad.library.read.Reader.title,
+                    onReadingOpen = {
+                        /* Through the same resolver a link in a
+                           body goes through, so there is one
+                           answer to "what does this href open"
+                           in the whole app. */
+                        val href = uk.co.reiad.library.read.Reader.from
+                        if (href.isNotBlank()) {
+                            scope.launch {
+                                followTo(
+                                    destinationOf(href, site), model, context, site, colours,
+                                ) { where = it }
+                            }
+                        }
+                    },
                 )
 
                 is Where.Ladder -> {
@@ -3076,6 +3147,38 @@ internal fun sectionTitle(site: SiteManifest?, section: String): String =
 
 /* ---------- home ---------- */
 
+/** The admin's own course shelf, as the site routes it.
+
+    Verified against the live site rather than guessed. It was
+    `/courses`, which is a 404 there, and that is the whole of
+    why the card opened nothing: a Custom Tab dutifully showing a
+    not-found page is, to the reader who pressed the button,
+    a button that does not work.
+
+    A path this app writes by hand is a path somebody has to
+    check, which is the argument for reading them out of the
+    manifest wherever there is one. There is none for this shelf:
+    it is admin-only and the menu the manifest carries is the
+    menu everybody gets. */
+const val COURSES_HREF = "/skills/courses"
+
+/** Two, which is what a phone's home screen has and what makes
+    a square a square. Not a setting: a three-column board of
+    Bangla widgets is three columns of truncation. */
+private const val BOARD_COLUMNS = 2
+
+/** How the widgets that are NOT in the hand make way.
+
+    The same spring the carried card settles on, so the board has
+    one weight rather than a curve for the neighbours and a
+    spring for the card: two timings on one gesture is what makes
+    a rearrange read as two things happening at once. */
+private val BOARD_FLOW = androidx.compose.animation.core.spring<androidx.compose.ui.unit.IntOffset>(
+    dampingRatio = 0.82f,
+    stiffness = 380f,
+    visibilityThreshold = androidx.compose.ui.unit.IntOffset(1, 1),
+)
+
 @Composable
 fun Home(
     site: SiteManifest?,
@@ -3108,6 +3211,13 @@ fun Home(
     kept: List<Kept> = emptyList(),
     targets: List<Target> = emptyList(),
     onKept: (Kept) -> Unit = {},
+    onTerm: (uk.co.reiad.library.core.Term) -> Unit = {},
+    /** The voice, if it is going. The card that shows it is not
+        part of the arrangement and never enters `board`: it is
+        drawn above it for as long as something is being read. */
+    speaking: uk.co.reiad.library.read.Speaking = uk.co.reiad.library.read.Speaking(),
+    readingTitle: String = "",
+    onReadingOpen: () -> Unit = {},
     /* One sway for the whole app, not one per screen or per
        card: every surface leans by the same amount because they
        are all on the same handset. `App` passes the instance the
@@ -3168,6 +3278,10 @@ fun Home(
     val act = BoardActions(
         onSchool = onOpen, onItem = onGo, onPiece = onPiece, onResume = onResume,
         onStory = onStory, onKept = onKept,
+        /* Through the same resolver a link in a lesson takes,
+           so a term opens as a lesson here and on the site in
+           the browser where this app cannot draw it. */
+        onTerm = onTerm,
     )
 
     /* Three RSS feeds read on a Worker is not a request to make
@@ -3176,7 +3290,7 @@ fun Home(
         if (placed.any { it.id == "market" }) onNeedNews()
     }
 
-    val listState = rememberLazyListState()
+    val listState = rememberLazyGridState()
     /* Hold a widget and move it: the board reorders under the
        finger as it passes each neighbour, and every question
        about where the finger is goes to what the list actually
@@ -3196,6 +3310,11 @@ fun Home(
     val showing = working ?: placed
     val drag = rememberBoardDrag(
         state = listState,
+        /* Only the widgets. The greeting, the arrange button and
+           the picker are items in the same grid, and a card
+           dragged over the greeting must find nothing to swap
+           with rather than swapping with the page's own head. */
+        keys = showing.map { it.id }.toSet(),
         indexOf = { key ->
             (working ?: placed).indexOfFirst { it.id == key }.takeIf { it >= 0 }
         },
@@ -3216,18 +3335,42 @@ fun Home(
        inside it. Reflowing wides into columns would resize what
        the reader sized. */
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-    LazyColumn(
-        Modifier
+    /* ---------- TWO COLUMNS, and the same two in both modes ----------
+
+       A phone's home screen is legible at a glance because every
+       tile is one square or a whole number of them, and because
+       the grid does not change when you hold a finger down: the
+       widgets start jiggling exactly where they already were.
+
+       This board used to be a column of full-width cards that
+       PAIRED its squares only while reading, and unpaired them
+       into a single file the moment somebody pressed সাজান. So
+       arranging began with every widget on the board changing
+       size and jumping to a new row, which is the "jumpy"
+       report, and the drag that followed was a drag through a
+       layout the reader had never seen. One grid, both modes,
+       and nothing moves when the mode does.
+
+       A square that has nothing to pair with keeps its own half
+       and leaves the other empty, which is what a home screen
+       does too: the ORDER is the reader's, and pulling a widget
+       up from further down to fill the hole would rearrange
+       their board for them. */
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(BOARD_COLUMNS),
+        modifier = Modifier
             .fillMaxHeight()
             .widthIn(max = 660.dp)
             .padding(horizontal = Gap.s8),
         state = listState,
+        horizontalArrangement = Arrangement.spacedBy(Gap.s7),
+        verticalArrangement = Arrangement.spacedBy(Gap.s7),
         /* The bar FLOATS over the page rather than pushing it, so
            the page has to end above it or the last card sits under
            the bar and looks like the list has been cut off. */
         contentPadding = PaddingValues(top = topClearance(), bottom = barClearance()),
     ) {
-        item("door") {
+        item("door", span = { GridItemSpan(maxLineSpan) }) {
             if (copy != null) {
                 Door(
                     eyebrow = door?.eyebrow,
@@ -3259,12 +3402,45 @@ fun Home(
             Spacer(Modifier.height(Gap.s10))
         }
 
+        /* ---------- what is being read, while it is ----------
+
+           It arrives when the voice starts and goes when it
+           stops, above the board and not IN it: see
+           `ui/Speaking.kt` for why a card that comes and goes on
+           its own cannot be part of an arrangement somebody
+           made. A reader who walked away from a lesson can hold
+           it from the front page. */
+        item("reading", span = { GridItemSpan(maxLineSpan) }) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = speaking.on,
+                enter = androidx.compose.animation.fadeIn(
+                    androidx.compose.animation.core.tween(uk.co.reiad.library.core.Motion.ENTER_MS),
+                ) + androidx.compose.animation.expandVertically(
+                    androidx.compose.animation.core.tween(uk.co.reiad.library.core.Motion.ENTER_MS),
+                ),
+                exit = androidx.compose.animation.fadeOut(
+                    androidx.compose.animation.core.tween(uk.co.reiad.library.core.Motion.QUICK_MS),
+                ) + androidx.compose.animation.shrinkVertically(
+                    androidx.compose.animation.core.tween(uk.co.reiad.library.core.Motion.QUICK_MS),
+                ),
+            ) {
+                Column {
+                    ReadingWidget(
+                        speaking = speaking,
+                        title = readingTitle,
+                        onOpen = onReadingOpen,
+                    )
+                    Spacer(Modifier.height(Gap.s7))
+                }
+            }
+        }
+
         if (site == null) {
             /* Never an empty screen, and never a bare sentence in
                the middle of one. Either the app is reading the
                site or it could not: both are said, and the second
                one has a button. */
-            item("waiting") {
+            item("waiting", span = { GridItemSpan(maxLineSpan) }) {
                 if (note != null) {
                     Problem("The site did not answer", note, onRetry = onRetry)
                 } else {
@@ -3275,7 +3451,7 @@ fun Home(
 
         /* ---------- the board ---------- */
 
-        item("arrange") {
+        item("arrange", span = { GridItemSpan(maxLineSpan) }) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Spacer(Modifier.weight(1f))
                 PillButton(
@@ -3292,104 +3468,63 @@ fun Home(
             Spacer(Modifier.height(Gap.s6))
         }
 
-        /* ---------- reading mode: the paired grid ----------
+        /* ---------- the widgets ----------
 
-           Two SMALLS sit side by side, the way a phone home
-           screen pairs its squares. Only consecutive smalls
-           pair, because the ORDER is the reader's and pairing
-           across a wide would reorder it for them.
-
-           While ARRANGING, everything runs full width instead:
-           the drag and the arrows work per widget, and a small
-           twice the size while being moved is the same trade
-           iOS makes when its grid shrinks in jiggle mode. */
-        if (!arranging) {
-            val rows = pairSmalls(placed)
-            items(rows, key = { row -> row.joinToString("+") { it.id } }) { row ->
-                /* HOLD TO ARRANGE, from the board itself. The
-                   সাজান button stays for anyone who would never
-                   guess a long press, but the gesture a phone
-                   teaches on its own home screen works here too:
-                   hold a widget and the board goes into
-                   arranging with a knock, ready to drag. The
-                   wrapper sits BEHIND the widget's own taps, so
-                   opening a card is untouched. */
-                val knock = LocalHapticFeedback.current
-                Box(
-                    Modifier.pointerInput(Unit) {
-                        detectTapGestures(onLongPress = {
-                            knock.performHapticFeedback(HapticFeedbackType.LongPress)
-                            arranging = true
-                        })
-                    },
-                ) {
-                if (row.size == 2) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(Gap.s7),
-                    ) {
-                        for (p in row) {
-                            Box(Modifier.weight(1f)) {
-                                Widget(p.id, p.size, data, act)
-                            }
-                        }
-                    }
-                } else {
-                    Widget(row.first().id, row.first().size, data, act)
-                }
-                }
-                Spacer(Modifier.height(Gap.s7))
-            }
-        } else {
-        itemsIndexed(showing, key = { _, p -> p.id }) { at, p ->
-            /* The catalogue describes a widget; it is not what
-               DRAWS one. A phone that has never fetched the
-               manifest still has `BOARD_FLOOR` and still has
-               every renderer, so the board draws either way and
-               `kindOf` supplies a readable name until the site's
-               own arrives. Requiring the catalogue here left the
-               whole front page blank until the first fetch
-               landed; falling back to the ID put `continue` and
-               `pulse` down the side of a Bangla front page. */
+           ONE list, both modes. Arranging adds the jiggle, the
+           two badges and the drag; it does not move anything,
+           because a board that rearranges itself the moment you
+           ask to rearrange it has already lost the reader's
+           place. */
+        itemsIndexed(
+            showing,
+            key = { _, p -> p.id },
+            span = { _, p -> GridItemSpan(spanOf(p.size)) },
+        ) { at, p ->
             val kind = kindOf(p.id, catalogue, p.size)
-            val carried = drag.carrying == p.id
+            val held = drag.holding(p.id)
+            val knock = LocalHapticFeedback.current
             WidgetFrame(
                 modifier = Modifier
-                    /* A widget finding its new row GLIDES there:
-                       on a drop, on an arrow press, on an add or
-                       a remove, the others make way rather than
-                       teleporting. The carried one is excused,
-                       because it is already answering the finger
-                       and a second animation would fight it. */
+                    /* A widget finding its new place GLIDES
+                       there: on a drop, on an arrow press, on an
+                       add or a remove, the others make way
+                       rather than teleporting. The one in the
+                       hand is excused, because it is already
+                       answering the finger and a second
+                       animation would fight it.
+
+                       A SPRING rather than a curve, and the
+                       same one the carried card settles on, so
+                       everything that moves on this board moves
+                       with one weight. */
                     .then(
-                        if (carried) Modifier
-                        else Modifier.animateItem(
-                            placementSpec = androidx.compose.animation.core.tween(
-                                uk.co.reiad.library.core.Motion.ENTER_MS,
-                            ),
-                        )
+                        if (held) Modifier
+                        else Modifier.animateItem(placementSpec = BOARD_FLOW)
                     )
-                    .animateContentSize(
-                        androidx.compose.animation.core.tween(
-                            uk.co.reiad.library.core.Motion.ENTER_MS,
-                        ),
-                    )
-                    .zIndex(if (carried) 1f else 0f)
-                    .graphicsLayer {
-                        if (!carried) return@graphicsLayer
-                        translationY = drag.offset
-                        /* A card in the hand is off the board:
-                           lifted, and slightly proud of the rest
-                           so it is obvious which one is moving. */
-                        scaleX = 1.02f
-                        scaleY = 1.02f
-                        shadowElevation = 12f
-                    },
+                    .zIndex(if (held) 1f else 0f)
+                    /* HOLD TO ARRANGE, from the board itself.
+                       The সাজান button stays for anyone who
+                       would never guess a long press, but the
+                       gesture a phone teaches on its own home
+                       screen works here too. Behind the widget's
+                       own taps, so opening a card is untouched,
+                       and off entirely once the board IS loose,
+                       where the drag owns the same finger. */
+                    .then(
+                        if (arranging) Modifier
+                        else Modifier.pointerInput(Unit) {
+                            detectTapGestures(onLongPress = {
+                                knock.performHapticFeedback(HapticFeedbackType.LongPress)
+                                arranging = true
+                            })
+                        }
+                    ),
                 kind = kind,
                 placed = p,
                 arranging = arranging,
                 moving = jiggle,
-                carried = carried,
+                lifted = held,
+                shift = { drag.shift(p.id) },
                 first = at == 0,
                 last = at == showing.lastIndex,
                 lang = lang,
@@ -3404,14 +3539,56 @@ fun Home(
                 },
                 handle = Modifier.dragHandle(drag, p.id),
             ) {
-                Widget(p.id, p.size, data, act)
+                /* The UNIT, which is what makes these read as
+                   widgets rather than as cards that happen to be
+                   near each other: a square is a square, a wide
+                   is the row at that height, a large is the row
+                   two squares deep. A floor rather than a fixed
+                   height, because a Bangla line that runs long
+                   must lengthen its widget rather than be cut in
+                   half. */
+                BoxWithConstraints {
+                    /* The square is worked out from the CELL, so
+                       one number describes the board at every
+                       width: on a narrow phone, on a wide one,
+                       and inside the 660dp cap on a tablet. A
+                       widget one column wide IS the square; one
+                       that spans the row is two of them with the
+                       gutter between. */
+                    val square = if (spanOf(p.size) == 1) maxWidth
+                        else (maxWidth - Gap.s7) / 2
+                    /* CAPPED, which only ever bites on a tablet.
+
+                       The board is capped at 660dp and centred,
+                       so a square there is 322dp on a side, and
+                       a wide tile with one figure in it became a
+                       third of a metre of empty glass. A widget
+                       is a phone-sized tile whatever it is being
+                       read on: the grid gets wider, the tiles do
+                       not get taller. A handset's square is
+                       already under this, so nothing about a
+                       phone changes. */
+                    val unit = minOf(square, 200.dp)
+                    val units = unitsOf(p.size)
+                    /* The floor goes to the WIDGET, not around
+                       it. Wrapping it in a taller box left the
+                       card its own content height with dead
+                       board showing underneath, which is a
+                       reserved space that looks like a mistake
+                       rather than a tile. Every kind takes a
+                       modifier for exactly this. */
+                    Widget(
+                        p.id, p.size, data, act,
+                        modifier = Modifier.heightIn(
+                            min = unit * units + Gap.s7 * (units - 1),
+                        ),
+                    )
+                }
             }
-            Spacer(Modifier.height(Gap.s7))
-        }
         }
 
         if (arranging) {
-            item("picker") {
+            item("picker", span = { GridItemSpan(maxLineSpan) }) {
                 Spacer(Modifier.height(Gap.s6))
                 WidgetPicker(
                     /* The catalogue minus what is already on the
@@ -3614,6 +3791,28 @@ fun StageCard(
 
         Spacer(Modifier.height(Gap.s5))
         StageState(done, lessons.size, after.map { it.bn })
+
+        /* WHO THIS STAGE IS FOR, which the endpoint has been
+           sending all along and nothing read: "যিনি কখনো
+           বিনিয়োগ করেননি, এবং কোথা থেকে ধরবেন বুঝতে পারছেন না".
+           It is the one sentence that answers the question a
+           reader actually has in front of a ladder of eight
+           stages, and it was in memory, parsed, unused. */
+        stage.who?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(Gap.s5))
+            Row {
+                Icon("person", size = 14.dp, tint = c.accent)
+                Spacer(Modifier.width(Gap.s4))
+                Text(
+                    it,
+                    style = BanglaBody.copy(
+                        fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                        lineHeight = MaterialTheme.typography.bodySmall.fontSize * 1.7f,
+                    ),
+                    color = c.ink,
+                )
+            }
+        }
 
         stage.can?.takeIf { it.isNotBlank() }?.let {
             Spacer(Modifier.height(Gap.s5))

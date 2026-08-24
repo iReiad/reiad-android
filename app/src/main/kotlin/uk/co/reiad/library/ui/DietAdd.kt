@@ -85,16 +85,24 @@ fun FoodPicker(
     var chosen by remember { mutableStateOf<Portion?>(null) }
 
     if (library == null) {
-        /* Not an empty list and not a spinner that never ends.
-           The library is one fetch and it is cached, so the only
-           way to be here is a first run with no signal. */
+        /* Not an empty list, and not a promise either.
+
+           This used to say the list arrives once and then stays
+           on the phone, so the only way to be here was a first
+           run with no signal. That sentence stopped being true:
+           `/api/foods` answers 404 on the site today, so the
+           list does not arrive at all, and a reader who waited
+           for it was waiting for nothing. The site's own food
+           pages DO work, which is what this now says and what
+           the button under it opens. */
         InfoCard(
-            title = if (lang == "bn") "খাবারের তালিকা এখনো আসেনি" else "The food list has not arrived",
+            title = if (lang == "bn") "খাবারের তালিকা এই ফোনে নেই" else "The food list is not on this phone",
             dek = if (lang == "bn") {
-                "একবার নেট পেলে তালিকাটা এই ফোনে থেকে যাবে, তারপর অফলাইনেও চলবে।"
+                "সাইটের খাবারের পাতাগুলো কাজ করছে: খোঁজা, বারকোড, আর দুটো বড় ডাটাবেস। " +
+                    "যোগ করলে এখানেও দেখা যাবে।"
             } else {
-                "It arrives once and then stays on this phone, so after that it " +
-                    "works with no signal at all."
+                "The site's food pages work: search, the barcode scanner and the two " +
+                    "public databases. Anything added there shows up here."
             },
             modifier = modifier,
         ) {

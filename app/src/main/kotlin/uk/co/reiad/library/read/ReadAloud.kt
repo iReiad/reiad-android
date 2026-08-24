@@ -99,6 +99,16 @@ object Reader {
     var title: String = ""
         private set
 
+    /** And WHERE it came from, as the site's own href, so the
+        card on the board can take the reader back to it through
+        the same resolver a shared link uses. The notification
+        has an intent for the app; this is the only handle
+        anything else has on where the voice came from. Blank
+        when a caller had none to give, and the card then simply
+        does not offer to open anything. */
+    var from: String = ""
+        private set
+
     /** Every press claims a number, and a callback whose number is
         no longer the current one is ignored.
 
@@ -109,11 +119,18 @@ object Reader {
         same reason. */
     private var run = 0
 
-    fun start(context: Context, what: String, utterances: List<Utterance>, wantPace: Pace) {
+    fun start(
+        context: Context,
+        what: String,
+        utterances: List<Utterance>,
+        wantPace: Pace,
+        fromHref: String = "",
+    ) {
         val app = context.applicationContext
         stop(app)
         if (utterances.isEmpty()) return
         title = what
+        from = fromHref
         lines = utterances
         index = 0
         pace = wantPace
@@ -245,6 +262,14 @@ object Reader {
     }
 
     fun stop(context: Context) {
+        hush()
+        ReadAloudService.stop(context.applicationContext)
+    }
+
+    /** Everything `stop` does EXCEPT telling the service, so the
+        service's own teardown can call it without asking to be
+        torn down again. Same silence, no re-entry. */
+    fun hush() {
         run += 1
         runCatching { tts?.stop() }
         runCatching { tts?.shutdown() }
@@ -252,7 +277,6 @@ object Reader {
         lines = emptyList()
         index = 0
         _state.value = Speaking()
-        ReadAloudService.stop(context.applicationContext)
     }
 }
 
@@ -265,6 +289,36 @@ object Reader {
 class ReadAloudService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    /** Swiping the app away stops the reading. FULL STOP.
+
+        A foreground service outliving its app is the correct
+        answer for a music player, whose whole purpose is to keep
+        going while you use the phone for something else. It is
+        the wrong answer here, and it was reported as wrong: a
+        lesson that carries on being read after the app is gone
+        is a voice the reader has to hunt through the shade to
+        silence. Backgrounding still keeps the voice, because
+        that is a reader putting the phone in a pocket mid
+        lesson; CLOSING it does not, because that is a reader
+        finished with it.
+
+        Paired with `android:stopWithTask` in the manifest,
+        which is what the system honours when it can. This is
+        what happens when it calls us instead. */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Reader.stop(this)
+        stopSelf()
+        super.onTaskRemoved(rootIntent)
+    }
+
+    /** And if the service is torn down any other way, the voice
+        goes with it rather than being left mid sentence with
+        nothing able to reach it. */
+    override fun onDestroy() {
+        Reader.hush()
+        super.onDestroy()
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == STOP) {

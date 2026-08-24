@@ -118,7 +118,20 @@ fun Modifier.arriving(key: Any?): Modifier {
         androidx.compose.animation.core.Animatable(if (reduced) 1f else 0f)
     }
     androidx.compose.runtime.LaunchedEffect(seen) {
-        seen.animateTo(1f, tween(Motion.ENTER_MS))
+        /* A SPRING rather than a curve, so a sheet arrives with
+           weight in it: it comes up, gives once against the
+           stop, and holds. A tween arrives and simply ceases,
+           which is the difference between a panel appearing and
+           a thing being put down. Damped short of a wobble: this
+           carries the reader's own words and a bouncing sheet of
+           prose is a toy. */
+        seen.animateTo(
+            1f,
+            androidx.compose.animation.core.spring(
+                dampingRatio = 0.78f,
+                stiffness = 320f,
+            ),
+        )
     }
     return this.then(
         Modifier.graphicsLayer {

@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,7 +44,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import uk.co.reiad.library.core.Kind
 import uk.co.reiad.library.core.Motion
-import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /* ============================================================
@@ -162,8 +160,16 @@ fun <T> Segmented(
        three screens into a piece is not on Home, and a bar that
        said so would be lying quietly. */
     val hasThumb = found >= 0
-    var held by remember { mutableFloatStateOf(NO_HOLD) }
+    /* Read in the GESTURE and in the layer, never in
+       composition: a finger moving across the track would
+       otherwise recompose this whole row sixty times a second,
+       and the labels do not change until a boundary is crossed. */
+    val held = remember { mutableFloatStateOf(NO_HOLD) }
     var width by remember { mutableStateOf(0) }
+    /* Which segment the thumb is OVER, as a whole number. This
+       is what the labels light from, so they change once per
+       boundary rather than once per frame. */
+    var over by remember { mutableStateOf(-1) }
 
     /* Where the thumb sits, in segments. While a finger is down
        this is the finger, exactly, with no animation between:
@@ -171,7 +177,7 @@ fun <T> Segmented(
        as the control being slow rather than smooth. Let go and
        it settles on the chosen segment on a SPRING, with a
        little overshoot: liquid settles, it does not park. */
-    val resting by animateFloatAsState(
+    val resting = animateFloatAsState(
         targetValue = at.toFloat(),
         animationSpec = spring(
             dampingRatio = 0.72f,
@@ -179,13 +185,12 @@ fun <T> Segmented(
         ),
         label = "thumb",
     )
-    val thumbAt = if (held >= 0f) held else resting
 
     /* The zoom under the finger. Held glass swells, which is the
        press being ANSWERED: the thumb grows a twentieth and
        settles back on the same spring when the finger lifts. */
-    val swell by animateFloatAsState(
-        targetValue = if (held >= 0f) 1.06f else 1f,
+    val swell = animateFloatAsState(
+        targetValue = if (over >= 0 && held.floatValue >= 0f) 1.06f else 1f,
         animationSpec = spring(
             dampingRatio = 0.5f,
             stiffness = Spring.StiffnessMedium,
@@ -195,19 +200,8 @@ fun <T> Segmented(
 
     /* A knock as the thumb crosses each boundary, which is the
        feel of a detent: the finger learns the segments without
-       looking. Fired on the CHANGE of the rounded segment, so a
-       still finger costs nothing. */
+       looking. */
     val knock = LocalHapticFeedback.current
-    var lastOver by remember { mutableStateOf(-1) }
-    if (held >= 0f) {
-        val over = held.roundToInt()
-        if (lastOver != -1 && lastOver != over) {
-            knock.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        }
-        if (lastOver != over) lastOver = over
-    } else if (lastOver != -1) {
-        lastOver = -1
-    }
 
     /** The pointer's x, in segments, clamped to the track. */
     fun segmentOf(x: Float): Float {
@@ -226,29 +220,44 @@ fun <T> Segmented(
             .pointerInput(n, enabled) {
                 if (!enabled) return@pointerInput
                 awaitEachGesture {
+                    /* One place the finger is turned into a
+                       thumb position, and the same place the
+                       detent and the lit label are decided, so
+                       the three can never disagree. */
+                    fun follow(x: Float) {
+                        val to = segmentOf(x)
+                        held.floatValue = to
+                        val nowOver = to.roundToInt()
+                        if (over != -1 && over != nowOver) {
+                            knock.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        }
+                        if (over != nowOver) over = nowOver
+                    }
+
                     val down = awaitFirstDown(requireUnconsumed = false)
                     width = size.width
-                    held = segmentOf(down.position.x)
+                    follow(down.position.x)
 
                     /* Unconsumed until the finger has actually
                        moved sideways, so a vertical drag that
                        starts here still scrolls the sheet. */
                     val past = awaitHorizontalTouchSlopOrCancellation(down.id) { change, _ ->
                         change.consume()
-                        held = segmentOf(change.position.x)
+                        follow(change.position.x)
                     }
                     if (past != null) {
                         horizontalDrag(past.id) { change ->
                             change.consume()
-                            held = segmentOf(change.position.x)
+                            follow(change.position.x)
                         }
                     }
 
                     /* A tap commits where it landed and a slide
                        commits where it was let go, which is the
                        same sentence and so is the same line. */
-                    val landed = held
-                    held = NO_HOLD
+                    val landed = held.floatValue
+                    held.floatValue = NO_HOLD
+                    over = -1
                     if (landed >= 0f) {
                         liveOptions.getOrNull(landed.roundToInt())?.let { liveChoose(it) }
                     }
@@ -259,16 +268,56 @@ fun <T> Segmented(
 
         /* The thumb, under the labels, riding the whole track
            rather than being one of the boxes. */
-        if (hasThumb || held >= 0f) {
+        if (hasThumb || over >= 0) {
+            val spanPx = with(density) { span.toPx() }
             Box(
                 Modifier
-                    .offset(x = span * thumbAt)
                     .width(span)
                     .fillMaxHeight()
                     .padding(thumbInset)
+                    /* MOVED IN THE LAYER, not in the layout.
+
+                       This was `offset(x = span * thumbAt)`,
+                       which is a layout modifier reading an
+                       animation: every frame of the settle
+                       re-measured the whole track and landed the
+                       thumb on a whole pixel, so a spring that
+                       should have flowed arrived as a series of
+                       small steps. That is the jumpiness in the
+                       report, and it was in the one control
+                       every switch on the site goes through.
+
+                       A layer reads its lambda at draw time, so
+                       none of this recomposes anything, and it
+                       moves in fractions of a pixel. */
                     .graphicsLayer {
-                        scaleX = swell
-                        scaleY = swell
+                        val to = held.floatValue
+                        val now = if (to >= 0f) to else resting.value
+                        translationX = spanPx * now
+
+                        /* AND IT STRETCHES ON THE WAY.
+
+                           A thumb that travels rigidly is a tile
+                           sliding; one that leans out towards
+                           where it is going and gathers itself
+                           up when it arrives is a thing with
+                           liquid in it. The stretch is the
+                           distance still to go, capped, so it is
+                           widest mid flight and exactly nought
+                           at both ends: no state, no second
+                           animation to fall out of step with the
+                           first. */
+                        val toGo = (at.toFloat() - now)
+                        val pull = kotlin.math.abs(toGo).coerceAtMost(1f)
+                        scaleX = swell.value * (1f + pull * 0.16f)
+                        scaleY = swell.value * (1f - pull * 0.05f)
+                        /* Stretched from the TRAILING edge, so
+                           the thumb reaches forward rather than
+                           swelling in both directions. */
+                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(
+                            if (toGo >= 0f) 0f else 1f,
+                            0.5f,
+                        )
                     }
                     .clip(RoundedCornerShape(Corner.pill))
                     .then(thumbBackdrop)
@@ -288,7 +337,7 @@ fun <T> Segmented(
                 /* Chosen for DRAWING follows the finger, so a
                    label lights as the thumb reaches it rather
                    than after the finger comes up. */
-                val on = (hasThumb || held >= 0f) && floor(thumbAt + 0.5f).toInt() == i
+                val on = if (over >= 0) over == i else hasThumb && at == i
                 Box(
                     Modifier
                         .width(span)

@@ -135,22 +135,42 @@ fun Modifier.material(
     val edge = edgeOf(kind).mapNotNull { it.prepare(kind, colours, shape, this) }
     val grain = grainBrush(colours, this)
     val tile = grainSide(this).toFloat()
-    /* The bed carries a breath of translucency on the two kinds
-       that HOLD a page's content, and only those. It is what
-       lets the ambient field through: a pane over the field
-       picks up the pool behind it the way a sheet of glass on a
-       desk picks up the wood, and two panes at different places
-       on the page stop being identical rectangles. Chips,
-       controls and grooves stay solid: they are small, they sit
-       ON the panes, and a translucent control over a translucent
-       pane over the field is the mud the nesting row of
-       `GlassSheetTest` exists to catch. An explicit `ground`
-       always wins, which is how the bars keep their own frost. */
-    val bed = ground ?: when (kind) {
-        Kind.PANE -> colours.panel.copy(alpha = 0.90f)
-        Kind.CARD -> colours.panel.copy(alpha = 0.94f)
-        else -> colours.panel
-    }
+    /* The weave's clip, built ONCE per size along with the edges
+       rather than inside the draw.
+
+       It was a `Path()` allocated and filled on every draw call,
+       which is one allocation per surface per frame: a list of
+       twenty rows being scrolled was twenty of them a frame,
+       sixty times a second, for a shape that only changes when
+       the row changes size. Nothing about it was ever wrong on
+       screen, which is exactly why it survived: the cost of a
+       redraw is the one thing a snapshot cannot show. */
+    val weave = Path().apply { addRoundRect(RoundRect(Rect(Offset.Zero, size), corners)) }
+    /* SOLID, all six of them, and that is a correction.
+
+       Panes and cards used to let a tenth of the field through
+       on the argument that a sheet of glass on a desk picks up
+       the wood. What it actually picked up was whichever ambient
+       pool happened to be behind it, which on a dark handset
+       read as a lamp switched on inside the card: reported twice,
+       the second time as "the light in the middle of all cards
+       etc is weirdly there".
+
+       It was the wrong place for the effect. The material's own
+       doctrine, written three files away, is that the face of a
+       slab is FLAT and the depth lives at the cut edge, and the
+       thing that makes these read as glass is the edge, the rim
+       and the light that arrives under a finger. The field
+       belongs BEHIND the content, in the gaps between the
+       cards, where it is atmosphere rather than a stain on the
+       thing you are trying to read.
+
+       The bars keep their frost, because an explicit `ground`
+       still wins and that is what the shell hands them: chrome
+       is where translucency says something (there is a page
+       under this and it is moving), and a card sitting on the
+       page is not chrome. */
+    val bed = ground ?: colours.panel
 
     onDrawBehind {
         val now = lit()
@@ -165,7 +185,7 @@ fun Modifier.material(
            a glow in front of the grain is a lamp taped to a
            window. */
         glow(kind, colours.accent, now, corners)
-        grain(grain, tile, grainOrigin(), corners)
+        grain(grain, tile, grainOrigin(), weave)
         wash?.invoke(now)?.let { drawRoundRect(it, cornerRadius = corners) }
         specular(kind, colours, now, corners)
 
@@ -313,14 +333,11 @@ private fun DrawScope.grain(
     brush: ShaderBrush,
     tile: Float,
     origin: Offset,
-    corners: CornerRadius,
+    clip: Path,
 ) {
     if (tile <= 0f) return
     val dx = -(origin.x % tile)
     val dy = -(origin.y % tile)
-    val clip = Path().apply {
-        addRoundRect(RoundRect(Rect(Offset.Zero, size), corners))
-    }
     clipPath(clip) {
         translate(dx, dy) {
             drawRect(brush, size = Size(size.width + tile * 2, size.height + tile * 2))
