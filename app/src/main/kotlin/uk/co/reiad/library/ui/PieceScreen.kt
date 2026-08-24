@@ -288,7 +288,7 @@ private fun ReadAloudBar(piece: Piece, lines: List<Utterance>, speaking: Speakin
                        second time here was the whole article
                        through the parser again, on the main
                        thread, on a button press. */
-                    Reader.start(context, piece.title, lines, Pace.NORMAL)
+                    Reader.start(context, piece.title, lines, Pace.NORMAL, piece.url)
                 }
             },
             kind = ButtonKind.SOFT,
@@ -321,70 +321,12 @@ private fun ReadAloudBar(piece: Piece, lines: List<Utterance>, speaking: Speakin
  */
 @Composable
 private fun ReadAloudController(speaking: Speaking, modifier: Modifier = Modifier) {
-    val c = LocalReiad.current
-    val context = LocalContext.current
-    val touch = rememberTouch()
+    /* The transport itself lives in `ui/Speaking.kt`, because
+       the board shows the same one while a piece is closed and
+       two copies of a set of transport buttons is two chances
+       to disagree about which one pauses. */
     Pane(modifier.fillMaxWidth().padding(horizontal = Gap.s5)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Tap(
-                onClick = { touch.tap(); Reader.skip(context, -1) },
-                label = "Back one line",
-            ) { Icon("back", size = 18.dp, tint = c.ink) }
-            Spacer(Modifier.width(Gap.s4))
-            Tap(
-                onClick = {
-                    touch.tap()
-                    if (speaking.paused) Reader.resume(context) else Reader.pause(context)
-                },
-                label = if (speaking.paused) "Play" else "Hold",
-            ) {
-                Box(
-                    Modifier
-                        .size(Gap.tap)
-                        .clip(RoundedCornerShape(Corner.pill))
-                        .background(c.accent),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(if (speaking.paused) "play" else "pause", size = 18.dp, tint = c.paper)
-                }
-            }
-            Spacer(Modifier.width(Gap.s4))
-            Tap(
-                onClick = { touch.tap(); Reader.skip(context, 1) },
-                label = "Ahead one line",
-            ) { Icon("forward", size = 18.dp, tint = c.ink) }
-            Spacer(Modifier.weight(1f))
-            Text(
-                "${(speaking.at + 1).coerceAtLeast(1)} / ${speaking.total.coerceAtLeast(1)}",
-                style = MaterialTheme.typography.labelMedium,
-                color = c.inkSoft,
-            )
-            Spacer(Modifier.width(Gap.s5))
-            Tap(
-                onClick = { touch.tap(); Reader.stop(context) },
-                label = "Stop reading",
-            ) { Icon("close", size = 18.dp, tint = c.inkSoft) }
-        }
-        Spacer(Modifier.height(Gap.s4))
-        Groove(
-            if (speaking.total <= 0) 0f
-            else (speaking.at + 1f) / speaking.total,
-            height = 3.dp,
-        )
-        Spacer(Modifier.height(Gap.s5))
-        Segmented(
-            options = PACES,
-            chosen = PACES.firstOrNull { it.id == speaking.pace },
-            onChoose = { Reader.setPace(context, it.id) },
-            height = 34.dp,
-            label = { it.label },
-        ) { option, on ->
-            Text(
-                option.label,
-                style = MaterialTheme.typography.labelMedium,
-                color = if (on) c.paper else c.inkSoft,
-            )
-        }
+        ReadAloudTransport(speaking)
     }
 }
 

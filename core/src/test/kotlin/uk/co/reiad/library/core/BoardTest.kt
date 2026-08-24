@@ -127,46 +127,34 @@ class BoardTest {
         assertEquals(three.map { it.id }, moved(three, 1, 1).map { it.id })
     }
 
-    /* ---------- the paired rows ---------- */
+    /* ---------- the two-column grid ---------- */
 
-    private fun row(vararg ids: String) = ids.toList()
-
-    private fun rowsOf(stored: List<String>) =
-        pairSmalls(layoutOf(stored, all)).map { r -> r.map { it.id } }
-
-    @Test fun `two consecutive smalls pair and a wide is a row of one`() {
-        assertEquals(
-            listOf(row("continue"), row("progress", "stock"), row("pulse")),
-            rowsOf(listOf("continue:wide", "progress:small", "stock:small", "pulse:tall")),
-        )
+    /** What the board is MADE of, which the grid then packs. A
+        square takes one column and everything else takes the
+        row; a large is two squares deep and the other two are
+        one. Everything about how the board looks follows from
+        these two tables, so they are the two worth holding. */
+    @Test fun `a square takes one column and everything else the row`() {
+        assertEquals(1, spanOf(WidgetSize.SMALL))
+        assertEquals(2, spanOf(WidgetSize.WIDE))
+        assertEquals(2, spanOf(WidgetSize.TALL))
     }
 
-    /** The order is the reader's: a small does NOT reach past a
-        wide to find a partner, because that would reorder the
-        board for them. */
-    @Test fun `a small never pairs across a wide`() {
-        assertEquals(
-            listOf(row("progress"), row("continue"), row("stock")),
-            rowsOf(listOf("progress:small", "continue:wide", "stock:small")),
-        )
+    @Test fun `only the large one is two squares deep`() {
+        assertEquals(1, unitsOf(WidgetSize.SMALL))
+        assertEquals(1, unitsOf(WidgetSize.WIDE))
+        assertEquals(2, unitsOf(WidgetSize.TALL))
     }
 
-    @Test fun `an odd small at the end is a row of one`() {
-        assertEquals(
-            listOf(row("progress", "stock"), row("diet")),
-            rowsOf(listOf("progress:small", "stock:small", "diet:small")),
-        )
-    }
-
-    @Test fun `every widget appears in the rows exactly once`() {
-        val stored = listOf(
-            "continue:wide", "progress:small", "stock:small",
-            "pulse:tall", "market:tall", "schools:wide",
-        )
-        assertEquals(
-            layoutOf(stored, all).map { it.id },
-            pairSmalls(layoutOf(stored, all)).flatten().map { it.id },
-        )
+    /** A row is never more than the two columns, whatever the
+        board holds: this is the arithmetic behind "nothing
+        straddles a column boundary", and it is worth an
+        assertion because a third size added later with a span of
+        three would break the grid quietly. */
+    @Test fun `no size is wider than the board`() {
+        for (size in WidgetSize.entries) {
+            assertTrue(spanOf(size) in 1..2, "$size spans ${spanOf(size)} of two columns")
+        }
     }
 
     /* ---------- what a kind offers ---------- */

@@ -104,15 +104,25 @@ fun WidgetFrame(
     /** Motion is real for this reader. The jiggle is decoration
         and decoration is the first thing reduced motion means. */
     moving: Boolean = true,
-    /** Is this the one in the hand right now. The carried widget
-        holds still and proud; its neighbours are the ones that
-        sway aside. */
-    carried: Boolean = false,
+    /** Out of the board's plane: under a finger, or still
+        gliding into the slot it was dropped on. It is drawn
+        proud and above its neighbours for both. */
+    lifted: Boolean = false,
+    /** How far off its slot to draw it, read at LAYER time
+        rather than in composition, because it changes every
+        frame a finger is moving and a composition that read it
+        would recompose the whole widget every one of them. */
+    shift: () -> androidx.compose.ui.geometry.Offset = { androidx.compose.ui.geometry.Offset.Zero },
     onUp: () -> Unit,
     onDown: () -> Unit,
     onResize: () -> Unit,
     onRemove: () -> Unit,
-    /** Pick it up and move it, applied to the whole surface. */
+    /** Pick it up and move it. Installed on the CELL, over the
+        widget and under the badges, and deliberately NOT inside
+        the layer that moves: `BoardDrag` derives where the card
+        should be from where the finger is inside a cell that
+        holds still, and a handle that travelled with the card
+        would be measuring itself. */
     handle: Modifier = Modifier,
     body: @Composable () -> Unit,
 ) {
@@ -121,7 +131,6 @@ fun WidgetFrame(
         return
     }
 
-    val c = LocalReiad.current
     val name = kind.name(lang)
     val resize = kind.other(placed.size)
 
@@ -144,12 +153,17 @@ fun WidgetFrame(
         label = "lean",
     )
 
+    /* One number for the whole lift, so the rise, the shadow and
+       the fade of the jiggle all arrive together and leave
+       together rather than as three separate opinions. */
+    val rise by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (lifted) 1f else 0f,
+        animationSpec = tween(uk.co.reiad.library.core.Motion.QUICK_MS),
+        label = "rise",
+    )
+
     Box(
         modifier
-            .fillMaxWidth()
-            .graphicsLayer {
-                if (moving && !carried) rotationZ = lean
-            }
             /* What a screen reader can do here, without any of it
                being drawn: the frame is one node whose actions
                are the moves. The drawn controls are only the two
@@ -162,11 +176,33 @@ fun WidgetFrame(
                 }
             },
     ) {
-        Box(Modifier.alpha(if (carried) 1f else 0.88f)) { body() }
+        /* THE PICTURE, which is the only thing that moves. */
+        Box(
+            Modifier
+                .graphicsLayer {
+                    val by = shift()
+                    translationX = by.x
+                    translationY = by.y
+                    /* A card in the hand is off the board:
+                       lifted, and slightly proud of the rest so
+                       it is obvious which one is moving. */
+                    val grow = 1f + 0.03f * rise
+                    scaleX = grow
+                    scaleY = grow
+                    shadowElevation = 14f * rise
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(Corner.card)
+                    clip = false
+                    alpha = if (rise > 0f) 1f else 0.9f
+                    /* The jiggle fades out as the card rises, so
+                       a widget being carried is steady in the
+                       hand while the loose ones keep wobbling. */
+                    if (moving) rotationZ = lean * (1f - rise)
+                },
+        ) { body() }
 
-        /* The eater, over the widget and under the badges: while
+        /* The handle, over the widget and under the badges: while
            the board is loose a tap must not open a card, and the
-           same surface is the drag handle, which is how "hold
+           same surface carries the drag, which is how "hold
            anywhere and move it" is literally true. */
         Box(
             Modifier
@@ -176,9 +212,11 @@ fun WidgetFrame(
         )
 
         /* Two glass badges on the top edge, the pair a phone
-           taught: take it off, and step its size. */
+           taught: take it off, and step its size. They ride the
+           CELL rather than the picture, so a card being carried
+           does not drag its own controls across the board. */
         Row(
-            Modifier.align(Alignment.TopEnd).padding(Gap.s2),
+            Modifier.align(Alignment.TopEnd).padding(Gap.s2).alpha(1f - rise),
             horizontalArrangement = Arrangement.spacedBy(Gap.s2),
         ) {
             if (resize != null) {

@@ -1,7 +1,7 @@
 package uk.co.reiad.library
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,9 +77,10 @@ class BoardDragTest {
             var placed by remember { mutableStateOf(start) }
             var working by remember { mutableStateOf<List<Placed>?>(null) }
             placedNow = working ?: placed
-            val state = rememberLazyListState()
+            val state = rememberLazyGridState()
             drag = rememberBoardDrag(
                 state = state,
+                keys = (working ?: placed).map { it.id }.toSet(),
                 indexOf = { key ->
                     (working ?: placed).indexOfFirst { it.id == key }.takeIf { it >= 0 }
                 },
