@@ -48,7 +48,7 @@ with green ticks and no test run at all.
 | | |
 | --- | --- |
 | `core/` | plain Kotlin. API models, the body parser, the storage keys, the sync arithmetic, the palette, the material |
-| `core/src/test/resources/fixtures/` | real answers from the live API, captured rather than written. Four are not from the API: `stock.json`, `calculators.json`, `routine.json` and `diet.json` are written by the website's `scripts/export-*-fixtures.ts` out of the models themselves, which is what locks each Kotlin port to the site's arithmetic number for number |
+| `core/src/test/resources/fixtures/` | real answers from the live API, captured rather than written. Six are not from the API: `stock.json`, `calculators.json`, `routine.json` and `diet.json` are written by the website's `scripts/export-*-fixtures.ts` out of the models themselves, which is what locks each Kotlin port to the site's arithmetic number for number; `courses.json` and `course-first.json` are the site's own course emitters run over an invented catalogue, and `CoursesTest` says at length why they cannot be captured |
 | `app/` | Compose. The theme, the material, the deck, the body renderer, the four schools |
 | `app/src/main/res/font/` | the site's six faces, bundled. See `docs/FONTS.md` |
 
@@ -191,6 +191,54 @@ down. A year of quiet marks says "here is what you did"; a streak
 counter says "do not stop", and those are different things to say
 to somebody learning a language in their spare time.
 
+**And the admin's course section opens on the phone**, which took
+replacing the hand-off rather than fixing it.
+
+The gold card on `/skills` opened a Custom Tab, and for the one
+reader the section belongs to, nothing was there. The address was
+right: `/skills/courses` is what the site serves, and that had
+already been the fix for `/courses`, a 404 reported as "that
+button doesn't open anything". The right address did not help,
+because the address was never the fault. **The site's reader
+session is a bearer token in the browser's own storage and this
+app's session is its own**, so a tab opened from here always
+arrives with no credential, the shell asks the endpoint, the
+endpoint says sign in, and the page says "you are either signed
+out or this is not your library": to somebody signed in on the
+phone, opening a card that is drawn only BECAUSE the server has
+already confirmed the section is theirs. No browser hand-off can
+carry a session it cannot be given.
+
+So the app asks `/api/courses` itself, with the token it holds,
+and draws all five views: the shelf of certificates, a programme,
+a course with the lesson you have not done at the top of it, a
+module summary, and a lesson. Video is Media3 over the site's own
+thirty-minute single-file tickets, with `Range` forwarded, so it
+seeks; captions arrive as WebVTT on a second pass of their own,
+because a ticket names one file and that is what makes it safe to
+put in a URL. A pass that runs out mid-sitting is renewed and
+playback resumes at the same second. Readings and quizzes come
+down sanitised by the Worker and render through the same body
+parser the lessons use.
+
+Ticks are the site's own `courses-read`, `courses-last` and
+`courses-answers`, in the same wire format, so a lesson ticked
+here is ticked on the laptop. **Nothing course-shaped is in this
+binary and none of it is written to disk**: the catalogue is one
+person's private Drive folder, it arrives only over the
+authenticated API, and it lives in memory for as long as the
+screen does. That is the one place this section is deliberately
+worse than a school, which can be downloaded and read on a plane,
+and it is the right trade.
+
+Two rules came with it and are not negotiable. **No player event
+ever marks a lesson**: ExoPlayer would happily report `ended`, and
+reading that as "watched" would be guessing about somebody who
+left a video running. The button is the signal. And **a quiz marks
+nothing**: the export carries no answer key, so what is picked is
+recorded and never scored, and the screen says so rather than
+implying a mark it cannot compute.
+
 Not yet: the tools. `ROADMAP.md` is the
 twelve blocks that finish it, with a scorecard that says where it
 stands rather than how it feels.
@@ -219,6 +267,15 @@ They are the site's, and they are not negotiable here:
   differently: the money school's tick is a button, the other
   three mark a lesson on opening.
 - **A checkpoint is not a lesson** and counts towards no ladder.
+- **A course tick names no programme.** `courses-read` holds
+  `<course>/<module>/<lesson>`, and the address grew a certificate
+  segment while the id deliberately did not: filing a course under
+  a certificate is not the same as a reader not having watched it.
+- **The catalogue is never in the binary and never on the disk.**
+  It is one person's private Drive folder behind an admin check,
+  so it arrives only over the authenticated API and lives in
+  memory. `CoursesTest` fails if a real Drive id is ever committed
+  to this public repository.
 - **A preference key is a fact too.** `reader-prefs`, `theme`,
   `tool-lang`, `audience`, `track`. `PrefsTest` names all five.
 - **The menu is said once**, on the site, and this app has no copy
@@ -256,9 +313,23 @@ curl -sS -o money.json         https://reiad.co.uk/api/schools/money
 curl -sS -o lesson-share.json  https://reiad.co.uk/api/schools/money/basics-1/share
 ```
 
-Everything the app reads is public, so this needs no credential.
+Everything in that list is public, so it needs no credential.
 A refresh that turns a test red is the app finding out the site
 changed, which is what they are for.
+
+**`courses.json` and `course-first.json` are not on that list and
+must not be.** `/api/courses` answers 200 to one admin and 401 to
+everybody else, and what it sends is a catalogue of somebody
+else's material in a private Drive folder. This repository is
+public, so a captured answer would publish, in a history nobody
+can take it back out of, exactly the thing the endpoint exists to
+keep unpublished. The two fixtures were produced by running the
+website's own `listForBrowser()` and `forBrowser()` over a
+catalogue of four made-up lessons: every KEY is the site's
+emitter's, only the values are invented, and they are invented
+visibly. Regenerate them the same way against a newer website
+checkout, which is what makes `CoursesSurfaceTest` fail when the
+emitter grows a field.
 
 `foods.json` earns that sentence more than any of them.
 `FoodSurfaceTest` fails on a field the endpoint sends and this app

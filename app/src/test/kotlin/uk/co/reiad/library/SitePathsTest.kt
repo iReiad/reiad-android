@@ -66,12 +66,40 @@ class SitePathsTest {
         /* The reading hub. */
         "/insights",
         /* The admin's course shelf. Admin-only, so it is in no
-           manifest menu and has to be written here. */
+           manifest menu and has to be written by hand.
+
+           It is no longer a browser hand-off: the app draws the
+           section itself, because a Custom Tab could never carry
+           the session that gates it. The path stays on this list
+           anyway, and it has to: `core/Courses.kt` builds all
+           five of the section's addresses out of it, and one of
+           them is written into `courses-last`, which is a
+           bookmark the SITE reads. A wrong prefix here would put
+           a dead address into somebody's account. */
         "/skills/courses",
     )
 
+    /**
+     * Both modules, and `core` is not an afterthought.
+     *
+     * It walked `app/` alone, which was true of the app on the day
+     * it was written and stopped being true the moment an address
+     * moved: `/skills/courses` now lives in `core/Courses.kt`,
+     * where the section's five addresses are built from it, and
+     * that is the RIGHT place for it. Had this kept looking only
+     * at `app/`, the move would have quietly taken the one entry
+     * in the table below out of scope, and the next hand-written
+     * path in `core` would have gone unchecked for as long as
+     * nobody noticed.
+     *
+     * `core` is a sibling directory rather than a source set of
+     * this module, hence the `..`: this test runs with the app
+     * module as its working directory.
+     */
     private fun sources(): List<File> =
-        File("src/main/kotlin").walkTopDown().filter { it.extension == "kt" }.toList()
+        listOf(File("src/main/kotlin"), File("../core/src/main/kotlin"))
+            .filter { it.isDirectory }
+            .flatMap { it.walkTopDown().filter { file -> file.extension == "kt" } }
 
     /** A string that looks like a path on this site: it starts
         with one slash and holds only the characters a route

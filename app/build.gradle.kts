@@ -222,6 +222,18 @@ dependencies {
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
 
+    /* The course player. The bytes come from this site's own
+       origin behind a half-hour ticket, `Range` is forwarded both
+       ways by the Worker, and that is exactly what a seeking
+       player needs. Captions are WebVTT off a second ticket.
+
+       No player event ever marks a lesson, here or on the web. A
+       `<video>` would happily report `ended` and using it would
+       still be guessing that somebody who left a tab open has
+       learnt something. The button is the signal. */
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
+
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.json)

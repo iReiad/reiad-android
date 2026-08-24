@@ -1,0 +1,34 @@
+{
+  "ok": true,
+  "courses": [
+    {
+      "slug": "sample-certificate",
+      "n": 1,
+      "title": "Sample Certificate",
+      "modules": 4,
+      "lessons": 7,
+      "videos": 3,
+      "pending": 1,
+      "courses": [
+        {
+          "slug": "first-course",
+          "n": 1,
+          "title": "The First Course",
+          "modules": 3,
+          "lessons": 6,
+          "videos": 2,
+          "pending": 1
+        },
+        {
+          "slug": "second-course",
+          "n": 2,
+          "title": "The Second Course",
+          "modules": 1,
+          "lessons": 1,
+          "videos": 1,
+          "pending": 0
+        }
+      ]
+    }
+  ]
+}

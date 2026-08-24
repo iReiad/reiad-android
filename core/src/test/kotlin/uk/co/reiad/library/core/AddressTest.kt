@@ -116,12 +116,55 @@ class AddressTest {
     @Test fun everythingElseOpensOnTheSite() {
         for (url in listOf(
             "https://reiad.co.uk/portfolio",
-            "https://reiad.co.uk/skills/courses/",
             "https://reiad.co.uk/admin",
             "https://reiad.co.uk/about",
         )) {
             assertTrue(to(url) is Destination.Elsewhere, "$url should open on the site")
         }
+    }
+
+    /**
+     * And the admin's course section opens HERE, which is the one
+     * address that had to stop opening on the site.
+     *
+     * It was in the list above, and a browser was the wrong answer
+     * for it in a way no other address shares: the site's reader
+     * session is a bearer token in the BROWSER's own storage, so a
+     * Custom Tab opened from this app arrives with no credential
+     * and the page says "you are either signed out or this is not
+     * your library": to somebody signed in on the phone, opening
+     * a card that is drawn only because the server already
+     * confirmed the section is theirs. The hand-off could not be
+     * fixed, only replaced.
+     *
+     * Whether the reader may SEE it is not decided here and must
+     * not be: an address carries no identity. The screen asks the
+     * endpoint, which is the only thing that knows.
+     */
+    @Test fun theCourseSectionOpensInTheApp() {
+        assertEquals(
+            Destination.Courses(CourseWhere.Shelf),
+            to("https://reiad.co.uk/skills/courses/"),
+        )
+        assertEquals(
+            Destination.Courses(CourseWhere.Shelf),
+            to("https://reiad.co.uk/skills/courses"),
+        )
+        assertEquals(
+            Destination.Courses(CourseWhere.Lesson("p", "c", "m", "l")),
+            to("https://reiad.co.uk/skills/courses/p/c/m/l"),
+        )
+        /* `/skills` itself is still the hub, and the section
+           hanging off it must not swallow the hub's own address. */
+        assertTrue(to("https://reiad.co.uk/skills") is Destination.Elsewhere)
+    }
+
+    /** And it is still this site's address that opens it. A course
+        path on somebody else's host is somebody else's page. */
+    @Test fun aCoursePathOnAnotherHostIsNotThisSection() {
+        assertTrue(
+            to("https://evil.example/skills/courses/p/c") is Destination.Elsewhere,
+        )
     }
 
     /**

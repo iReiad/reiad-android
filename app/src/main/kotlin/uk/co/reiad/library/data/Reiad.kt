@@ -31,6 +31,7 @@ import uk.co.reiad.library.core.BoardRecord
 import uk.co.reiad.library.core.PREFS_KEY
 import uk.co.reiad.library.core.REMIND_KEY
 import uk.co.reiad.library.core.Prefs
+import uk.co.reiad.library.core.courseAnswerId
 import uk.co.reiad.library.core.Bookmark
 import uk.co.reiad.library.core.BookKeyResponse
 import uk.co.reiad.library.core.BookResponse
@@ -643,6 +644,140 @@ class Reiad(private val context: Context) {
             val next = if (text.isBlank()) now - slot else now + (slot to text)
             prefs[key(name)] = json.encodeToString(writings, next)
         }
+    }
+
+    /* ---------- and the courses, which belong to no school ----------
+
+       `courses-read`, `courses-last` and `courses-answers`. Three
+       keys that are already in `SyncKeys.ALL` and already carried
+       to the account, and until now nothing on this phone wrote
+       one: the section was a browser hand-off, so every tick made
+       on the handset was made in a browser or not at all.
+
+       They take no `School`, because a third-party course is not
+       one. Everything else about them is the same as a school's
+       and deliberately so: the same JSON array on disk, the same
+       merge rules, the same exchange. A lesson ticked here shows
+       ticked on the laptop, and one ticked on the laptop shows
+       ticked here.
+
+       The id shape is `<course>/<module>/<lesson>` with NO
+       programme in it. See `courseLessonId`: the address grew a
+       segment and the tick did not, because filing a course under
+       a certificate is not the same as a reader not having
+       watched it. */
+
+    fun courseTicks(): Flow<Set<String>> =
+        context.store.data.map { decode(it[key(ProgressKeys.COURSES_READ)]) }
+
+    suspend fun courseTicksNow(): Set<String> = courseTicks().first()
+
+    /** The button under a lesson, which is a latch: a reader who
+        pressed it by mistake can unpress it. */
+    suspend fun toggleCourseTick(lessonId: String): Set<String> {
+        var after: Set<String> = emptySet()
+        context.store.edit { prefs ->
+            val name = key(ProgressKeys.COURSES_READ)
+            val now = decode(prefs[name])
+            after = if (lessonId in now) now - lessonId else now + lessonId
+            prefs[name] = encode(after)
+        }
+        return after
+    }
+
+    /** "Mark complete and continue", which only ever adds.
+
+        NOT the same as `toggleCourseTick`, and the difference is
+        the whole reason both exist: the continue button is
+        pressed on lessons that are already ticked, by somebody
+        walking back through a module, and a toggle there would
+        quietly UNTICK the lesson they just re-read on their way
+        to the next one. */
+    suspend fun markCourseRead(lessonId: String): Set<String> {
+        var after: Set<String> = emptySet()
+        context.store.edit { prefs ->
+            val name = key(ProgressKeys.COURSES_READ)
+            val now = decode(prefs[name])
+            after = now + lessonId
+            if (after != now) prefs[name] = encode(after)
+        }
+        return after
+    }
+
+    fun courseBookmark(): Flow<Bookmark?> =
+        context.store.data.map { stored ->
+            val raw = stored[key(ProgressKeys.COURSES_LAST)] ?: return@map null
+            runCatching { json.decodeFromString(Bookmark.serializer(), raw) }.getOrNull()
+        }
+
+    /** Where the reader last WAS. Opening moves this and ticks
+        nothing, which is the same rule the four schools follow. */
+    suspend fun rememberCourse(mark: Bookmark) {
+        context.store.edit {
+            it[key(ProgressKeys.COURSES_LAST)] = json.encodeToString(
+                Bookmark.serializer(),
+                mark.copy(ts = System.currentTimeMillis()),
+            )
+        }
+    }
+
+    /* ---- what was picked in a quiz ----
+
+       `<lesson id>#<question>#<option>`: the checkpoint shape with
+       one more segment, filed under `courses-answers` and carried
+       to the account by the same rules.
+
+       It records what was PICKED and never whether it was right.
+       A Coursera export carries no answer key, so there is
+       nothing to mark against, and a screen that implied a score
+       it cannot compute would be making one up. */
+
+    fun courseAnswers(): Flow<Set<String>> =
+        context.store.data.map { decode(it[key(ProgressKeys.COURSES_ANSWERS)]) }
+
+    /**
+     * Record one answer.
+     *
+     * `only` is what makes a radio a radio: for a single-answer
+     * question every other option of that question is cleared
+     * first, so the stored set can never say a reader picked two
+     * things where the screen allowed one.
+     */
+    suspend fun setCourseAnswer(
+        lessonId: String,
+        question: Int,
+        option: Int,
+        on: Boolean,
+        only: Boolean,
+    ): Set<String> {
+        var after: Set<String> = emptySet()
+        context.store.edit { prefs ->
+            val name = key(ProgressKeys.COURSES_ANSWERS)
+            var now = decode(prefs[name])
+            if (only) {
+                val prefix = "$lessonId#$question#"
+                now = now.filterNot { it.startsWith(prefix) }.toSet()
+            }
+            val id = courseAnswerId(lessonId, question, option)
+            after = if (on) now + id else now - id
+            prefs[name] = encode(after)
+        }
+        return after
+    }
+
+    /** Everything picked in one lesson, gone. The whole set is
+        rewritten only if something actually went, because a write
+        that changes nothing still bumps the key's timestamp and
+        would win an exchange against a real answer elsewhere. */
+    suspend fun clearCourseAnswers(lessonId: String): Set<String> {
+        var after: Set<String> = emptySet()
+        context.store.edit { prefs ->
+            val name = key(ProgressKeys.COURSES_ANSWERS)
+            val now = decode(prefs[name])
+            after = now.filterNot { it.startsWith("$lessonId#") }.toSet()
+            if (after != now) prefs[name] = encode(after)
+        }
+        return after
     }
 
     private val writings = MapSerializer(String.serializer(), String.serializer())

@@ -1,0 +1,127 @@
+{
+  "ok": true,
+  "course": {
+    "slug": "first-course",
+    "n": 1,
+    "title": "The First Course",
+    "modules": [
+      {
+        "slug": "01_beginnings",
+        "n": 1,
+        "title": "Beginnings",
+        "pending": false,
+        "lessons": [
+          {
+            "slug": "01_a-welcome",
+            "title": "A welcome",
+            "kind": "video",
+            "section": "Get started",
+            "position": 1,
+            "video": "drive-video-1",
+            "reading": null,
+            "quiz": null,
+            "exam": null,
+            "transcript": "drive-transcript-1",
+            "captions": "drive-captions-1",
+            "files": [
+              {
+                "name": "Worksheet",
+                "ext": "xlsx",
+                "drive": "drive-file-1"
+              }
+            ]
+          },
+          {
+            "slug": "02_a-page-to-read",
+            "title": "A page to read",
+            "kind": "reading",
+            "section": "Get started",
+            "position": 2,
+            "video": null,
+            "reading": "drive-reading-1",
+            "quiz": null,
+            "exam": null,
+            "transcript": null,
+            "captions": null,
+            "files": []
+          },
+          {
+            "slug": "03_a-few-questions",
+            "title": "A few questions",
+            "kind": "quiz",
+            "section": "Check yourself",
+            "position": 3,
+            "video": null,
+            "reading": null,
+            "quiz": "drive-quiz-1",
+            "exam": null,
+            "transcript": null,
+            "captions": null,
+            "files": []
+          },
+          {
+            "slug": "04_nothing-behind-it",
+            "title": "Nothing behind it",
+            "kind": "file",
+            "section": "Check yourself",
+            "position": 4,
+            "video": null,
+            "reading": null,
+            "quiz": null,
+            "exam": null,
+            "transcript": null,
+            "captions": null,
+            "files": []
+          }
+        ]
+      },
+      {
+        "slug": "02_middles",
+        "n": 2,
+        "title": "Middles",
+        "pending": false,
+        "lessons": [
+          {
+            "slug": "01_the-long-one",
+            "title": "The long one",
+            "kind": "video",
+            "section": "Work through",
+            "position": 1,
+            "video": "drive-video-2",
+            "reading": null,
+            "quiz": null,
+            "exam": null,
+            "transcript": null,
+            "captions": null,
+            "files": []
+          },
+          {
+            "slug": "02_the-challenge",
+            "title": "The challenge",
+            "kind": "exam",
+            "section": "Work through",
+            "position": 2,
+            "video": null,
+            "reading": null,
+            "quiz": null,
+            "exam": "drive-exam-1",
+            "transcript": null,
+            "captions": null,
+            "files": []
+          }
+        ]
+      },
+      {
+        "slug": "03_not-imported",
+        "n": 3,
+        "title": "Not imported yet",
+        "pending": true,
+        "lessons": []
+      }
+    ]
+  },
+  "programme": {
+    "slug": "sample-certificate",
+    "title": "Sample Certificate"
+  }
+}

@@ -1,6 +1,8 @@
 package uk.co.reiad.library.core.nav
 
+import uk.co.reiad.library.core.CourseWhere
 import uk.co.reiad.library.core.SiteManifest
+import uk.co.reiad.library.core.courseWhere
 
 /* ============================================================
    One address vocabulary, across the site and the app.
@@ -52,6 +54,23 @@ sealed interface Destination {
 
     /** A tool screen, by the key the nav table gives it. */
     data class Tool(val key: String) : Destination
+
+    /**
+     * Somewhere in the admin's own course section.
+     *
+     * The one destination whose reader may not be allowed to see
+     * it, and that is deliberate: the app cannot tell from an
+     * address whether the person holding it is the admin, and it
+     * must not try. The screen asks the endpoint, which is the
+     * only thing that knows, and says either "signed out" or
+     * "not yours", which are the two sentences the site gives.
+     *
+     * It used to fall through to `Elsewhere`, which opened a
+     * browser, which is precisely the hand-off that could never
+     * work: the site's session lives in the browser's storage and
+     * the app's lives in the app.
+     */
+    data class Courses(val where: CourseWhere) : Destination
 
     data object Account : Destination
 
@@ -116,6 +135,15 @@ fun destinationOf(url: String, site: SiteManifest?): Destination {
         }
     }
     if (parts[0] == "account") return Destination.Account
+
+    /* The admin's course section, which the app draws itself.
+
+       Before `/skills`, because `skills` is a hub key and
+       `/skills/courses` is five views underneath it that the hub
+       knows nothing about. Read by `courseWhere`, which is the
+       same function the section's own navigation uses, so a
+       shared link and a tap on a card land on one screen. */
+    courseWhere(path)?.let { return Destination.Courses(it) }
 
     /* A school, by the keys the manifest names. */
     val school = site?.ladders?.firstOrNull { it.key == parts[0] }
