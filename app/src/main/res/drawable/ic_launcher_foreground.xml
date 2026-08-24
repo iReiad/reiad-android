@@ -1,0 +1,33 @@
+<!-- An open book with the bookmark still in it, which is what
+     this app is: the library, and the place you stopped.
+
+     Everything lives between 25 and 83 on the 108 grid. That is
+     inside the 72dp safe circle Android promises never to mask,
+     with room to spare for the parallax a launcher applies when
+     the icon is dragged. The pages are the paper the app draws
+     on; the ribbon is the green accent one step lighter, so it
+     stays legible against them rather than against the ground. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Left leaf. The spine is a gap rather than a drawn line:
+         two shapes that stop short of the middle say "open book"
+         at 48dp, where a hairline between them would disappear. -->
+    <path
+        android:fillColor="#FCF9F4"
+        android:pathData="M52,47 C47,43 40,41 31,41 L25,41 L25,63 L31,63 C40,63 47,65 52,70 Z" />
+
+    <!-- Right leaf, the same curve mirrored. -->
+    <path
+        android:fillColor="#FCF9F4"
+        android:pathData="M56,47 C61,43 68,41 77,41 L83,41 L83,63 L77,63 C68,63 61,65 56,70 Z" />
+
+    <!-- The ribbon, drawn last so it sits in the spine and over
+         the inner edge of both leaves. -->
+    <path
+        android:fillColor="#61B990"
+        android:pathData="M50,32 L58,32 L58,60 L54,55.5 L50,60 Z" />
+</vector>
