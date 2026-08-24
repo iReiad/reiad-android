@@ -132,16 +132,35 @@ fun Modifier.follows(glow: Glow): Modifier = pointerInput(glow) {
                    job, because nothing here consumes. */
                 val event = awaitPointerEvent(PointerEventPass.Initial)
                 val touch = event.changes.firstOrNull() ?: continue
-                val width = size.width.toFloat().coerceAtLeast(1f)
-                val height = size.height.toFloat().coerceAtLeast(1f)
-                glow.nx = ((touch.position.x / width) * 2f - 1f).coerceIn(-1f, 1f)
-                glow.ny = ((touch.position.y / height) * 2f - 1f).coerceIn(-1f, 1f)
+                val pressed = event.changes.any { it.pressed }
+
+                /* WHERE the light is, only while there IS one.
+
+                   This used to write both numbers on every
+                   pointer event, pressed or not, and `lit` is
+                   read in the draw: so a finger passing over a
+                   list on its way to scrolling somewhere else
+                   redrew every surface it crossed, sixty times a
+                   second, to move a light whose alpha was
+                   nought. Invisible in a picture, and paid for
+                   on every scroll.
+
+                   A handset has no hover, so nothing is lost:
+                   the light comes up where the finger goes DOWN
+                   and follows it while it is down, which is what
+                   the note at the top of this file already
+                   said. */
+                if (pressed || down) {
+                    val width = size.width.toFloat().coerceAtLeast(1f)
+                    val height = size.height.toFloat().coerceAtLeast(1f)
+                    glow.nx = ((touch.position.x / width) * 2f - 1f).coerceIn(-1f, 1f)
+                    glow.ny = ((touch.position.y / height) * 2f - 1f).coerceIn(-1f, 1f)
+                }
 
                 /* Only on the CHANGE. Starting an animation on
                    every move event restarts the 190ms curve sixty
                    times a second, which is a light that never
                    finishes arriving. */
-                val pressed = event.changes.any { it.pressed }
                 if (pressed != down) {
                     down = pressed
                     outer.launch { if (pressed) glow.light() else glow.fade() }

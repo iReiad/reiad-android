@@ -135,6 +135,17 @@ fun Modifier.material(
     val edge = edgeOf(kind).mapNotNull { it.prepare(kind, colours, shape, this) }
     val grain = grainBrush(colours, this)
     val tile = grainSide(this).toFloat()
+    /* The weave's clip, built ONCE per size along with the edges
+       rather than inside the draw.
+
+       It was a `Path()` allocated and filled on every draw call,
+       which is one allocation per surface per frame: a list of
+       twenty rows being scrolled was twenty of them a frame,
+       sixty times a second, for a shape that only changes when
+       the row changes size. Nothing about it was ever wrong on
+       screen, which is exactly why it survived: the cost of a
+       redraw is the one thing a snapshot cannot show. */
+    val weave = Path().apply { addRoundRect(RoundRect(Rect(Offset.Zero, size), corners)) }
     /* SOLID, all six of them, and that is a correction.
 
        Panes and cards used to let a tenth of the field through
@@ -174,7 +185,7 @@ fun Modifier.material(
            a glow in front of the grain is a lamp taped to a
            window. */
         glow(kind, colours.accent, now, corners)
-        grain(grain, tile, grainOrigin(), corners)
+        grain(grain, tile, grainOrigin(), weave)
         wash?.invoke(now)?.let { drawRoundRect(it, cornerRadius = corners) }
         specular(kind, colours, now, corners)
 
@@ -322,14 +333,11 @@ private fun DrawScope.grain(
     brush: ShaderBrush,
     tile: Float,
     origin: Offset,
-    corners: CornerRadius,
+    clip: Path,
 ) {
     if (tile <= 0f) return
     val dx = -(origin.x % tile)
     val dy = -(origin.y % tile)
-    val clip = Path().apply {
-        addRoundRect(RoundRect(Rect(Offset.Zero, size), corners))
-    }
     clipPath(clip) {
         translate(dx, dy) {
             drawRect(brush, size = Size(size.width + tile * 2, size.height + tile * 2))
