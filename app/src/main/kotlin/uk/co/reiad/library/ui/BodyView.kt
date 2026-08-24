@@ -440,7 +440,22 @@ private fun Callout(block: Block.Callout, checkpoints: Checkpoints? = null, path
             )
             .padding(Gap.s8)
     ) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = c.accent)
+        Text(
+            label,
+            /* A Bangla label ("মুখে বলো", "কুরআনি তথ্য") in the
+               mono face falls through to a system fallback and
+               reads as a different app. It takes the Bengali
+               face at label size instead. */
+            style = if (isBangla(label)) {
+                BanglaBody.copy(
+                    fontSize = MaterialTheme.typography.labelMedium.fontSize,
+                    lineHeight = MaterialTheme.typography.labelMedium.fontSize * 1.6f,
+                )
+            } else {
+                MaterialTheme.typography.labelSmall
+            },
+            color = c.accent,
+        )
         Spacer(Modifier.height(Gap.s4))
         /* The path travels in, because a checkpoint inside a
            callout is a descendant of the LESSON: core numbers it
@@ -520,9 +535,24 @@ private fun SentencesBlock(block: Block.Sentences) {
                     .padding(horizontal = Gap.s5, vertical = Gap.s4),
             ) {
                 if (row.lead.isNotEmpty()) {
+                    val words = row.lead.plain()
                     Text(
                         row.lead.annotated(c.accent, open),
-                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                        /* An Arabic lead is set a step larger on a
+                           taller line: harakat stack above and
+                           below, and at Latin sizes the fatha is
+                           shaved by the row above. The site says
+                           the same with a bigger font-size on
+                           `[lang="ar"]`. */
+                        style = when {
+                            isArabic(words) -> MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = MaterialTheme.typography.bodyLarge.fontSize * 1.25f,
+                                lineHeight = MaterialTheme.typography.bodyLarge.fontSize * 2.0f,
+                            )
+                            isBangla(words) -> BanglaBody.copy(fontWeight = FontWeight.SemiBold)
+                            else -> MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                        },
                         color = c.ink,
                     )
                 }

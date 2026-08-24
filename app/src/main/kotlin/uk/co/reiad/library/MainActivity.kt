@@ -15,6 +15,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -166,6 +167,7 @@ import uk.co.reiad.library.core.diet.Portion
 import uk.co.reiad.library.core.diet.activityFactor
 import uk.co.reiad.library.core.diet.bodyOf
 import uk.co.reiad.library.core.diet.estimatedBurn
+import uk.co.reiad.library.core.diet.fatEstimate
 import uk.co.reiad.library.core.diet.loggedFrom
 import uk.co.reiad.library.core.diet.restingBurn
 import uk.co.reiad.library.core.diet.target
@@ -205,6 +207,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import uk.co.reiad.library.core.BOARD_FLOOR
+import uk.co.reiad.library.core.catalogueFloor
 import uk.co.reiad.library.core.Placed
 import uk.co.reiad.library.core.pairSmalls
 import uk.co.reiad.library.core.kindOf
@@ -267,6 +270,8 @@ import uk.co.reiad.library.ui.SettingsSheet
 import uk.co.reiad.library.ui.Shell
 import uk.co.reiad.library.ui.ShellState
 import uk.co.reiad.library.ui.LocalOpenLink
+import uk.co.reiad.library.ui.LocalGlassLook
+import uk.co.reiad.library.ui.glassLookOf
 import uk.co.reiad.library.ui.ReiadColours
 import uk.co.reiad.library.ui.arriving
 import uk.co.reiad.library.ui.Sway
@@ -908,10 +913,43 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             "maintain" -> GoalKind.MAINTAIN
             else -> GoalKind.LOSE
         }
+
+        /* The burn the reader's OWN fortnight implies, off the
+           same two series this fetch already holds: the weights
+           above, and each day's kcal rollup. `learnedBurn` does
+           all its own refusing, so an unsupported fortnight is a
+           null here rather than a wide guess drawn anyway. */
+        val learned = uk.co.reiad.library.core.diet.learnedBurn(
+            points,
+            days.mapNotNull { d ->
+                d.kcal?.takeIf { it > 0 }?.let {
+                    uk.co.reiad.library.core.diet.Intake(
+                        day = -java.time.temporal.ChronoUnit.DAYS.between(
+                            java.time.LocalDate.parse(d.date),
+                            java.time.LocalDate.parse(today),
+                        ).toInt(),
+                        kcal = it,
+                    )
+                }
+            },
+        )
+
         return DietState(
             loading = false,
             trendKg = smoothed,
             perWeek = perWeek,
+            learned = learned,
+            /* Only in a deficit, because the figure is what a
+               deficit costs: grams per kilogram of LEAN mass,
+               rising with the chosen rate. */
+            protein = if (goal == GoalKind.LOSE && body != null) {
+                uk.co.reiad.library.core.diet.proteinFloor(
+                    fatEstimate(body).leanKg,
+                    profile?.ratePct ?: 0.5,
+                )
+            } else {
+                null
+            },
             today = today,
             profile = profile,
             day = day,
@@ -1465,6 +1503,11 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
     private val _reader = MutableStateFlow<Reader?>(null)
     val reader: StateFlow<Reader?> = _reader.asStateFlow()
 
+    /** Whether this account can open the courses shelf: the
+        server's own answer, never a guess from a token. */
+    private val _mine = MutableStateFlow(false)
+    val mine: StateFlow<Boolean> = _mine.asStateFlow()
+
     private val _authProblem = MutableStateFlow<String?>(null)
     val authProblem: StateFlow<String?> = _authProblem.asStateFlow()
 
@@ -1577,6 +1620,9 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             _kept.value = shelf.kept()
             _targets.value = shelf.targets()
             _daysActive.value = reiad.daysActive()
+            /* Whether the courses shelf answers this account.
+               Asked once per sign-in, of the endpoint itself. */
+            _mine.value = shelf.courses()
             /* Seeded, never assigned: `seeded()` is a null-or-blank
                test on every field for the reason above. The
                reader's own name off the token is the fallback, so
@@ -1850,6 +1896,7 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             _kept.value = emptyList()
             _targets.value = emptyList()
             _exported.value = null
+            _mine.value = false
             loadMarks()
         }
     }
@@ -2062,6 +2109,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
     val authProblem by model.authProblem.collectAsState()
     val linkSent by model.linkSent.collectAsState()
     val kept by model.kept.collectAsState()
+    val mine by model.mine.collectAsState()
     val targets by model.targets.collectAsState()
     val setupState by model.setup.collectAsState()
     val paths by model.paths.collectAsState()
@@ -2208,6 +2256,9 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
            50Hz for the same three numbers. */
         val sway = rememberSway()
         Surface(Modifier.fillMaxSize(), color = colours.paper) {
+            CompositionLocalProvider(
+                LocalGlassLook provides remember(prefs) { glassLookOf(prefs) },
+            ) {
             Shell(
                 state = ShellState(site, current, audience, drawer, reader != null),
                 sway = sway,
@@ -2325,6 +2376,8 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                                 where
                             }
                         },
+                        mine = mine,
+                        onOpenCourses = { openOnSite(context, "/courses", colours) },
                     )
                 }
 
@@ -2693,6 +2746,9 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                        app does not host The Business Standard and
                        should not look as though it does. */
                     onStory = { story -> openOnSite(context, story.url, colours) },
+                    kept = kept,
+                    targets = targets,
+                    onKept = { row -> openOnSite(context, row.url, colours) },
                 )
 
                 is Where.Ladder -> {
@@ -2845,6 +2901,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         }
                     },
                 )
+            }
             }
         }
     }
@@ -3048,6 +3105,9 @@ fun Home(
     onPiece: (Piece) -> Unit = {},
     onResume: (String, Bookmark) -> Unit = { _, _ -> },
     onStory: (Story) -> Unit = {},
+    kept: List<Kept> = emptyList(),
+    targets: List<Target> = emptyList(),
+    onKept: (Kept) -> Unit = {},
     /* One sway for the whole app, not one per screen or per
        card: every surface leans by the same amount because they
        are all on the same handset. `App` passes the instance the
@@ -3083,7 +3143,13 @@ fun Home(
        decoration. */
     val jiggle = !rememberReducedMotion()
     val catalogue = remember(site) {
-        site?.widgets?.kinds.orEmpty().associateBy { it.id }
+        /* The manifest carries no catalogue yet, and an empty
+           catalogue emptied the PICKER: a reader who removed a
+           widget could never get it back. The floor answers
+           until the site's own table arrives, and the site's
+           wins the moment it does. */
+        (site?.widgets?.kinds?.takeIf { it.isNotEmpty() } ?: catalogueFloor())
+            .associateBy { it.id }
     }
     val placed = remember(board, site) {
         layoutOf(
@@ -3097,10 +3163,11 @@ fun Home(
         sway = sway, icons = icons, lang = lang, news = news,
         daysActive = daysActive, routine = routineGlance, diet = dietGlance,
         today = remember { java.time.LocalDate.now().toString() },
+        kept = kept, targets = targets,
     )
     val act = BoardActions(
         onSchool = onOpen, onItem = onGo, onPiece = onPiece, onResume = onResume,
-        onStory = onStory,
+        onStory = onStory, onKept = onKept,
     )
 
     /* Three RSS feeds read on a Worker is not a request to make
@@ -3288,6 +3355,25 @@ fun Home(
             val carried = drag.carrying == p.id
             WidgetFrame(
                 modifier = Modifier
+                    /* A widget finding its new row GLIDES there:
+                       on a drop, on an arrow press, on an add or
+                       a remove, the others make way rather than
+                       teleporting. The carried one is excused,
+                       because it is already answering the finger
+                       and a second animation would fight it. */
+                    .then(
+                        if (carried) Modifier
+                        else Modifier.animateItem(
+                            placementSpec = androidx.compose.animation.core.tween(
+                                uk.co.reiad.library.core.Motion.ENTER_MS,
+                            ),
+                        )
+                    )
+                    .animateContentSize(
+                        androidx.compose.animation.core.tween(
+                            uk.co.reiad.library.core.Motion.ENTER_MS,
+                        ),
+                    )
                     .zIndex(if (carried) 1f else 0f)
                     .graphicsLayer {
                         if (!carried) return@graphicsLayer
@@ -3332,7 +3418,7 @@ fun Home(
                        board, and minus what this build cannot
                        draw: offering a widget that would not
                        appear is worse than not offering it. */
-                    offered = site?.widgets?.kinds.orEmpty()
+                    offered = catalogue.values
                         .filter { it.id in DRAWABLE && placed.none { p -> p.id == it.id } },
                     lang = lang,
                     signedIn = signedIn,

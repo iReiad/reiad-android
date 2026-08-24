@@ -293,6 +293,31 @@ class ScreensLookTest {
         table on its plate, and the merke rails. Dark and in the
         school's own blue, which is how the report that every
         example was one glued word arrived. */
+    /** The Arabic school's furniture: the shobdo pairs that were
+        one glued word in the report ("بَيْتঘর"), the labelled
+        tothyo and mukhe boxes, the word grid. Teal, the school's
+        own. */
+    @Test fun arabicLesson() {
+        val lesson = requireNotNull(
+            fixture("lesson-tin-prokar.json", LessonResponse.serializer()).lesson,
+        ) { "the quran fixture has no page in it" }
+        val blocks = BodyParser.parse(lesson.body).blocks
+        pz.snapshot {
+            androidx.compose.runtime.CompositionLocalProvider(
+                uk.co.reiad.library.ui.LocalStill provides true,
+            ) {
+                ReiadTheme(accent = Accents.TEAL, dark = true) {
+                    val c = LocalReiad.current
+                    Box(Modifier.fillMaxSize().background(c.paper)) {
+                        Column(Modifier.padding(horizontal = Gap.s8, vertical = Gap.s7)) {
+                            BodyView(blocks)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Test fun germanLesson() {
         val lesson = requireNotNull(
             fixture("lesson-satzbau.json", LessonResponse.serializer()).lesson,
@@ -529,6 +554,24 @@ class ScreensLookTest {
                 onOpenSite = {},
                 trendKg = 74.3,
                 perWeek = uk.co.reiad.library.core.diet.Range(-0.62, -0.4, -0.18),
+                /* The two panels a fortnight of scale AND log earn:
+                   what the reader appears to burn, honestly wide,
+                   and the protein floor for the rate they chose.
+                   The floor is the real arithmetic off this same
+                   body, so the picture cannot drift from it. */
+                learned = uk.co.reiad.library.core.diet.Learned(
+                    kcal = uk.co.reiad.library.core.diet.Range(2280.0, 2450.0, 2620.0),
+                    days = 21,
+                    logged = 15,
+                    meanIntake = 1900.0,
+                    trendKgPerWeek = -0.4,
+                ),
+                protein = uk.co.reiad.library.core.diet.proteinFloor(
+                    uk.co.reiad.library.core.diet.fatEstimate(
+                        Body(172.0, 74.0, 34.0, Sex.MALE, Ancestry.ASIAN, waistCm = 88.0),
+                    ).leanKg,
+                    0.5,
+                ),
             )
         }
     }

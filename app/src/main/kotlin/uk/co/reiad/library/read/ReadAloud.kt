@@ -65,6 +65,15 @@ data class Speaking(
     /** Which BLOCK it came from, so a screen can mark the
         paragraph rather than hunt for the sentence. */
     val block: Int = -1,
+    /** How many lines there are, so a controller can say
+        "12 of 40" and draw the groove. */
+    val total: Int = 0,
+    /** Held, with its place kept. A synthesiser has no real
+        pause, so this is a stop that remembers: the queue and
+        the index stay, and play says the same line again. */
+    val paused: Boolean = false,
+    /** How fast, so the control can show which step is on. */
+    val pace: Pace = Pace.NORMAL,
     /** No synthesiser on this device, or it would not start.
         Shown rather than swallowed: a button that does nothing is
         worse than a button that says why. */
@@ -84,6 +93,7 @@ object Reader {
     private var tts: TextToSpeech? = null
     private var lines: List<Utterance> = emptyList()
     private var index = 0
+    private var pace: Pace = Pace.NORMAL
 
     /** What is being read, for the notification. */
     var title: String = ""
@@ -99,13 +109,14 @@ object Reader {
         same reason. */
     private var run = 0
 
-    fun start(context: Context, what: String, utterances: List<Utterance>, pace: Pace) {
+    fun start(context: Context, what: String, utterances: List<Utterance>, wantPace: Pace) {
         val app = context.applicationContext
         stop(app)
         if (utterances.isEmpty()) return
         title = what
         lines = utterances
         index = 0
+        pace = wantPace
         run += 1
         val mine = run
 
@@ -117,23 +128,93 @@ object Reader {
             }
             begin(mine)
         }
-        engine.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-            override fun onStart(id: String?) = Unit
-
-            override fun onDone(id: String?) {
-                if (mine != run) return
-                index += 1
-                if (index >= lines.size) stop(app) else advance(mine)
-            }
-
-            @Deprecated("The signature without an error code")
-            override fun onError(id: String?) {
-                if (mine == run) stop(app)
-            }
-        })
+        engine.setOnUtteranceProgressListener(listener(mine, app))
         engine.setSpeechRate(pace.rate)
         tts = engine
         ReadAloudService.start(app)
+    }
+
+    /** Fresh per RUN, because the token is captured: a listener
+        from a stopped run answers a dead number and is ignored,
+        which is what stops a quick pause-play skipping a line. */
+    private fun listener(mine: Int, app: Context) = object : UtteranceProgressListener() {
+        override fun onStart(id: String?) = Unit
+
+        override fun onDone(id: String?) {
+            if (mine != run) return
+            index += 1
+            if (index >= lines.size) stop(app) else advance(mine)
+        }
+
+        @Deprecated("The signature without an error code")
+        override fun onError(id: String?) {
+            if (mine == run) stop(app)
+        }
+    }
+
+    /* ---------- the controls a controller needs ----------
+
+       A synthesiser has no timeline, so every one of these is
+       said in terms it CAN keep: pause is a stop that remembers
+       its place, a skip is a jump to another line's start, and a
+       pace change re-says the current line at the new rate. The
+       run token turns over on each, so the engine's own
+       callbacks from the interrupted utterance die quietly. */
+
+    fun pause(context: Context) {
+        if (!_state.value.on || _state.value.paused) return
+        run += 1
+        runCatching { tts?.stop() }
+        _state.value = _state.value.copy(paused = true)
+    }
+
+    fun resume(context: Context) {
+        val current = _state.value
+        if (!current.on || !current.paused) return
+        val engine = tts ?: return
+        run += 1
+        val mine = run
+        engine.setOnUtteranceProgressListener(listener(mine, context.applicationContext))
+        _state.value = current.copy(paused = false)
+        advance(mine)
+    }
+
+    /** A line forwards or back. Held stays held: skipping while
+        paused moves the mark and waits for play. */
+    fun skip(context: Context, delta: Int) {
+        val current = _state.value
+        if (!current.on || lines.isEmpty()) return
+        index = (index + delta).coerceIn(0, lines.size - 1)
+        run += 1
+        runCatching { tts?.stop() }
+        if (current.paused) {
+            val line = lines.getOrNull(index) ?: return
+            _state.value = current.copy(at = index, block = line.block)
+        } else {
+            val mine = run
+            tts?.setOnUtteranceProgressListener(listener(mine, context.applicationContext))
+            advance(mine)
+        }
+    }
+
+    fun setPace(context: Context, want: Pace) {
+        pace = want
+        val engine = tts ?: return
+        engine.setSpeechRate(want.rate)
+        val current = _state.value
+        if (current.on && !current.paused) {
+            /* The rate applies from the next utterance, so the
+               current line is said again at the pace that was
+               just asked for rather than finishing at the old
+               one. */
+            run += 1
+            runCatching { engine.stop() }
+            val mine = run
+            engine.setOnUtteranceProgressListener(listener(mine, context.applicationContext))
+            advance(mine)
+        } else {
+            _state.value = current.copy(pace = want)
+        }
     }
 
     private fun begin(mine: Int) {
@@ -156,7 +237,10 @@ object Reader {
         if (mine != run) return
         val engine = tts ?: return
         val line = lines.getOrNull(index) ?: return
-        _state.value = Speaking(on = true, at = index, block = line.block)
+        _state.value = Speaking(
+            on = true, at = index, block = line.block,
+            total = lines.size, pace = pace,
+        )
         engine.speak(line.text, TextToSpeech.QUEUE_ADD, Bundle(), "reiad-$mine-$index")
     }
 

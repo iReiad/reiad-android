@@ -48,11 +48,17 @@ import uk.co.reiad.library.core.routine.Momentum
 import uk.co.reiad.library.core.routine.RoutineShape
 import uk.co.reiad.library.core.routine.Runs
 import uk.co.reiad.library.core.routine.Season
+import uk.co.reiad.library.core.routine.Share
 import uk.co.reiad.library.core.routine.Task
 import uk.co.reiad.library.core.routine.TaskTally
+import uk.co.reiad.library.core.routine.Weekday
+import uk.co.reiad.library.core.routine.balance
 import uk.co.reiad.library.core.routine.bandTasks
 import uk.co.reiad.library.core.routine.done
 import uk.co.reiad.library.core.routine.hoursDone
+import uk.co.reiad.library.core.routine.moodRibbon
+import uk.co.reiad.library.core.routine.weekdays
+import uk.co.reiad.library.core.routine.written
 import kotlin.math.roundToInt
 
 /* ============================================================
@@ -208,11 +214,19 @@ fun RoutineScreen(
         }
 
         /* ---------- how it felt, and what was worth keeping ---------- */
-        item { MoodRow(state.moods, state.entry?.mood, onMood) }
+        item { MoodRow(state.moods, state.entry?.mood, onMood, state.entries, state.today) }
         item { NoteBox(state.today, state.entry?.note.orEmpty(), onNote) }
+
+        /* ---------- the jar ---------- */
+        /* Everything ever written, minus today's line, which is
+           still in the box above it. */
+        val jar = written(state.entries).filter { it.date != state.today }
+        if (jar.isNotEmpty()) item { JarCard(jar, state.moods) }
 
         /* ---------- the year ---------- */
         if (state.heat.isNotEmpty()) item { Year(state.heat) }
+        val week = weekdays(state.shape, state.entries, state.today)
+        if (week.any { it.marked > 0 }) item { WeekShape(week) }
 
         /* ---------- the things that only ever grow ---------- */
         if (state.flock > 0 || state.garden.isNotEmpty()) {
@@ -223,6 +237,8 @@ fun RoutineScreen(
         }
 
         /* ---------- what is real, and what was aspirational ---------- */
+        val shares = balance(state.shape, state.entries)
+        if (shares.isNotEmpty()) item { BalanceCard(shares) }
         if (state.consistency.isNotEmpty()) item { Consistency(state.consistency) }
         if (state.neverMarked.isNotEmpty()) item { NeverMarked(state.neverMarked, onOpenSite) }
     }
@@ -521,7 +537,13 @@ private fun TaskRow(task: Task, mark: Double, onMark: (String, Double) -> Unit) 
     difference between this and every tracker that offers a
     frowning face. */
 @Composable
-private fun MoodRow(moods: List<Mood>, chosen: String?, onMood: (String?) -> Unit) {
+private fun MoodRow(
+    moods: List<Mood>,
+    chosen: String?,
+    onMood: (String?) -> Unit,
+    entries: List<Entry>,
+    today: String,
+) {
     val c = LocalReiad.current
     Pane {
         Text(
@@ -541,6 +563,33 @@ private fun MoodRow(moods: List<Mood>, chosen: String?, onMood: (String?) -> Uni
                     Modifier.clickable { onMood(if (on) null else mood.id) },
                 ) {
                     Chip(mood.bn, tone = if (on) hex(mood.colour) ?: c.accent else c.inkSoft)
+                }
+            }
+        }
+
+        /* The last four weeks of answers, oldest to the left, in
+           the moods' own colours. A day nobody answered is paper:
+           it is not a hole and none of the four is a verdict, so
+           this can only ever read as weather. */
+        val ribbon = remember(entries, today) { moodRibbon(entries, today, 28) }
+        if (ribbon.any { it.mood != null }) {
+            Spacer(Modifier.height(Gap.s6))
+            Text(
+                "How the last four weeks felt.",
+                style = MaterialTheme.typography.labelSmall,
+                color = c.inkSoft,
+            )
+            Spacer(Modifier.height(Gap.s3))
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                for (day in ribbon) {
+                    val tone = moods.firstOrNull { it.id == day.mood }?.let { hex(it.colour) }
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .height(6.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(tone?.copy(alpha = 0.85f) ?: c.paperSunk),
+                    )
                 }
             }
         }
@@ -596,6 +645,195 @@ private fun EchoCard(e: Echo) {
             style = bodyStyle(e.entry.note.orEmpty()),
             color = c.ink,
         )
+    }
+}
+
+/* ---------- the jar ---------- */
+
+/**
+ * Every line ever written, newest first: the jar.
+ *
+ * `ROADMAP.md` names it beside the garden and for the same
+ * reason: it only fills. Three slips are shown and the rest are
+ * counted rather than listed, because the point of a jar is
+ * knowing it is there, not reading it end to end on a Tuesday.
+ */
+@Composable
+private fun JarCard(jar: List<Entry>, moods: List<Mood>) {
+    val c = LocalReiad.current
+    Pane {
+        Text(
+            "লেখার বয়াম",
+            style = BanglaTitle,
+            color = c.ink,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            "Every line you kept. The jar only fills.",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.inkSoft,
+        )
+        for (slip in jar.take(3)) {
+            Spacer(Modifier.height(Gap.s5))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                /* The mood beside the date where one was chosen,
+                   as its own colour: the two answers were given
+                   together and read back together. */
+                moods.firstOrNull { it.id == slip.mood }?.let { m ->
+                    Box(
+                        Modifier
+                            .size(8.dp)
+                            .clip(RoundedCornerShape(Corner.pill))
+                            .background(hex(m.colour) ?: c.inkSoft),
+                    )
+                    Spacer(Modifier.width(Gap.s3))
+                }
+                Text(
+                    slipDate(slip.date),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.inkSoft,
+                )
+            }
+            Spacer(Modifier.height(Gap.s2))
+            Text(
+                slip.note.orEmpty(),
+                style = bodyStyle(slip.note.orEmpty()),
+                color = c.ink,
+            )
+        }
+        if (jar.size > 3) {
+            Spacer(Modifier.height(Gap.s5))
+            Text(
+                "And ${jar.size - 3} more, further back.",
+                style = MaterialTheme.typography.labelSmall,
+                color = c.inkSoft,
+            )
+        }
+    }
+}
+
+/* ---------- the shape of a week ---------- */
+
+/**
+ * Seven bars, Sunday first, and NOTHING HERE NAMES A BEST DAY.
+ *
+ * All seven are the same colour on purpose: `weekdays()` says a
+ * best day names a worst one, and a worst one is a thing to feel
+ * behind on every time it comes round. So this is a shape to
+ * recognise, never a ranking to fix.
+ */
+@Composable
+private fun WeekShape(week: List<Weekday>) {
+    val c = LocalReiad.current
+    Pane {
+        Text(
+            "সপ্তাহের সাত দিন",
+            style = BanglaTitle,
+            color = c.ink,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            "The shape of a week, over twelve of them.",
+            style = MaterialTheme.typography.bodySmall,
+            color = c.inkSoft,
+        )
+        Spacer(Modifier.height(Gap.s5))
+        Row(horizontalArrangement = Arrangement.spacedBy(Gap.s4)) {
+            for (day in week) {
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(Corner.xs))
+                            .background(c.paperSunk),
+                    ) {
+                        val rate = day.rate.toFloat().coerceIn(0f, 1f)
+                        if (rate > 0f) {
+                            Box(
+                                Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .height((44 * rate).dp)
+                                    .background(c.accent.copy(alpha = 0.8f)),
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(Gap.s2))
+                    Text(
+                        day.en,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = c.inkSoft,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/* ---------- how a day divides ---------- */
+
+/**
+ * One bar, split by band, in the bands' own colours.
+ *
+ * `balance()` reads the whole history, so this is what a typical
+ * day has actually been made of rather than what this week went
+ * like: the slow answer to "where does the time go". No share is
+ * called too big, because no band is the right size.
+ */
+@Composable
+private fun BalanceCard(shares: List<Share>) {
+    val c = LocalReiad.current
+    Pane {
+        Text(
+            "দিন যেভাবে ভাগ হয়",
+            style = BanglaTitle,
+            color = c.ink,
+            modifier = Modifier.semantics { heading() },
+        )
+        Spacer(Modifier.height(Gap.s5))
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(RoundedCornerShape(Corner.pill)),
+        ) {
+            for (share in shares) {
+                Box(
+                    Modifier
+                        .weight(share.share.toFloat().coerceAtLeast(0.01f))
+                        .height(10.dp)
+                        .background(hex(share.band.colour) ?: c.accent),
+                )
+            }
+        }
+        Spacer(Modifier.height(Gap.s5))
+        for (share in shares) {
+            Row(
+                Modifier.padding(vertical = Gap.s2),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier
+                        .size(8.dp)
+                        .clip(RoundedCornerShape(Corner.pill))
+                        .background(hex(share.band.colour) ?: c.accent),
+                )
+                Spacer(Modifier.width(Gap.s4))
+                Text(
+                    share.band.bn,
+                    style = if (isBangla(share.band.bn)) BanglaBody
+                    else MaterialTheme.typography.bodySmall,
+                    color = c.ink,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    "${(share.share * 100).roundToInt()}%",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = c.inkSoft,
+                )
+            }
+        }
     }
 }
 
@@ -771,6 +1009,13 @@ internal fun hex(value: String): Color? {
     if (body.length != 6) return null
     val n = body.toLongOrNull(16) ?: return null
     return Color(0xFF000000L or n)
+}
+
+/** `31 March 2025`: a jar slip can be years old, so unlike the
+    heading above today, it keeps its year. */
+private fun slipDate(iso: String): String {
+    val day = todayText(iso)
+    return if (day.isEmpty() || iso.length < 4) day else "$day ${iso.take(4)}"
 }
 
 /** `31 March`, from an ISO day, with no locale involved. */

@@ -36,7 +36,9 @@ import uk.co.reiad.library.core.Block
 import uk.co.reiad.library.core.BodyParser
 import uk.co.reiad.library.core.Kept
 import uk.co.reiad.library.core.Kind
+import uk.co.reiad.library.core.PACES
 import uk.co.reiad.library.core.Pace
+import androidx.compose.foundation.layout.size
 import uk.co.reiad.library.core.Piece
 import uk.co.reiad.library.core.Utterance
 import uk.co.reiad.library.core.speakable
@@ -224,6 +226,28 @@ fun PieceScreen(
            this is. Above the content and outside the scroll, so
            it does not move with what it measures. */
         ReadingLine(read, Modifier.align(Alignment.TopCenter))
+
+        /* The voice's own controls, riding above the bar while
+           it reads. OUTSIDE the scroll on purpose: the reader
+           this serves has the phone at arm's length listening,
+           and a control that has scrolled away is a control that
+           does not exist. */
+        androidx.compose.animation.AnimatedVisibility(
+            visible = speaking.on,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = bottomPadding),
+            enter = androidx.compose.animation.fadeIn(
+                androidx.compose.animation.core.tween(uk.co.reiad.library.core.Motion.ENTER_MS),
+            ) + androidx.compose.animation.slideInVertically(
+                androidx.compose.animation.core.tween(uk.co.reiad.library.core.Motion.ENTER_MS),
+            ) { it / 2 },
+            exit = androidx.compose.animation.fadeOut(
+                androidx.compose.animation.core.tween(uk.co.reiad.library.core.Motion.QUICK_MS),
+            ),
+        ) {
+            ReadAloudController(speaking)
+        }
     }
 }
 
@@ -269,7 +293,7 @@ private fun ReadAloudBar(piece: Piece, lines: List<Utterance>, speaking: Speakin
             },
             kind = ButtonKind.SOFT,
             pressed = speaking.on,
-            icon = if (speaking.on) "close" else "spark",
+            icon = if (speaking.on) "close" else "play",
         )
         if (speaking.on) {
             Spacer(Modifier.width(Gap.s6))
@@ -277,6 +301,88 @@ private fun ReadAloudBar(piece: Piece, lines: List<Utterance>, speaking: Speakin
                 "Keeps going with the screen off.",
                 style = MaterialTheme.typography.bodySmall,
                 color = c.inkSoft,
+            )
+        }
+    }
+}
+
+/**
+ * The voice, held in the hand.
+ *
+ * The site's read-aloud is one button because a browser tab
+ * cannot promise more. This app's voice runs with the screen
+ * off, so it earns a real controller: hold and carry on, a line
+ * back for the sentence that went past, a line ahead for the
+ * list being skimmed, the pace the reader is offered everywhere
+ * else, and how far through it is. Every control is a fact the
+ * synthesiser can honour; there is no scrubber because there is
+ * no timeline, and a control that lies is worse than one that is
+ * missing.
+ */
+@Composable
+private fun ReadAloudController(speaking: Speaking, modifier: Modifier = Modifier) {
+    val c = LocalReiad.current
+    val context = LocalContext.current
+    val touch = rememberTouch()
+    Pane(modifier.fillMaxWidth().padding(horizontal = Gap.s5)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Tap(
+                onClick = { touch.tap(); Reader.skip(context, -1) },
+                label = "Back one line",
+            ) { Icon("back", size = 18.dp, tint = c.ink) }
+            Spacer(Modifier.width(Gap.s4))
+            Tap(
+                onClick = {
+                    touch.tap()
+                    if (speaking.paused) Reader.resume(context) else Reader.pause(context)
+                },
+                label = if (speaking.paused) "Play" else "Hold",
+            ) {
+                Box(
+                    Modifier
+                        .size(Gap.tap)
+                        .clip(RoundedCornerShape(Corner.pill))
+                        .background(c.accent),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(if (speaking.paused) "play" else "pause", size = 18.dp, tint = c.paper)
+                }
+            }
+            Spacer(Modifier.width(Gap.s4))
+            Tap(
+                onClick = { touch.tap(); Reader.skip(context, 1) },
+                label = "Ahead one line",
+            ) { Icon("forward", size = 18.dp, tint = c.ink) }
+            Spacer(Modifier.weight(1f))
+            Text(
+                "${(speaking.at + 1).coerceAtLeast(1)} / ${speaking.total.coerceAtLeast(1)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = c.inkSoft,
+            )
+            Spacer(Modifier.width(Gap.s5))
+            Tap(
+                onClick = { touch.tap(); Reader.stop(context) },
+                label = "Stop reading",
+            ) { Icon("close", size = 18.dp, tint = c.inkSoft) }
+        }
+        Spacer(Modifier.height(Gap.s4))
+        Groove(
+            if (speaking.total <= 0) 0f
+            else (speaking.at + 1f) / speaking.total,
+            height = 3.dp,
+        )
+        Spacer(Modifier.height(Gap.s5))
+        Segmented(
+            options = PACES,
+            chosen = PACES.firstOrNull { it.id == speaking.pace },
+            onChoose = { Reader.setPace(context, it.id) },
+            height = 34.dp,
+            label = { it.label },
+        ) { option, on ->
+            Text(
+                option.label,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (on) c.paper else c.inkSoft,
             )
         }
     }

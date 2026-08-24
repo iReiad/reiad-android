@@ -53,9 +53,9 @@ sealed interface Inline {
 
 /** The kind of a bordered aside. The first four are classes in
     the article allowlist and rules in the site's stylesheet. The
-    last two are the German school's own: `.merke` is the box
-    worth remembering, drawn against an accent rail, and
-    `.merke.warn` is the same box in the danger colour. */
+    last two are the schools' remember rail (`.merke`, `.mone`),
+    drawn against an accent rail, with `.warn` swapping the rail
+    to the danger colour. */
 enum class CalloutKind { AT_A_GLANCE, SIDE_NOTE, NOTE, EXAMPLE, REMEMBER, CAUTION }
 
 sealed interface Block {
@@ -99,9 +99,9 @@ sealed interface Block {
         val scrolls: Boolean,
     ) : Block
 
-    /** `.muster`, the German school's pattern box: who is
-        talking, the pattern itself at display size, and the
-        sentences under it. Its own block rather than a callout,
+    /** The pattern box: German's `.muster`, English's `.shape`.
+        Who is talking, the pattern itself at display size, and
+        the sentences under it. Its own block rather than a callout,
         because the SHAPE line is the lesson's whole point and a
         renderer has to be able to set it larger than the prose
         around it. */
@@ -111,7 +111,8 @@ sealed interface Block {
         val body: List<Block>,
     ) : Block
 
-    /** `.satz-list`: example sentences, each a pair. The lead is
+    /** A pair list: `.satz-list`, `.shobdo-list`, `.line-list`,
+        `.word-grid` and their kin. The lead is
         the sentence in the language being learnt and the gloss is
         its Bangla meaning, and keeping them as two fields is what
         stops them arriving as one word: `<span>` dissolves, so
@@ -273,23 +274,34 @@ object BodyParser {
             if (table != null) return listOf(tableOf(table, unknown, scrolls = true))
         }
 
-        /* ---- the German school's own furniture ----
+        /* ---- the schools' own furniture, by SHAPE ----
 
            Not in the article allowlist, because a school lesson is
-           sanitised against its school's own list, and the German
-           one has three shapes of its own. Every one of them went
-           down the wrapper path below and every one of them lost
-           the thing that made it legible: the pattern box lost its
-           box, the sentence pairs lost the gap between a sentence
-           and its meaning, and the merke lost its rail. The rules
-           for all three are `body.deutsch` blocks in the site's
-           own stylesheet, and the numbers the renderer draws are
-           read off them. */
-        if ("muster" in classes) {
+           sanitised against its school's own list, and every
+           school has furniture of its own: the German muster, satz
+           and merke; the Qur'an school's shobdo pairs, tothyo and
+           mukhe; the English shape box, line pairs, word grid,
+           mone and bolo. The first fix named the German three and
+           the very next screenshot was the Arabic school glued the
+           same way, which is the lesson: a list of class names is
+           wrong the day a fifth school is written.
+
+           So the rules below read the MARKUP'S SHAPE, not the
+           class list, wherever a shape is distinctive enough to
+           read: a child whose class ends in -label makes a
+           labelled aside, and a wrapper of b-plus-span rows makes
+           sentence pairs, whatever the wrapper is called. Only the
+           pattern box and the remember rail are named, because
+           "muster or shape" and "merke or mone" is what they are
+           called and nothing about their outline says which child
+           is the pattern. */
+
+        /* The pattern box: German's .muster, English's .shape. */
+        if ("muster" in classes || "shape" in classes) {
             val label = el.children.filterIsInstance<Node.Element>()
-                .firstOrNull { "muster-label" in it.classes }
+                .firstOrNull { c -> c.classes.any { it.endsWith("-label") } }
             val shape = el.children.filterIsInstance<Node.Element>()
-                .firstOrNull { "muster-shape" in it.classes }
+                .firstOrNull { "muster-shape" in it.classes || "shape-line" in it.classes }
             val rest = el.children.filter { it !== label && it !== shape }
             return listOf(
                 Block.Pattern(
@@ -299,29 +311,9 @@ object BodyParser {
                 )
             )
         }
-        if ("satz-list" in classes) {
-            val rows = el.children.filterIsInstance<Node.Element>()
-                .filter { "satz" in it.classes || it.tag == "p" }
-                .map { satz ->
-                    /* The lead is the `<b>`, which the synonym
-                       table has already read as strong. A row
-                       without one keeps all its words as the
-                       lead rather than losing them. */
-                    val lead = satz.children.filterIsInstance<Node.Element>()
-                        .firstOrNull { it.tag == "strong" }
-                    if (lead == null) {
-                        SentenceRow(lead = prose(satz.children, unknown), gloss = emptyList())
-                    } else {
-                        SentenceRow(
-                            lead = prose(lead.children, unknown),
-                            gloss = prose(satz.children.filter { it !== lead }, unknown),
-                        )
-                    }
-                }
-                .filter { it.lead.isNotEmpty() || it.gloss.isNotEmpty() }
-            if (rows.isNotEmpty()) return listOf(Block.Sentences(rows))
-        }
-        if ("merke" in classes) {
+
+        /* The remember rail: German's .merke, English's .mone. */
+        if ("merke" in classes || "mone" in classes) {
             return listOf(
                 Block.Callout(
                     kind = if ("warn" in classes) CalloutKind.CAUTION else CalloutKind.REMEMBER,
@@ -330,6 +322,28 @@ object BodyParser {
                 )
             )
         }
+
+        /* Any box that names itself: a child whose class ends in
+           -label is the label and the rest is the body. This one
+           rule is tothyo, mukhe and bolo today and every box a
+           school invents tomorrow. */
+        val labelled = el.children.filterIsInstance<Node.Element>()
+            .firstOrNull { c -> c.classes.any { it.endsWith("-label") } }
+        if (labelled != null) {
+            return listOf(
+                Block.Callout(
+                    kind = CalloutKind.NOTE,
+                    label = prose(labelled.children, unknown),
+                    body = blocksOfChildren(el.children.filter { it !== labelled }, unknown),
+                )
+            )
+        }
+
+        /* A wrapper of pair rows: .satz-list, .shobdo-list,
+           .line-list, .word-grid, .shobdo-gitter, and whatever a
+           fifth school calls its own. Read from the rows'
+           shape. */
+        pairsOf(el, unknown)?.let { return listOf(Block.Sentences(it)) }
 
         /* A div carrying no class this renderer knows is a
            wrapper, so its children are the blocks. */
@@ -353,6 +367,57 @@ object BodyParser {
                     caption = prose(rest, unknown),
                 )
             }
+
+    /** The rows of a pair-list wrapper, or null when this div is
+        not one.
+
+        A pair row is the shape every school writes its examples
+        in. Two spellings exist in real lessons:
+
+          <p class="…"><b>lead</b><span>gloss</span></p>
+          <span><b>lead</b> gloss</span>
+
+        and the b sitting HARD against its gloss is what makes a
+        `<p>` row a row rather than a paragraph that happens to
+        open bold: prose always has a space after the strong, the
+        pair markup never does. A span at block level has no prose
+        reading at all, so its gloss may follow a space.
+
+        A wrapper counts when every element child is one of the
+        two, at least one actually carries the shape, and there
+        are at least two: one row is a sentence, not a list. A
+        row without the shape keeps its words as the lead rather
+        than sinking the whole list. */
+    private fun pairsOf(el: Node.Element, unknown: MutableList<String>): List<SentenceRow>? {
+        val children = el.children.filterIsInstance<Node.Element>()
+        if (children.size < 2) return null
+        /* Loose prose between the rows means this is not a list. */
+        if (el.children.any { it is Node.Text && it.text.isNotBlank() }) return null
+
+        var shaped = 0
+        val rows = mutableListOf<SentenceRow>()
+        for (child in children) {
+            if (child.tag != "p" && child.tag != "inline-plain") return null
+            val lead = child.children.filterIsInstance<Node.Element>()
+                .firstOrNull()?.takeIf { it.tag == "strong" }
+            val before = if (lead == null) emptyList() else child.children.takeWhile { it !== lead }
+            val after = if (lead == null) emptyList() else child.children.dropWhile { it !== lead }.drop(1)
+            val leadFirst = lead != null && before.all { it is Node.Text && it.text.isBlank() }
+            val glossAdjacent = child.tag == "inline-plain" ||
+                after.firstOrNull() is Node.Element
+            if (lead != null && leadFirst && glossAdjacent && after.isNotEmpty()) {
+                shaped++
+                rows += SentenceRow(
+                    lead = prose(lead.children, unknown),
+                    gloss = prose(after, unknown),
+                )
+            } else {
+                rows += SentenceRow(lead = prose(child.children, unknown), gloss = emptyList())
+            }
+        }
+        if (shaped == 0) return null
+        return rows.filter { it.lead.isNotEmpty() || it.gloss.isNotEmpty() }.takeIf { it.isNotEmpty() }
+    }
 
     private fun photoOf(el: Node.Element, unknown: MutableList<String>): Block.Photo {
         val img = el.children.filterIsInstance<Node.Element>().firstOrNull { it.tag == "img" }

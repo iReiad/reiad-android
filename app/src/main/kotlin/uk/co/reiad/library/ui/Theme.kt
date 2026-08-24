@@ -267,6 +267,15 @@ val BanglaTitle: TextStyle
     it is a line that needs the taller leading. */
 fun isBangla(text: String): Boolean = text.any { it.code in 0x0980..0x09FF }
 
+/** Whether a string carries Arabic, which the Qur'an school's
+    every lesson does. Asked the same way as `isBangla` and for
+    the same reason: a pair row's lead is one string, and a lead
+    with harakat needs more line than a Latin one or the fatha
+    over the first letter is shaved by the row above. */
+fun isArabic(text: String): Boolean = text.any {
+    it.code in 0x0600..0x06FF || it.code in 0xFB50..0xFDFF || it.code in 0xFE70..0xFEFF
+}
+
 /* The two above, chosen per string. A screen whose words arrive
    from `/api/tools` in whichever language the reader picked
    cannot decide this at the call site the way a hard-coded label
@@ -350,6 +359,32 @@ fun ReiadTheme(
         MaterialTheme(colorScheme = scheme, typography = type, content = content)
     }
 }
+
+/** What the reader's three glass answers come to on a handset.
+
+    `glass`, `blur` and `veil` have been in `reader-prefs` since
+    the sheet was written, they sync with the account, and until
+    this NOTHING IN THE APP READ THEM: the bars' frost was a
+    hard-coded 22dp over a hard-coded tint. That is the exact
+    stored-and-ignored failure `PrefsReachTest` was written
+    against, one shelf along.
+
+    The numbers are the site's own arithmetic (`Prefs.blurRadius`
+    and `veilAlpha`), scaled so that frost-at-normal lands on the
+    22dp the bars shipped with: a reader who has never opened the
+    sheet sees exactly what they saw yesterday, and every step
+    away from normal now actually moves the glass. `plain` comes
+    back with no blur and a solid veil, because plain is not
+    glass. */
+data class GlassLook(val blur: androidx.compose.ui.unit.Dp, val veil: Float)
+
+fun glassLookOf(prefs: uk.co.reiad.library.core.Prefs): GlassLook = GlassLook(
+    blur = (prefs.blurRadius() * 22.0 / 14.0).dp,
+    veil = if (prefs.finish == uk.co.reiad.library.core.Finish.PLAIN) 1f
+        else (prefs.veilAlpha() * 0.62 / 0.72).toFloat(),
+)
+
+val LocalGlassLook = staticCompositionLocalOf { GlassLook(22.dp, 0.62f) }
 
 /** Which type size is on, for the few things that size
     themselves rather than reading a `TextStyle`: the icon beside

@@ -209,10 +209,14 @@ fun Shell(
        design. */
     val c = LocalReiad.current
     val glass = remember { HazeState() }
+    /* The reader's own three answers, finally read: see
+       `GlassLook`. The veil is the tint's alpha, the blur is the
+       radius, and plain arrives as no blur over a solid veil. */
+    val look = LocalGlassLook.current
     val glassStyle = HazeStyle(
         backgroundColor = c.paper,
-        tint = HazeTint(c.paper.copy(alpha = 0.62f)),
-        blurRadius = 22.dp,
+        tint = HazeTint(c.paper.copy(alpha = look.veil)),
+        blurRadius = look.blur,
         noiseFactor = 0f,
     )
 
@@ -320,8 +324,12 @@ fun Shell(
                             glass,
                             HazeStyle(
                                 backgroundColor = c.paper,
-                                tint = HazeTint(c.paper.copy(alpha = 0.32f)),
-                                blurRadius = 30.dp,
+                                /* Clearer and deeper than the bar
+                                   in the same RATIO whatever the
+                                   reader chose, so the lens stays
+                                   a lens at every setting. */
+                                tint = HazeTint(c.paper.copy(alpha = look.veil * 0.5f)),
+                                blurRadius = look.blur * 1.4f,
                                 noiseFactor = 0f,
                             ),
                         ),
@@ -745,19 +753,44 @@ private fun Bar(
             thumbGround = c.accentSoft,
             thumbInset = 0.dp,
         ) { stop, on ->
+            /* Only the stop you are ON says its name; the rest
+               are icons. Five bilingual labels across a handset
+               is the congestion the report circled ("কাজে লাগান"
+               wrapping under its neighbours), and a bar where
+               everything is labelled labels nothing. The name
+               rides with the thumb, arriving as the thumb does,
+               and every stop keeps its full name for TalkBack
+               through the switch's own semantics. */
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Icon(stop.icon, size = 19.dp, tint = if (on) stop.accent else c.inkSoft)
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    stop.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (on) stop.accent else c.inkSoft,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Icon(stop.icon, size = if (on) 19.dp else 21.dp, tint = if (on) stop.accent else c.inkSoft)
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = on,
+                    enter = androidx.compose.animation.fadeIn(tween(Motion.FAST_MS)) +
+                        androidx.compose.animation.expandVertically(tween(Motion.FAST_MS)),
+                    exit = androidx.compose.animation.fadeOut(tween(Motion.QUICK_MS)) +
+                        androidx.compose.animation.shrinkVertically(tween(Motion.QUICK_MS)),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            stop.label,
+                            style = if (isBangla(stop.label)) {
+                                BanglaBody.copy(
+                                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
+                                    lineHeight = MaterialTheme.typography.labelSmall.fontSize * 1.3f,
+                                )
+                            } else {
+                                MaterialTheme.typography.labelSmall
+                            },
+                            color = if (on) stop.accent else c.inkSoft,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
     }

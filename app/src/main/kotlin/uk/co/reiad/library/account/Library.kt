@@ -79,6 +79,28 @@ class Library(private val account: Account) {
         return runCatching { block(token) }.getOrNull()
     }
 
+    /** Whether this account can open the courses shelf.
+
+        Asked of the endpoint rather than guessed from a claim:
+        `/api/courses` answers 200 for the admin and 401 for
+        everybody else, and the server's answer is the only fact
+        there is. Nothing is granted here; the card this gates
+        opens the site, which checks again.
+
+        A READ, not a write, which is why it may answer a Boolean
+        where every write in this file answers a sentence: false
+        on any doubt is the correct answer here, because a card
+        that says "admin only" shown to somebody the site will
+        refuse is a promise the screen cannot keep. */
+    suspend fun courses(): Boolean {
+        val token = account.token() ?: return false
+        return runCatching {
+            http.get("${uk.co.reiad.library.core.SITE_ORIGIN}/api/courses") {
+                header("Authorization", "Bearer $token")
+            }.status.isSuccess()
+        }.getOrDefault(false)
+    }
+
     /* ---------- the reading list ---------- */
 
     /** Everything saved or noted, newest first.
