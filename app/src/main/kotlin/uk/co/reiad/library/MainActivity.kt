@@ -2403,6 +2403,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                            check against the live site, and this
                            one now has been. */
                         onOpenCourses = { openOnSite(context, COURSES_HREF, colours) },
+                        skills = site?.skills.orEmpty(),
                     )
                 }
 

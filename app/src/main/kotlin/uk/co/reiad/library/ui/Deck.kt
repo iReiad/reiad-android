@@ -316,6 +316,15 @@ fun SoonCard(
     modifier: Modifier = Modifier,
     dek: String? = null,
     soon: String = "আসছে",
+    /** WHERE IT HAS GOT TO, in the site's own words.
+
+        A card that says only "coming" is a card that has been
+        saying only "coming" for as long as the reader has been
+        looking at it. The manifest carries a `note` on a skill
+        that is not live yet, and it answers the question the
+        chip provokes: the first few reviews are being written.
+        Nothing in this app read it until now. */
+    note: String? = null,
 ) {
     val c = LocalReiad.current
     Box(
@@ -338,6 +347,22 @@ fun SoonCard(
                     dek,
                     style = MaterialTheme.typography.bodyMedium,
                     color = c.inkSoft.copy(alpha = 0.72f),
+                    textAlign = TextAlign.Start,
+                )
+            }
+            if (!note.isNullOrBlank()) {
+                Spacer(Modifier.height(Gap.s5))
+                Text(
+                    note,
+                    style = if (isBangla(note)) {
+                        BanglaBody.copy(
+                            fontSize = MaterialTheme.typography.bodySmall.fontSize,
+                            lineHeight = MaterialTheme.typography.bodySmall.fontSize * 1.6f,
+                        )
+                    } else {
+                        MaterialTheme.typography.bodySmall
+                    },
+                    color = c.accent,
                     textAlign = TextAlign.Start,
                 )
             }

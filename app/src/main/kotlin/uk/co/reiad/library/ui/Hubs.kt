@@ -92,6 +92,14 @@ fun SkillsScreen(
         else, so nobody is shown a card the site would refuse. */
     mine: Boolean = false,
     onOpenCourses: () -> Unit = {},
+    /** The manifest's OWN list of skills, which carries what the
+        nav table does not: where a thing that is not live yet has
+        got to. Nothing in this app read it, so the coming card
+        said "আসছে" and stopped, which is the shape of answer
+        that stops meaning anything after the second look. The
+        cards themselves still come from the nav table, because
+        that is what carries each school's colour. */
+    skills: List<uk.co.reiad.library.core.Skill> = emptyList(),
 ) {
     /* `hub` off the nav table rather than this screen's own key.
        The site filtered on the key too, in `/skills`, which is
@@ -118,6 +126,7 @@ fun SkillsScreen(
                     SoonCard(
                         title = item.sub?.ifBlank { null } ?: item.label,
                         dek = item.blurb?.ifBlank { null },
+                        note = skills.firstOrNull { it.slug == item.key }?.note,
                     )
                 } else {
                     GoCard(
