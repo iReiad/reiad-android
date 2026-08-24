@@ -1,0 +1,15 @@
+<!-- minSdk is 26, so every device that can install this app can
+     read an adaptive icon. That is why there is no raster
+     mipmap-*dpi ladder anywhere here: nothing would ever fall
+     back to it, and a PNG the launcher never asks for is a PNG
+     that goes stale.
+
+     `monochrome` is the Android 13 themed icon. Declaring it
+     costs one drawable and is the difference between the app
+     joining a themed home screen and being the one square that
+     refuses to. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>
