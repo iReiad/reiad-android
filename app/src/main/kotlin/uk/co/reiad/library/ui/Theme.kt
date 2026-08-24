@@ -360,6 +360,32 @@ fun ReiadTheme(
     }
 }
 
+/** What the reader's three glass answers come to on a handset.
+
+    `glass`, `blur` and `veil` have been in `reader-prefs` since
+    the sheet was written, they sync with the account, and until
+    this NOTHING IN THE APP READ THEM: the bars' frost was a
+    hard-coded 22dp over a hard-coded tint. That is the exact
+    stored-and-ignored failure `PrefsReachTest` was written
+    against, one shelf along.
+
+    The numbers are the site's own arithmetic (`Prefs.blurRadius`
+    and `veilAlpha`), scaled so that frost-at-normal lands on the
+    22dp the bars shipped with: a reader who has never opened the
+    sheet sees exactly what they saw yesterday, and every step
+    away from normal now actually moves the glass. `plain` comes
+    back with no blur and a solid veil, because plain is not
+    glass. */
+data class GlassLook(val blur: androidx.compose.ui.unit.Dp, val veil: Float)
+
+fun glassLookOf(prefs: uk.co.reiad.library.core.Prefs): GlassLook = GlassLook(
+    blur = (prefs.blurRadius() * 22.0 / 14.0).dp,
+    veil = if (prefs.finish == uk.co.reiad.library.core.Finish.PLAIN) 1f
+        else (prefs.veilAlpha() * 0.62 / 0.72).toFloat(),
+)
+
+val LocalGlassLook = staticCompositionLocalOf { GlassLook(22.dp, 0.62f) }
+
 /** Which type size is on, for the few things that size
     themselves rather than reading a `TextStyle`: the icon beside
     a heading, the width of a column of prose. */

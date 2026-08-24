@@ -554,6 +554,24 @@ class ScreensLookTest {
                 onOpenSite = {},
                 trendKg = 74.3,
                 perWeek = uk.co.reiad.library.core.diet.Range(-0.62, -0.4, -0.18),
+                /* The two panels a fortnight of scale AND log earn:
+                   what the reader appears to burn, honestly wide,
+                   and the protein floor for the rate they chose.
+                   The floor is the real arithmetic off this same
+                   body, so the picture cannot drift from it. */
+                learned = uk.co.reiad.library.core.diet.Learned(
+                    kcal = uk.co.reiad.library.core.diet.Range(2280.0, 2450.0, 2620.0),
+                    days = 21,
+                    logged = 15,
+                    meanIntake = 1900.0,
+                    trendKgPerWeek = -0.4,
+                ),
+                protein = uk.co.reiad.library.core.diet.proteinFloor(
+                    uk.co.reiad.library.core.diet.fatEstimate(
+                        Body(172.0, 74.0, 34.0, Sex.MALE, Ancestry.ASIAN, waistCm = 88.0),
+                    ).leanKg,
+                    0.5,
+                ),
             )
         }
     }

@@ -101,6 +101,25 @@ class PrefsReachTest {
         )
     }
 
+    /** And the three glass answers reach the real backdrop.
+
+        These three passed the tests above while doing nothing:
+        the sheet's `copy(glass = ...)` satisfied the regex, the
+        record round-tripped, and the bars' frost stayed a
+        hard-coded 22dp over a hard-coded tint. So this asks the
+        narrower question the first test cannot: is the frost
+        BUILT from the record's own arithmetic. */
+    @Test fun theGlassAnswersReachTheGlass() {
+        val text = elsewhere()
+        assertTrue(
+            Regex("""\.blurRadius\(\)""").containsMatchIn(text) &&
+                Regex("""\.veilAlpha\(\)""").containsMatchIn(text),
+            "glass, blur and veil are offered and stored and the backdrop ignores them: " +
+                "the bars' frost must be built from `Prefs.blurRadius()` and " +
+                "`Prefs.veilAlpha()` rather than from numbers of its own.",
+        )
+    }
+
     /** And the type size actually reaches the typography rather
         than one style.
 

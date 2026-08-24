@@ -167,6 +167,7 @@ import uk.co.reiad.library.core.diet.Portion
 import uk.co.reiad.library.core.diet.activityFactor
 import uk.co.reiad.library.core.diet.bodyOf
 import uk.co.reiad.library.core.diet.estimatedBurn
+import uk.co.reiad.library.core.diet.fatEstimate
 import uk.co.reiad.library.core.diet.loggedFrom
 import uk.co.reiad.library.core.diet.restingBurn
 import uk.co.reiad.library.core.diet.target
@@ -269,6 +270,8 @@ import uk.co.reiad.library.ui.SettingsSheet
 import uk.co.reiad.library.ui.Shell
 import uk.co.reiad.library.ui.ShellState
 import uk.co.reiad.library.ui.LocalOpenLink
+import uk.co.reiad.library.ui.LocalGlassLook
+import uk.co.reiad.library.ui.glassLookOf
 import uk.co.reiad.library.ui.ReiadColours
 import uk.co.reiad.library.ui.arriving
 import uk.co.reiad.library.ui.Sway
@@ -910,10 +913,43 @@ internal class AppModel(private val reiad: Reiad) : ViewModel() {
             "maintain" -> GoalKind.MAINTAIN
             else -> GoalKind.LOSE
         }
+
+        /* The burn the reader's OWN fortnight implies, off the
+           same two series this fetch already holds: the weights
+           above, and each day's kcal rollup. `learnedBurn` does
+           all its own refusing, so an unsupported fortnight is a
+           null here rather than a wide guess drawn anyway. */
+        val learned = uk.co.reiad.library.core.diet.learnedBurn(
+            points,
+            days.mapNotNull { d ->
+                d.kcal?.takeIf { it > 0 }?.let {
+                    uk.co.reiad.library.core.diet.Intake(
+                        day = -java.time.temporal.ChronoUnit.DAYS.between(
+                            java.time.LocalDate.parse(d.date),
+                            java.time.LocalDate.parse(today),
+                        ).toInt(),
+                        kcal = it,
+                    )
+                }
+            },
+        )
+
         return DietState(
             loading = false,
             trendKg = smoothed,
             perWeek = perWeek,
+            learned = learned,
+            /* Only in a deficit, because the figure is what a
+               deficit costs: grams per kilogram of LEAN mass,
+               rising with the chosen rate. */
+            protein = if (goal == GoalKind.LOSE && body != null) {
+                uk.co.reiad.library.core.diet.proteinFloor(
+                    fatEstimate(body).leanKg,
+                    profile?.ratePct ?: 0.5,
+                )
+            } else {
+                null
+            },
             today = today,
             profile = profile,
             day = day,
@@ -2220,6 +2256,9 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
            50Hz for the same three numbers. */
         val sway = rememberSway()
         Surface(Modifier.fillMaxSize(), color = colours.paper) {
+            CompositionLocalProvider(
+                LocalGlassLook provides remember(prefs) { glassLookOf(prefs) },
+            ) {
             Shell(
                 state = ShellState(site, current, audience, drawer, reader != null),
                 sway = sway,
@@ -2862,6 +2901,7 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         }
                     },
                 )
+            }
             }
         }
     }

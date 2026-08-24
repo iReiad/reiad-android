@@ -105,6 +105,15 @@ data class DietState(
         own refusal, passed through rather than papered over. */
     val trendKg: Double? = null,
     val perWeek: uk.co.reiad.library.core.diet.Range? = null,
+    /** What this reader appears to burn, given what they appear
+        to eat: the scale against the log, out of the same
+        fortnight. Null until a fortnight can support it, which is
+        `learnedBurn()`'s own refusal passed through. */
+    val learned: uk.co.reiad.library.core.diet.Learned? = null,
+    /** The protein floor for the chosen rate of loss, in grams of
+        lean mass arithmetic. Null unless the goal is a deficit,
+        because the figure is about what a deficit costs. */
+    val protein: uk.co.reiad.library.core.diet.Range? = null,
 )
 
 @Composable
@@ -261,6 +270,8 @@ fun DietScreen(
                     onOpenSite = onOpenSite,
                     trendKg = state.trendKg,
                     perWeek = state.perWeek,
+                    learned = state.learned,
+                    protein = state.protein,
                 )
             }
             return@LazyColumn

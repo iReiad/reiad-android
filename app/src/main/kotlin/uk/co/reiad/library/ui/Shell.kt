@@ -209,10 +209,14 @@ fun Shell(
        design. */
     val c = LocalReiad.current
     val glass = remember { HazeState() }
+    /* The reader's own three answers, finally read: see
+       `GlassLook`. The veil is the tint's alpha, the blur is the
+       radius, and plain arrives as no blur over a solid veil. */
+    val look = LocalGlassLook.current
     val glassStyle = HazeStyle(
         backgroundColor = c.paper,
-        tint = HazeTint(c.paper.copy(alpha = 0.62f)),
-        blurRadius = 22.dp,
+        tint = HazeTint(c.paper.copy(alpha = look.veil)),
+        blurRadius = look.blur,
         noiseFactor = 0f,
     )
 
@@ -320,8 +324,12 @@ fun Shell(
                             glass,
                             HazeStyle(
                                 backgroundColor = c.paper,
-                                tint = HazeTint(c.paper.copy(alpha = 0.32f)),
-                                blurRadius = 30.dp,
+                                /* Clearer and deeper than the bar
+                                   in the same RATIO whatever the
+                                   reader chose, so the lens stays
+                                   a lens at every setting. */
+                                tint = HazeTint(c.paper.copy(alpha = look.veil * 0.5f)),
+                                blurRadius = look.blur * 1.4f,
                                 noiseFactor = 0f,
                             ),
                         ),

@@ -72,6 +72,12 @@ fun DietBodyPanel(
         fortnight of mornings can support them. */
     trendKg: Double? = null,
     perWeek: uk.co.reiad.library.core.diet.Range? = null,
+    /** The burn the reader's own scale and log imply together,
+        where a fortnight of both can support it. */
+    learned: uk.co.reiad.library.core.diet.Learned? = null,
+    /** The protein floor for the chosen rate of loss. Absent
+        outside a deficit. */
+    protein: uk.co.reiad.library.core.diet.Range? = null,
 ) {
     val c = LocalReiad.current
 
@@ -197,12 +203,61 @@ fun DietBodyPanel(
             why = words.say("dt.lean.why", lang),
         )
 
+        /* The floor, not a target: grams of protein per kilogram
+           of LEAN mass, rising with the depth of the chosen
+           deficit. Absent outside a deficit, because the figure
+           is about what a deficit costs. */
+        protein?.let { p ->
+            Reading(
+                head = if (lang == "bn") "প্রোটিনের মেঝে" else "Protein floor",
+                value = if (lang == "bn") {
+                    "${inScript(p.low.roundToInt().toString(), "bn")} – ${inScript(p.high.roundToInt().toString(), "bn")} গ্রাম"
+                } else {
+                    "${p.low.roundToInt()} to ${p.high.roundToInt()} g"
+                },
+                said = if (lang == "bn") {
+                    "চর্বিহীন ভরের হিসাবে, ঘাটতি যত গভীর তত উপরে"
+                } else {
+                    "per your lean mass, rising with the deficit"
+                },
+                why = if (lang == "bn") {
+                    "কমা ওজনটা চর্বি গেল না পেশি, প্রোটিনই সেটা ঠিক করে।"
+                } else {
+                    "Protein is what decides whether the weight lost is fat or muscle."
+                },
+            )
+        }
+
         Reading(
             head = if (lang == "bn") "বিশ্রামে খরচ" else "Resting burn",
             value = "${(rest.kcal / 10).roundToInt() * 10} kcal",
             said = words.sexForm(body.sex.id, lang),
             why = null,
         )
+
+        /* The gap between this and the estimate above IS the
+           under-logging estimate, which is why the two sit side
+           by side. A RANGE, and it widens with every day nobody
+           wrote down: `learnedBurn` carries the unlogged days as
+           error, so a sparse log gets an honestly wide band
+           rather than a confident wrong one. */
+        learned?.let { l ->
+            Reading(
+                head = if (lang == "bn") "নিজের হিসাবে খরচ" else "Your burn, learned",
+                value = "${(l.kcal.low / 10).roundToInt() * 10} – ${(l.kcal.high / 10).roundToInt() * 10} kcal",
+                said = if (lang == "bn") {
+                    "${inScript(l.days.toString(), "bn")} দিনের মধ্যে ${inScript(l.logged.toString(), "bn")} দিন লেখা ছিল"
+                } else {
+                    "logged ${l.logged} of ${l.days} days"
+                },
+                why = if (lang == "bn") {
+                    "পাল্লার গতি আর যা লেখা হয়েছে, দুটো মিলিয়ে: কার্যকলাপের ভুল অনুমান আর কম লেখা, দুটোই এর ভেতরে ধরা।"
+                } else {
+                    "Your scale against your log. A wrong activity guess and quiet " +
+                        "under-logging are both inside this number, which is the point of it."
+                },
+            )
+        }
 
         /* Section 31: every page that prints a figure about a
            body prints, beside it, that this is general education
