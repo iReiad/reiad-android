@@ -2584,10 +2584,19 @@ fun App(arrivals: StateFlow<String?> = MutableStateFlow(null)) {
                         /* Eleven of the tool's fourteen pages are
                            still the site's, and so are the barcode
                            scanner and the two public databases.
-                           This opens the log rather than
-                           pretending the app has all of it. */
+                           This opens the tool rather than
+                           pretending the app has all of it.
+
+                           `/tools/diet`, which is the tool's own
+                           front page and the one every other
+                           page of it is reachable from. It was
+                           `/tools/diet/log`, which is a 404
+                           there: the same fault as the course
+                           card's, found the same way, and
+                           `SitePathsTest` is now the answer to
+                           both. */
                         onOpenSite = {
-                            openOnSite(context, "/tools/diet/log", colours)
+                            openOnSite(context, "/tools/diet", colours)
                         },
                         words = site?.dietWords ?: uk.co.reiad.library.core.DietWords(),
                         lang = prefs.lang,
